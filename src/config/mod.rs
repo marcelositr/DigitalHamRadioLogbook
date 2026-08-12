@@ -11,12 +11,42 @@ use serde::{Deserialize, Serialize};
 pub struct AppConfig {
     #[serde(default)]
     pub station: StationConfig,
+    #[serde(default)]
+    pub external_links: ExternalLinksConfig,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StationConfig {
     #[serde(default)]
     pub callsign: String,
+}
+
+pub const DEFAULT_CALLSIGN_URL: &str = "https://www.qrz.com/db/{callsign}";
+pub const DEFAULT_GRID_URL: &str = "https://www.levinecentral.com/ham/grid_square.php?Grid={grid}";
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ExternalLinksConfig {
+    #[serde(default = "default_callsign_url")]
+    pub callsign_url: String,
+    #[serde(default = "default_grid_url")]
+    pub grid_url: String,
+}
+
+impl Default for ExternalLinksConfig {
+    fn default() -> Self {
+        Self {
+            callsign_url: DEFAULT_CALLSIGN_URL.into(),
+            grid_url: DEFAULT_GRID_URL.into(),
+        }
+    }
+}
+
+fn default_callsign_url() -> String {
+    DEFAULT_CALLSIGN_URL.into()
+}
+
+fn default_grid_url() -> String {
+    DEFAULT_GRID_URL.into()
 }
 
 impl AppConfig {
@@ -28,6 +58,41 @@ impl AppConfig {
         self.station.callsign = callsign;
         Ok(())
     }
+
+    pub fn set_external_links(
+        &mut self,
+        callsign_url: impl Into<String>,
+        grid_url: impl Into<String>,
+    ) -> Result<(), ConfigError> {
+        let callsign_url = callsign_url.into().trim().to_owned();
+        let grid_url = grid_url.into().trim().to_owned();
+        validate_url_template(&callsign_url, "{callsign}")?;
+        validate_url_template(&grid_url, "{grid}")?;
+        self.external_links = ExternalLinksConfig {
+            callsign_url,
+            grid_url,
+        };
+        Ok(())
+    }
+}
+
+pub fn expand_url_template(
+    template: &str,
+    placeholder: &'static str,
+    value: &str,
+) -> Result<String, ConfigError> {
+    validate_url_template(template, placeholder)?;
+    Ok(template.replace(placeholder, &urlencoding::encode(value)))
+}
+
+fn validate_url_template(template: &str, placeholder: &'static str) -> Result<(), ConfigError> {
+    if !(template.starts_with("https://") || template.starts_with("http://")) {
+        return Err(ConfigError::InvalidUrlScheme);
+    }
+    if !template.contains(placeholder) {
+        return Err(ConfigError::MissingPlaceholder(placeholder));
+    }
+    Ok(())
 }
 
 pub fn load(path: &Path) -> Result<AppConfig, Box<dyn Error>> {
@@ -103,12 +168,20 @@ fn sync_parent_directory(_parent: &Path) -> Result<(), Box<dyn Error>> {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ConfigError {
     EmptyCallsign,
+    InvalidUrlScheme,
+    MissingPlaceholder(&'static str),
 }
 
 impl Display for ConfigError {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::EmptyCallsign => formatter.write_str("Local station callsign is required"),
+            Self::InvalidUrlScheme => {
+                formatter.write_str("Lookup URL must start with http:// or https://")
+            }
+            Self::MissingPlaceholder(placeholder) => {
+                write!(formatter, "Lookup URL must contain {placeholder}")
+            }
         }
     }
 }
@@ -126,6 +199,36 @@ mod tests {
         config.set_callsign(" pu2xyz ").unwrap();
         assert_eq!(config.station.callsign, "PU2XYZ");
         assert_eq!(config.set_callsign(""), Err(ConfigError::EmptyCallsign));
+    }
+
+    #[test]
+    fn validates_and_expands_external_link_templates() {
+        let mut config = AppConfig::default();
+        config
+            .set_external_links(
+                "https://example.com/call/{callsign}",
+                "https://example.com/grid?q={grid}",
+            )
+            .unwrap();
+        assert_eq!(
+            expand_url_template(&config.external_links.callsign_url, "{callsign}", "PU2/ABC")
+                .unwrap(),
+            "https://example.com/call/PU2%2FABC"
+        );
+        assert_eq!(
+            config.set_external_links("file:///{callsign}", DEFAULT_GRID_URL),
+            Err(ConfigError::InvalidUrlScheme)
+        );
+        assert_eq!(
+            config.set_external_links("https://example.com/call", DEFAULT_GRID_URL),
+            Err(ConfigError::MissingPlaceholder("{callsign}"))
+        );
+    }
+
+    #[test]
+    fn old_configuration_uses_default_external_links() {
+        let config: AppConfig = toml::from_str("[station]\ncallsign = 'PY2ABC'\n").unwrap();
+        assert_eq!(config.external_links, ExternalLinksConfig::default());
     }
 
     #[test]

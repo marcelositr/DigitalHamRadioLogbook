@@ -9,7 +9,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use chrono::{DateTime, NaiveDateTime, Utc};
 use digital_ham_radio_logbook::adif::{export as export_adif_text, parse as parse_adif};
-use digital_ham_radio_logbook::config::{self, AppConfig};
+use digital_ham_radio_logbook::config::{
+    self, expand_url_template, AppConfig, DEFAULT_CALLSIGN_URL, DEFAULT_GRID_URL,
+};
 use digital_ham_radio_logbook::database::{DmrFilter, Ft8Filter, QsoRepository};
 use digital_ham_radio_logbook::domain::{
     CommonQsoFields, DmrMetadata, DmrMetadataInput, Ft8Metadata, Ft8MetadataInput, NewQso,
@@ -40,12 +42,22 @@ fn main() -> Result<(), Box<dyn Error>> {
     let ui = MainWindow::new()?;
 
     ui.set_local_callsign_text(app_config.borrow().station.callsign.clone().into());
+    ui.set_callsign_url_text(
+        app_config
+            .borrow()
+            .external_links
+            .callsign_url
+            .clone()
+            .into(),
+    );
+    ui.set_grid_url_text(app_config.borrow().external_links.grid_url.clone().into());
     if app_config.borrow().station.callsign.is_empty() {
         set_status(&ui, "Configure the local station callsign", STATUS_WARNING);
     }
     ui.set_datetime_text(format_utc_datetime(current_utc_timestamp()?)?.into());
     refresh_qso_list(&ui, &repository, "")?;
-    connect_station_config_handler(&ui, &app_config, config_path);
+    connect_station_config_handler(&ui, &app_config, config_path.clone());
+    connect_external_link_handlers(&ui, &app_config, config_path);
     connect_save_handler(&ui, &repository);
     connect_search_handler(&ui, &repository);
     connect_dmr_filter_handlers(&ui, &repository);
@@ -93,6 +105,109 @@ fn connect_station_config_handler(
             }
         }
     });
+}
+
+fn connect_external_link_handlers(
+    ui: &MainWindow,
+    app_config: &Rc<RefCell<AppConfig>>,
+    config_path: PathBuf,
+) {
+    let weak_ui = ui.as_weak();
+    let app_config_for_save = Rc::clone(app_config);
+    let save_path = config_path.clone();
+    ui.on_save_external_links(move || {
+        let Some(ui) = weak_ui.upgrade() else {
+            return;
+        };
+        let result = (|| -> Result<(), Box<dyn Error>> {
+            let mut updated = app_config_for_save.borrow().clone();
+            updated.set_external_links(
+                ui.get_callsign_url_text().as_str(),
+                ui.get_grid_url_text().as_str(),
+            )?;
+            config::save(&save_path, &updated)?;
+            *app_config_for_save.borrow_mut() = updated;
+            Ok(())
+        })();
+        match result {
+            Ok(()) => set_status(&ui, "External lookup links saved", STATUS_SUCCESS),
+            Err(error) => set_status(
+                &ui,
+                format!("Could not save lookup links: {error}"),
+                STATUS_ERROR,
+            ),
+        }
+    });
+
+    let weak_ui = ui.as_weak();
+    ui.on_restore_external_link_defaults(move || {
+        let Some(ui) = weak_ui.upgrade() else {
+            return;
+        };
+        ui.set_callsign_url_text(DEFAULT_CALLSIGN_URL.into());
+        ui.set_grid_url_text(DEFAULT_GRID_URL.into());
+        set_status(
+            &ui,
+            "Default lookup links restored; save to persist them",
+            STATUS_INFO,
+        );
+    });
+
+    let weak_ui = ui.as_weak();
+    let app_config_for_callsign = Rc::clone(app_config);
+    ui.on_open_callsign_lookup(move |callsign| {
+        let Some(ui) = weak_ui.upgrade() else {
+            return;
+        };
+        open_lookup(
+            &ui,
+            &app_config_for_callsign.borrow().external_links.callsign_url,
+            "{callsign}",
+            callsign.as_str(),
+            "callsign",
+        );
+    });
+
+    let weak_ui = ui.as_weak();
+    let app_config_for_grid = Rc::clone(app_config);
+    ui.on_open_grid_lookup(move |grid| {
+        let Some(ui) = weak_ui.upgrade() else {
+            return;
+        };
+        open_lookup(
+            &ui,
+            &app_config_for_grid.borrow().external_links.grid_url,
+            "{grid}",
+            grid.as_str(),
+            "grid",
+        );
+    });
+}
+
+fn open_lookup(
+    ui: &MainWindow,
+    template: &str,
+    placeholder: &'static str,
+    value: &str,
+    label: &str,
+) {
+    let result = (|| -> Result<(), Box<dyn Error>> {
+        let url = expand_url_template(template, placeholder, value)?;
+        webbrowser::open(&url)?;
+        Ok(())
+    })();
+    match result {
+        Ok(()) => set_status(
+            ui,
+            format!("Opening {label} lookup in the default browser"),
+            STATUS_INFO,
+        ),
+        Err(error) => set_status(
+            ui,
+            format!("Could not open {label} lookup: {error}"),
+            STATUS_ERROR,
+        ),
+    }
 }
 
 fn connect_save_handler(ui: &MainWindow, repository: &Rc<QsoRepository>) {

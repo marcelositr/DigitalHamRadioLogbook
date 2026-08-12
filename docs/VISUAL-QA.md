@@ -23,6 +23,8 @@ All items below were approved after Marco 10. Reopen the checkboxes after future
 - [x] Long timestamps, callsigns, frequencies, grids, and route summaries elide cleanly.
 - [x] Empty route/details displays `—`.
 - [x] Alternating rows and mode badges remain readable.
+- [ ] Callsign and grid links have clear hover states and open only after a click.
+- [ ] Empty grid displays `—` and is not clickable.
 - [x] Empty database and no-results states are centered and informative.
 - [x] Delete confirmation shows title, callsign, warning, Cancel, and Confirm delete.
 
@@ -50,6 +52,7 @@ All items below were approved after Marco 10. Reopen the checkboxes after future
 - [x] Local-station card sizes naturally around its contents.
 - [x] Callsign field and Save station button align.
 - [x] Privacy/offline message is readable.
+- [ ] External-link templates, privacy notice, Restore defaults, and Save links are fully visible.
 - [x] Saving updates the header badge without layout shift or clipping.
 
 ## Keyboard and focus

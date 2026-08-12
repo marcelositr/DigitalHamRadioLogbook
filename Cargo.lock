@@ -1095,6 +1095,8 @@ dependencies = [
  "slint",
  "slint-build",
  "toml 0.8.23",
+ "urlencoding",
+ "webbrowser",
 ]
 
 [[package]]

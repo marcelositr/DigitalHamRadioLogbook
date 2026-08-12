@@ -14,6 +14,7 @@ O MVP funcional inclui:
 - importação e exportação ADIF transacionais;
 - preservação de campos ADIF desconhecidos;
 - configuração local da estação;
+- links externos configuráveis para consulta de callsign e GridSquare;
 - backup consistente do banco;
 - persistência entre execuções e operação sem serviços online.
 
@@ -112,6 +113,17 @@ O menu superior separa as tarefas para manter todos os controles acessíveis mes
 - **Settings**: configuração do callsign da estação local.
 
 Ao editar um registro pela tabela, o mesmo formulário é aberto preenchido. As ações de salvar e cancelar permanecem fixas no rodapé enquanto os campos podem ser rolados.
+
+## Consultas externas
+
+Na tabela do Logbook, clicar em um callsign ou GridSquare abre o navegador padrão usando os templates configurados em **Settings**.
+
+Padrões:
+
+- callsign: `https://www.qrz.com/db/{callsign}`;
+- grid: `https://www.levinecentral.com/ham/grid_square.php?Grid={grid}`.
+
+Somente templates `http://` ou `https://` são aceitos, e os placeholders correspondentes são obrigatórios. Nenhuma consulta é feita automaticamente: o callsign ou grid é enviado ao site externo apenas após clique explícito do usuário.
 
 ## Atalhos de teclado
 

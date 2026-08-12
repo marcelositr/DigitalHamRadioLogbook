@@ -217,6 +217,18 @@ Este arquivo é o checkpoint persistente do projeto. Ao retomar o trabalho, ler 
 - [x] Documentar restauração segura em `docs/DATA-RECOVERY.md`.
 - [x] Ampliar a suíte de 49 para 53 testes.
 
+## Marco 14 — Links externos configuráveis
+
+- [x] Adicionar padrões QRZ para callsign e Levine Central para GridSquare.
+- [x] Persistir templates em `config.toml` com compatibilidade retroativa.
+- [x] Aceitar somente HTTP/HTTPS e exigir `{callsign}`/`{grid}`.
+- [x] Aplicar percent-encoding antes de abrir a URL.
+- [x] Adicionar cartão de configuração, aviso de privacidade, restaurar padrões e salvar.
+- [x] Tornar callsign e grid clicáveis com hover na tabela.
+- [x] Não tornar grid vazio clicável e exibir `—`.
+- [x] Abrir somente após clique explícito, sem requests em segundo plano.
+- [ ] Homologar visualmente no i3 e confirmar abertura no navegador padrão.
+
 ## Próxima ação exata
 
-Marcos 11–13 concluídos tecnicamente. Executar apenas a homologação manual dos três diálogos gráficos no i3: cancelar, selecionar ADIF para importação, escolher exportação e escolher backup. Release, instalação, execução externa, desinstalação e recuperação já foram validados de forma isolada. O teste de bloqueio físico da rede continua limitado pela restrição do ambiente para criar namespace; o aplicativo não possui integrações de rede.
+Validar no i3: clicar em callsign, clicar em grid, confirmar que grid vazio não abre, salvar templates personalizados, reiniciar e confirmar persistência, restaurar padrões e salvar. Reabrir os itens pendentes de `docs/VISUAL-QA.md`. Alterações permanecem somente na branch `develop` até homologação.
