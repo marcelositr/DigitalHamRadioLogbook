@@ -35,7 +35,7 @@ All items below were approved after Marco 10. Reopen the checkboxes after future
 - [x] Report/station fields align consistently.
 - [x] DMR card appears only for DMR and all rows remain inside the card.
 - [x] FT8 card appears only for FT8 and all rows remain inside the card.
-- [ ] DMR/FT8 card appears immediately after common fields, with Notes immediately after the active card and no reserved blank space.
+- [x] DMR/FT8 card appears immediately after common fields, with Notes immediately after the active card and no reserved blank space.
 - [x] Form scroll reaches Notes and every mode-specific field.
 - [x] Footer remains fixed with keyboard hint, Cancel, and primary Save action.
 - [x] Validation errors keep the form open.
