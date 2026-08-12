@@ -57,6 +57,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     ui.set_datetime_text(format_utc_datetime(current_utc_timestamp()?)?.into());
     refresh_qso_list(&ui, &repository, "")?;
     connect_station_config_handler(&ui, &app_config, config_path.clone());
+    connect_mode_handler(&ui);
     connect_external_link_handlers(&ui, &app_config, config_path);
     connect_save_handler(&ui, &repository);
     connect_search_handler(&ui, &repository);
@@ -105,6 +106,23 @@ fn connect_station_config_handler(
             }
         }
     });
+}
+
+fn connect_mode_handler(ui: &MainWindow) {
+    let weak_ui = ui.as_weak();
+    ui.on_mode_input_changed(move |mode| {
+        if let Some(ui) = weak_ui.upgrade() {
+            ui.set_mode_kind(mode_kind(mode.as_str()));
+        }
+    });
+}
+
+fn mode_kind(mode: &str) -> i32 {
+    match mode.trim().to_ascii_uppercase().as_str() {
+        "DMR" => 1,
+        "FT8" => 2,
+        _ => 0,
+    }
 }
 
 fn connect_external_link_handlers(
@@ -766,6 +784,7 @@ fn clear_editor(ui: &MainWindow) -> Result<(), Box<dyn Error>> {
     ui.set_callsign_text("".into());
     ui.set_datetime_text(format_utc_datetime(current_utc_timestamp()?)?.into());
     ui.set_mode_text("".into());
+    ui.set_mode_kind(0);
     ui.set_frequency_text("".into());
     ui.set_band_text("".into());
     ui.set_rst_sent_text("".into());
@@ -1027,6 +1046,19 @@ fn format_frequency_input(frequency_hz: i64) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn normalizes_specialized_mode_for_the_editor() {
+        for value in ["DMR", "dmr", "Dmr", " DMR "] {
+            assert_eq!(mode_kind(value), 1);
+        }
+        for value in ["FT8", "ft8", "Ft8", " FT8 "] {
+            assert_eq!(mode_kind(value), 2);
+        }
+        for value in ["M17", "", "FT-8"] {
+            assert_eq!(mode_kind(value), 0);
+        }
+    }
 
     #[test]
     fn parses_and_formats_utc_datetime() {

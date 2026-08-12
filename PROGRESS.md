@@ -228,6 +228,9 @@ Este arquivo é o checkpoint persistente do projeto. Ao retomar o trabalho, ler 
 - [x] Não tornar grid vazio clicável e exibir `—`.
 - [x] Abrir somente após clique explícito, sem requests em segundo plano.
 - [ ] Homologar visualmente no i3 e confirmar abertura no navegador padrão.
+- [x] Corrigir espaço fantasma entre detalhes DMR/FT8 e Notes usando blocos condicionais reais.
+- [x] Normalizar modo durante digitação (`DMR`, `dmr`, `Ft8`, espaços etc.).
+- [x] Ampliar a suíte para 56 testes.
 
 ## Próxima ação exata
 
