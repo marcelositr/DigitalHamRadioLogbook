@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-labelledby="title description">
+  <title id="title">Digital Ham Radio Logbook</title>
+  <desc id="description">An open radio logbook with a digital signal and antenna</desc>
+  <rect width="128" height="128" rx="24" fill="#2e3440"/>
+  <path d="M18 32c17-5 33-2 46 8v68c-13-10-29-13-46-8V32Z" fill="#3b4252" stroke="#88c0d0" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M110 32c-17-5-33-2-46 8v68c13-10 29-13 46-8V32Z" fill="#434c5e" stroke="#88c0d0" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M64 40v68" stroke="#81a1c1" stroke-width="4"/>
+  <path d="M27 48h24M27 60h18M77 76h24M77 88h18" stroke="#d8dee9" stroke-width="4" stroke-linecap="round"/>
+  <path d="M88 59V42m-8 17h16M83 42l5-9 5 9" fill="none" stroke="#a3be8c" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M78 51c-6 3-6 8 0 11M98 51c6 3 6 8 0 11" fill="none" stroke="#5e81ac" stroke-width="3" stroke-linecap="round"/>
+</svg>

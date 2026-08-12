@@ -1,0 +1,143 @@
+// Nord-based visual language for the application.
+import { HorizontalBox, VerticalBox } from "std-widgets.slint";
+
+export global Theme {
+    // Polar Night
+    out property <color> background: #2e3440;
+    out property <color> surface: #3b4252;
+    out property <color> surface-raised: #434c5e;
+    out property <color> border: #4c566a;
+
+    // Snow Storm
+    out property <color> text-primary: #eceff4;
+    out property <color> text-secondary: #d8dee9;
+    out property <color> text-muted: #aeb8c7;
+
+    // Frost
+    out property <color> accent: #88c0d0;
+    out property <color> accent-secondary: #81a1c1;
+    out property <color> primary: #5e81ac;
+
+    // Aurora
+    out property <color> danger: #bf616a;
+    out property <color> warning: #ebcb8b;
+    out property <color> success: #a3be8c;
+    out property <color> special: #b48ead;
+
+    // Layout scale
+    out property <length> space-xs: 4px;
+    out property <length> space-sm: 8px;
+    out property <length> space-md: 12px;
+    out property <length> space-lg: 16px;
+    out property <length> space-xl: 20px;
+    out property <length> radius-sm: 4px;
+    out property <length> radius-md: 6px;
+}
+
+export component SectionTitle inherits Text {
+    color: Theme.accent;
+    font-size: 16px;
+    font-weight: 700;
+    vertical-alignment: center;
+}
+
+export component PageTitle inherits Text {
+    color: Theme.accent;
+    font-size: 20px;
+    font-weight: 700;
+    vertical-alignment: center;
+}
+
+export component StationBadge inherits Rectangle {
+    in property <string> callsign;
+
+    background: callsign == "" ? Theme.surface-raised : Theme.primary;
+    border-width: 1px;
+    border-color: callsign == "" ? Theme.warning : Theme.accent-secondary;
+    border-radius: Theme.radius-md;
+
+    HorizontalBox {
+        padding-left: Theme.space-md;
+        padding-right: Theme.space-md;
+        padding-top: Theme.space-xs;
+        padding-bottom: Theme.space-xs;
+
+        Text {
+            text: callsign == "" ? "STATION NOT CONFIGURED" : "STATION  " + callsign;
+            color: callsign == "" ? Theme.warning : Theme.text-primary;
+            font-size: 12px;
+            font-weight: 700;
+            vertical-alignment: center;
+        }
+    }
+}
+
+export component ModeBadge inherits Rectangle {
+    in property <string> mode;
+
+    min-width: 64px;
+    max-width: 64px;
+    background: Theme.surface-raised;
+    border-radius: Theme.radius-sm;
+
+    Text {
+        text: mode;
+        color: Theme.text-primary;
+        font-size: 12px;
+        font-weight: 700;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
+export component EmptyState inherits VerticalBox {
+    in property <string> title;
+    in property <string> detail;
+
+    alignment: center;
+    spacing: Theme.space-sm;
+
+    Text {
+        text: title;
+        color: Theme.text-primary;
+        font-size: 18px;
+        font-weight: 700;
+        horizontal-alignment: center;
+    }
+    Text {
+        text: detail;
+        color: Theme.text-muted;
+        horizontal-alignment: center;
+    }
+}
+
+export component StatusBar inherits Rectangle {
+    in property <string> message;
+    in property <int> kind; // 0 info, 1 success, 2 warning, 3 error
+
+    height: 36px;
+    background: kind == 3 ? Theme.danger : kind == 2 ? Theme.warning : kind == 1 ? Theme.success : Theme.surface;
+    border-width: 1px;
+    border-color: kind == 0 ? Theme.border : kind == 3 ? Theme.danger : kind == 2 ? Theme.warning : Theme.success;
+
+    HorizontalBox {
+        padding-left: Theme.space-md;
+        padding-right: Theme.space-md;
+        spacing: Theme.space-sm;
+
+        Text {
+            text: kind == 3 ? "ERROR" : kind == 2 ? "NOTICE" : kind == 1 ? "DONE" : "INFO";
+            color: kind == 0 ? Theme.accent : Theme.background;
+            font-size: 11px;
+            font-weight: 700;
+            vertical-alignment: center;
+        }
+        Text {
+            text: message;
+            color: kind == 0 ? Theme.text-primary : Theme.background;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+    }
+}

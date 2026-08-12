@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Digital Ham Radio Logbook
+Comment=Offline logbook for digital amateur radio contacts
+Exec="@EXECUTABLE@"
+Icon=io.github.marcelositr.DigitalHamRadioLogbook
+Terminal=false
+Categories=Network;HamRadio;
+Keywords=ham;radio;logbook;DMR;FT8;ADIF;
+StartupNotify=true
+StartupWMClass=io.github.marcelositr.DigitalHamRadioLogbook
+X-GNOME-UsesNotifications=false

@@ -1,0 +1,15 @@
+/target/
+/.tools/
+/.validation/
+/dist/
+/print/
+.env
+.env.*
+!.env.example
+*.log
+*.tmp
+*.adi
+*.adif
+*.sqlite3
+*.sqlite3-shm
+*.sqlite3-wal
