@@ -217,7 +217,7 @@ Este arquivo é o checkpoint persistente do projeto. Ao retomar o trabalho, ler 
 - [x] Documentar restauração segura em `docs/DATA-RECOVERY.md`.
 - [x] Ampliar a suíte de 49 para 53 testes.
 
-## Marco 14 — Links externos configuráveis
+## Marco 14 — Links externos configuráveis (CONCLUÍDO)
 
 - [x] Adicionar padrões QRZ para callsign e Levine Central para GridSquare.
 - [x] Persistir templates em `config.toml` com compatibilidade retroativa.
@@ -227,11 +227,11 @@ Este arquivo é o checkpoint persistente do projeto. Ao retomar o trabalho, ler 
 - [x] Tornar callsign e grid clicáveis com hover na tabela.
 - [x] Não tornar grid vazio clicável e exibir `—`.
 - [x] Abrir somente após clique explícito, sem requests em segundo plano.
-- [ ] Homologar visualmente no i3 e confirmar abertura no navegador padrão.
+- [x] Homologado visualmente no i3; callsign e grid abrem corretamente no navegador padrão.
 - [x] Corrigir espaço fantasma entre detalhes DMR/FT8 e Notes usando blocos condicionais reais; homologado pelo usuário no i3.
 - [x] Normalizar modo durante digitação (`DMR`, `dmr`, `Ft8`, espaços etc.); M17 confirmado como modo genérico.
 - [x] Ampliar a suíte para 56 testes.
 
 ## Próxima ação exata
 
-Validar no i3: clicar em callsign, clicar em grid, confirmar que grid vazio não abre, salvar templates personalizados, reiniciar e confirmar persistência, restaurar padrões e salvar. Reabrir os itens pendentes de `docs/VISUAL-QA.md`. Alterações permanecem somente na branch `develop` até homologação.
+Marco 14 homologado na branch `develop`: links, hover, navegador padrão, grid vazio, Settings e layout DMR/FT8 estão corretos no i3. Próxima decisão: abrir pull request de `develop` para `main`, definir a próxima versão e preparar uma nova release; não fazer merge automático sem revisão explícita.
