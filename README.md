@@ -87,8 +87,12 @@ Também é possível fechar o aplicativo e copiar `logbook.sqlite3` manualmente.
 
 - `src/domain/`: entidades e validações independentes da interface e do banco;
 - `src/database/`: migrations e acesso ao SQLite;
-- `ui/`: componentes Slint;
-- `src/main.rs`: composição da aplicação e ligação entre UI e persistência.
+- `src/app/`: handlers e serviços de apresentação separados por fluxo — editor, lista, filtros, ADIF, backup, configuração, arquivos e fechamento;
+- `src/main.rs`: composition root enxuto, responsável apenas por criar dependências, inicializar a janela e conectar os módulos;
+- `ui/main.slint`: contrato público e shell global da janela;
+- `ui/pages/`: páginas independentes de Logbook, editor, Tools e Settings;
+- `ui/models/`: tipos Slint compartilhados entre páginas;
+- `ui/design-system.slint`: tema Nord e componentes visuais reutilizáveis.
 
 A interface não executa SQL e a camada de banco não depende de Slint.
 

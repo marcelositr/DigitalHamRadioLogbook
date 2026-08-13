@@ -1,0 +1,59 @@
+import { Button, LineEdit, ListView, ScrollView, VerticalBox, HorizontalBox } from "std-widgets.slint";
+import { Theme, PageTitle, SectionTitle } from "../design-system.slint";
+
+export component SettingsPage inherits ScrollView {
+    in-out property <string> callsign-url-text;
+    in-out property <string> grid-url-text;
+    in-out property <string> local-callsign-text;
+    callback restore-external-link-defaults();
+    callback save-external-links();
+    callback save-local-callsign();
+
+            vertical-stretch: 1;
+            VerticalBox {
+                padding: 18px; spacing: 16px;
+                PageTitle { text: "Settings"; }
+                Rectangle {
+                    background: Theme.surface; border-width: 1px; border-color: Theme.border; border-radius: Theme.radius-md;
+                    VerticalBox {
+                        padding: Theme.space-lg; spacing: Theme.space-sm;
+                        SectionTitle { text: "LOCAL STATION"; }
+                        Text { text: "Identify this station in the application header. The callsign is stored in the local XDG configuration directory."; color: Theme.text-secondary; }
+                        HorizontalBox {
+                            spacing: 8px;
+                            LineEdit { text <=> root.local-callsign-text; placeholder-text: "Local callsign"; }
+                            Button { text: "Save station"; primary: true; clicked => { root.save-local-callsign(); } }
+                            Rectangle { horizontal-stretch: 1; }
+                        }
+                    }
+                }
+                Rectangle {
+                    background: Theme.surface; border-width: 1px; border-color: Theme.border; border-radius: Theme.radius-md;
+                    VerticalBox {
+                        padding: Theme.space-lg; spacing: Theme.space-sm;
+                        SectionTitle { text: "EXTERNAL LOOKUP LINKS"; }
+                        Text {
+                            text: "Opening a lookup sends the selected callsign or grid locator to the configured external website.";
+                            color: Theme.warning;
+                        }
+                        VerticalBox {
+                            spacing: Theme.space-xs;
+                            Text { text: "Callsign URL template — requires {callsign}"; }
+                            LineEdit { text <=> root.callsign-url-text; horizontal-stretch: 1; }
+                        }
+                        VerticalBox {
+                            spacing: Theme.space-xs;
+                            Text { text: "Grid URL template — requires {grid}"; }
+                            LineEdit { text <=> root.grid-url-text; horizontal-stretch: 1; }
+                        }
+                        HorizontalBox {
+                            spacing: Theme.space-sm;
+                            Rectangle { horizontal-stretch: 1; }
+                            Button { text: "Restore defaults"; clicked => { root.restore-external-link-defaults(); } }
+                            Button { text: "Save links"; primary: true; clicked => { root.save-external-links(); } }
+                        }
+                    }
+                }
+                Text { text: "Data remains local. External websites open only after an explicit click."; color: Theme.success; }
+            }
+        }

@@ -302,6 +302,19 @@ Este arquivo é o checkpoint persistente do projeto. Ao retomar o trabalho, ler 
 - [x] Validar fmt, clippy, 67 testes, build e startup X11 isolado.
 - [x] Homologar mensagens acionáveis no i3.
 
+## Marco 20 — Refatoração estrutural sem mudança de comportamento
+
+- [x] Reduzir `src/main.rs` de 1.636 para 81 linhas como composition root.
+- [x] Separar handlers Rust em módulos coesos sob `src/app/`.
+- [x] Mover os testes do binário para os módulos proprietários sem reduzir cobertura.
+- [x] Manter `MainWindow` como contrato público e proprietário do estado Slint.
+- [x] Extrair Logbook, editor, Tools e Settings para `ui/pages/`.
+- [x] Extrair `QsoRow` para `ui/models/` sem alterar a API gerada.
+- [x] Preservar FocusScope, callbacks, bindings, ordem de efeitos e layout `1050×680`.
+- [x] Manter o design system Nord inalterado.
+- [x] Validar fmt, clippy, 67 testes, build e startup X11 isolado.
+- [ ] Homologar visualmente e funcionalmente as quatro páginas no i3.
+
 ## Próxima ação exata
 
-Marco 19 concluído, homologado e publicado exclusivamente na branch `develop`. Definir o próximo marco antes de iniciar novas alterações.
+Marco 20 implementado e validado exclusivamente na branch `develop`. Publicar e pausar para homologação visual/funcional da refatoração.

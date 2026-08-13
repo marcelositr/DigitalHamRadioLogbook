@@ -1,0 +1,84 @@
+import { Button, LineEdit, ListView, ScrollView, VerticalBox, HorizontalBox } from "std-widgets.slint";
+import { Theme, PageTitle, SectionTitle } from "../design-system.slint";
+
+export component ToolsPage inherits ScrollView {
+    in-out property <string> adif-path-text;
+    in-out property <int> adif-preview-duplicates;
+    in-out property <int> adif-preview-invalid;
+    in-out property <string> adif-preview-modes;
+    in-out property <int> adif-preview-new;
+    in-out property <int> adif-preview-total;
+    in-out property <bool> adif-preview-visible;
+    in-out property <string> backup-path-text;
+    callback backup-database();
+    callback cancel-adif-import();
+    callback choose-adif-export();
+    callback choose-adif-import();
+    callback choose-backup-destination();
+    callback confirm-adif-import();
+    callback export-adif();
+    callback invalidate-adif-preview();
+    callback preview-adif();
+
+            vertical-stretch: 1;
+            VerticalBox {
+                padding: 18px; spacing: 18px;
+                PageTitle { text: "Tools"; }
+                Rectangle {
+                    background: Theme.surface; border-width: 1px; border-color: Theme.border; border-radius: Theme.radius-md;
+                    VerticalBox {
+                        padding: Theme.space-lg; spacing: Theme.space-sm;
+                        SectionTitle { text: "ADIF IMPORT AND EXPORT"; }
+                        Text { text: "Exchange logbook data safely. Import is transactional and export never overwrites an existing file."; color: Theme.text-secondary; }
+                        HorizontalBox {
+                            spacing: Theme.space-sm;
+                            LineEdit { text <=> root.adif-path-text; placeholder-text: "/path/to/logbook.adi"; horizontal-stretch: 1; edited => { root.invalidate-adif-preview(); } }
+                            Button { text: "Choose import…"; clicked => { root.invalidate-adif-preview(); root.choose-adif-import(); } }
+                            Button { text: "Choose export…"; clicked => { root.invalidate-adif-preview(); root.choose-adif-export(); } }
+                        }
+                        HorizontalBox {
+                            spacing: Theme.space-sm;
+                            Rectangle { horizontal-stretch: 1; }
+                            Button { text: "Preview import"; clicked => { root.preview-adif(); } }
+                            Button { text: "Export ADIF"; primary: true; clicked => { root.export-adif(); } }
+                        }
+                        if root.adif-preview-visible : Rectangle {
+                            background: Theme.surface-raised; border-width: 1px; border-color: root.adif-preview-invalid > 0 ? Theme.warning : Theme.accent-secondary; border-radius: Theme.radius-md;
+                            VerticalBox {
+                                padding: Theme.space-md; spacing: Theme.space-sm;
+                                Text { text: "ADIF IMPORT PREVIEW"; color: Theme.accent; font-weight: 700; }
+                                HorizontalBox {
+                                    spacing: Theme.space-lg;
+                                    Text { text: "Total  " + root.adif-preview-total; color: Theme.text-secondary; }
+                                    Text { text: "New  " + root.adif-preview-new; color: Theme.success; font-weight: 700; }
+                                    Text { text: "Duplicates  " + root.adif-preview-duplicates; color: Theme.text-muted; }
+                                    Text { text: "Invalid  " + root.adif-preview-invalid; color: root.adif-preview-invalid > 0 ? Theme.warning : Theme.text-muted; }
+                                    Rectangle { horizontal-stretch: 1; }
+                                }
+                                Text { text: "Modes  " + root.adif-preview-modes; color: Theme.text-secondary; wrap: word-wrap; }
+                                Text { text: root.adif-preview-invalid > 0 ? "Invalid records will not be imported." : "The database has not been changed yet."; color: root.adif-preview-invalid > 0 ? Theme.warning : Theme.text-muted; }
+                                HorizontalBox {
+                                    Rectangle { horizontal-stretch: 1; }
+                                    Button { text: "Cancel"; clicked => { root.cancel-adif-import(); } }
+                                    Button { text: "Import " + root.adif-preview-new + " QSO(s)"; primary: true; enabled: root.adif-preview-new > 0; clicked => { root.confirm-adif-import(); } }
+                                }
+                            }
+                        }
+                    }
+                }
+                Rectangle {
+                    background: Theme.surface; border-width: 1px; border-color: Theme.border; border-radius: Theme.radius-md;
+                    VerticalBox {
+                        padding: Theme.space-lg; spacing: Theme.space-sm;
+                        SectionTitle { text: "DATABASE BACKUP"; }
+                        Text { text: "Create a consistent SQLite snapshot. The destination must not already exist."; color: Theme.text-secondary; }
+                        HorizontalBox {
+                            spacing: 8px;
+                            LineEdit { text <=> root.backup-path-text; placeholder-text: "/path/to/logbook-backup.sqlite3"; horizontal-stretch: 1; }
+                            Button { text: "Choose destination…"; clicked => { root.choose-backup-destination(); } }
+                            Button { text: "Create backup"; primary: true; clicked => { root.backup-database(); } }
+                        }
+                    }
+                }
+            }
+        }
