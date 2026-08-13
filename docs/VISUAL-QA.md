@@ -18,13 +18,15 @@ Marco 20 extracted the four pages into separate Slint components without intenti
 
 ## Marco 21 focused regression
 
-- [ ] Pagination bar fits at `1050×680` without clipping or compressing the table excessively.
-- [ ] Showing range, total and page count remain aligned for empty, partial and full pages.
-- [ ] Previous and Next enable only when their destination page exists.
-- [ ] Search criteria remain active while navigating pages.
-- [ ] DMR and FT8 filter criteria remain active while navigating pages.
-- [ ] Deleting the last item on the final page returns to the preceding valid page.
-- [ ] Edit, links and route/details metadata remain correct on later pages.
+Approved on 2026-08-13 in i3/tiled mode, including the isolated 10,000-QSO database.
+
+- [x] Pagination bar fits at `1050×680` without clipping or compressing the table excessively.
+- [x] Showing range, total and page count remain aligned for empty, partial and full pages.
+- [x] Previous and Next enable only when their destination page exists.
+- [x] Search criteria remain active while navigating pages.
+- [x] DMR and FT8 filter criteria remain active while navigating pages.
+- [x] Deleting the last item on the final page returns to the preceding valid page.
+- [x] Edit, links and route/details metadata remain correct on later pages.
 
 ## Global shell
 

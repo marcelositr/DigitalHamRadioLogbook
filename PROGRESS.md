@@ -328,8 +328,8 @@ Este arquivo é o checkpoint persistente do projeto. Ao retomar o trabalho, ler 
 - [x] Validar com 10.000 QSOs isolados: schema 5, integridade ok e zero violações de FK.
 - [x] Medir primeira página (~0,42 ms), página 50 (~2,22 ms) e filtros (<2,3 ms) no ambiente local.
 - [x] Validar fmt, clippy, 72 testes, build e startup X11 com 10.000 QSOs.
-- [ ] Homologar paginação, busca e filtros no i3.
+- [x] Homologar paginação, busca e filtros no i3 com a base isolada de 10.000 QSOs.
 
 ## Próxima ação exata
 
-Marco 21 implementado e validado exclusivamente na branch `develop`. Publicar e pausar para homologação da paginação no i3.
+Marco 21 concluído, homologado e publicado exclusivamente na branch `develop`. Definir o próximo marco antes de iniciar novas alterações.
