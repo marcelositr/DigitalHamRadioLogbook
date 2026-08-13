@@ -313,8 +313,8 @@ Este arquivo é o checkpoint persistente do projeto. Ao retomar o trabalho, ler 
 - [x] Preservar FocusScope, callbacks, bindings, ordem de efeitos e layout `1050×680`.
 - [x] Manter o design system Nord inalterado.
 - [x] Validar fmt, clippy, 67 testes, build e startup X11 isolado.
-- [ ] Homologar visualmente e funcionalmente as quatro páginas no i3.
+- [x] Homologar visualmente e funcionalmente as quatro páginas no i3.
 
 ## Próxima ação exata
 
-Marco 20 implementado e validado exclusivamente na branch `develop`. Publicar e pausar para homologação visual/funcional da refatoração.
+Marco 20 concluído, homologado e publicado exclusivamente na branch `develop`. Definir o próximo marco antes de iniciar novas alterações.

@@ -4,17 +4,17 @@ Last full visual approval: 2026-08-12 — i3/tiled mode at the default `1050×68
 
 All items below were approved after Marco 10. No control may require fullscreen to become accessible.
 
-Marco 20 extracted the four pages into separate Slint components without intentional visual changes. The detailed historical checklist remains approved; the focused regression checks below are reopened for post-refactor homologation.
+Marco 20 extracted the four pages into separate Slint components without intentional visual changes. The detailed historical checklist and focused regression below were approved on 2026-08-13 in i3/tiled mode.
 
 ## Marco 20 focused regression
 
-- [ ] Global header, navigation, exit confirmation and status bar are unchanged.
-- [ ] Logbook search, filters, table links, edit and delete behave unchanged.
-- [ ] Generic, DMR and FT8 editors show every field with the same spacing and scrolling.
-- [ ] Tools selectors, ADIF preview/import/export and backup behave unchanged.
-- [ ] Settings station and external-link controls behave unchanged.
-- [ ] `Tab`, `Enter` and `Escape` retain their previous behavior.
-- [ ] Unsaved-edit and safe-exit confirmations retain their previous behavior.
+- [x] Global header, navigation, exit confirmation and status bar are unchanged.
+- [x] Logbook search, filters, table links, edit and delete behave unchanged.
+- [x] Generic, DMR and FT8 editors show every field with the same spacing and scrolling.
+- [x] Tools selectors, ADIF preview/import/export and backup behave unchanged.
+- [x] Settings station and external-link controls behave unchanged.
+- [x] `Tab`, `Enter` and `Escape` retain their previous behavior.
+- [x] Unsaved-edit and safe-exit confirmations retain their previous behavior.
 
 ## Global shell
 
