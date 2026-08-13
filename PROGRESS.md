@@ -382,7 +382,8 @@ Este arquivo é o checkpoint persistente do projeto. Ao retomar o trabalho, ler 
 - [x] Verificar checksum, conteúdo mínimo, permissões e bibliotecas compartilhadas.
 - [x] Testar instalação, atualização, execução e desinstalação dupla em HOME/XDG isolados.
 - [x] Confirmar preservação do banco e da configuração por SHA-256.
-- [ ] Publicar o commit de preparação em `develop` e confirmar CI verde.
+- [x] Publicar o commit de preparação em `develop` e confirmar sete jobs verdes ([execução](https://github.com/marcelositr/DigitalHamRadioLogbook/actions/runs/31744072246)).
+- [ ] Atualizar `actions/checkout` para v5, eliminando o aviso de Node.js 20, e confirmar novamente a CI.
 - [ ] Aguardar autorização explícita antes de integrar em `main`, criar tag ou publicar a release.
 
 ## Próxima ação exata
