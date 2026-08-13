@@ -372,7 +372,7 @@ Este arquivo é o checkpoint persistente do projeto. Ao retomar o trabalho, ler 
 - [x] Validar fmt, clippy estrito, 73 testes, build e startup X11 isolado.
 - [x] Homologar clique único, teclado, foco e layout no i3 em `1050×680`.
 
-## Marco 25 — Preparação da versão v0.2.0 (PRONTA PARA PUBLICAÇÃO)
+## Marco 25 — Publicação da versão v0.2.0 (CONCLUÍDO)
 
 - [x] Confirmar `v0.1.0` como última tag/release pública e revisar o histórico até `develop`.
 - [x] Atualizar a versão do pacote para `0.2.0` em `Cargo.toml` e `Cargo.lock`.
@@ -384,8 +384,11 @@ Este arquivo é o checkpoint persistente do projeto. Ao retomar o trabalho, ler 
 - [x] Confirmar preservação do banco e da configuração por SHA-256.
 - [x] Publicar o commit de preparação em `develop` e confirmar sete jobs verdes ([execução](https://github.com/marcelositr/DigitalHamRadioLogbook/actions/runs/31744072246)).
 - [x] Atualizar `actions/checkout` para v5, eliminando o aviso de Node.js 20, e confirmar sete jobs verdes novamente ([execução](https://github.com/marcelositr/DigitalHamRadioLogbook/actions/runs/31744311303)).
-- [ ] Aguardar autorização explícita antes de integrar em `main`, criar tag ou publicar a release.
+- [x] Integrar `develop` em `main` por fast-forward e confirmar sete jobs verdes ([CI main](https://github.com/marcelositr/DigitalHamRadioLogbook/actions/runs/31744589146)).
+- [x] Criar e publicar a tag anotada `v0.2.0` no commit `e918765`.
+- [x] Publicar a GitHub Release não-draft, não-prerelease e marcada como Latest, com tarball e checksum.
+- [x] Baixar os assets publicados e confirmar SHA-256 e igualdade byte a byte com os artefatos testados.
 
 ## Próxima ação exata
 
-Preparação de `v0.2.0` concluída em `develop`. Aguardar autorização explícita para integrar o commit aprovado em `main`, criar a tag anotada `v0.2.0` e publicar a GitHub Release com tarball e checksum validados.
+Versão `v0.2.0` publicada e verificada em https://github.com/marcelositr/DigitalHamRadioLogbook/releases/tag/v0.2.0. `main` e a tag permanecem no commit de release `e918765`; continuar novos trabalhos exclusivamente em `develop`.
