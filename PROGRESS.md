@@ -265,8 +265,8 @@ Este arquivo é o checkpoint persistente do projeto. Ao retomar o trabalho, ler 
 - [x] Cobrir campos comuns, DMR e FT8 no snapshot.
 - [x] Manter salvamento e erros de validação sem interferência.
 - [x] Validar fmt, clippy, 63 testes, build e startup X11 isolado.
-- [ ] Homologar visualmente os fluxos de descarte no i3.
+- [x] Homologar visualmente os fluxos de descarte no i3.
 
 ## Próxima ação exata
 
-Concluir a validação automatizada do Marco 17A exclusivamente na branch `develop`, publicar e pausar para homologação visual.
+Marco 17A concluído e homologado exclusivamente na branch `develop`. Publicar o checkpoint e definir o escopo do Marco 17B antes de iniciar novas alterações.
