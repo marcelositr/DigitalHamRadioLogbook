@@ -12,7 +12,9 @@ use digital_ham_radio_logbook::adif::{export as export_adif_text, parse as parse
 use digital_ham_radio_logbook::config::{
     self, expand_url_template, AppConfig, DEFAULT_CALLSIGN_URL, DEFAULT_GRID_URL,
 };
-use digital_ham_radio_logbook::database::{AdifImportReport, DmrFilter, Ft8Filter, QsoRepository};
+use digital_ham_radio_logbook::database::{
+    AdifImportPlan, AdifImportReport, DmrFilter, Ft8Filter, QsoRepository,
+};
 use digital_ham_radio_logbook::domain::{
     CommonQsoFields, DmrMetadata, DmrMetadataInput, Ft8Metadata, Ft8MetadataInput, NewQso,
 };
@@ -616,18 +618,74 @@ fn suggested_filename(prefix: &str, extension: &str) -> String {
 }
 
 fn connect_adif_handlers(ui: &MainWindow, repository: &Rc<QsoRepository>) {
+    let pending_plan = Rc::new(RefCell::new(None::<AdifImportPlan>));
+
     let weak_ui = ui.as_weak();
-    let import_repository = Rc::clone(repository);
-    ui.on_import_adif(move || {
+    let preview_repository = Rc::clone(repository);
+    let preview_plan = Rc::clone(&pending_plan);
+    ui.on_preview_adif(move || {
         let Some(ui) = weak_ui.upgrade() else {
             return;
         };
-        let result = (|| -> Result<AdifImportReport, Box<dyn Error>> {
+        let result = (|| -> Result<AdifImportPlan, Box<dyn Error>> {
             let path_text = ui.get_adif_path_text();
             let path = required_adif_path(path_text.as_str())?;
             let contents = fs::read_to_string(path)?;
             let document = parse_adif(&contents)?;
-            let report = import_repository.import_adif(&document, current_utc_timestamp()?)?;
+            preview_repository.prepare_adif_import(&document)
+        })();
+        match result {
+            Ok(plan) => {
+                let preview = plan.preview();
+                let modes = preview
+                    .modes
+                    .iter()
+                    .map(|(mode, count)| format!("{mode}: {count}"))
+                    .collect::<Vec<_>>()
+                    .join("  •  ");
+                ui.set_adif_preview_total(preview.total as i32);
+                ui.set_adif_preview_new(preview.new_qsos as i32);
+                ui.set_adif_preview_duplicates(preview.duplicates as i32);
+                ui.set_adif_preview_invalid(preview.invalid as i32);
+                ui.set_adif_preview_modes(if modes.is_empty() {
+                    "None".into()
+                } else {
+                    modes.into()
+                });
+                ui.set_adif_preview_visible(true);
+                *preview_plan.borrow_mut() = Some(plan);
+                set_status(
+                    &ui,
+                    "ADIF preview ready; review before importing",
+                    STATUS_INFO,
+                );
+            }
+            Err(error) => {
+                *preview_plan.borrow_mut() = None;
+                ui.set_adif_preview_visible(false);
+                logging::error("ADIF preview failed");
+                set_status(
+                    &ui,
+                    format!("Could not preview ADIF: {error}"),
+                    STATUS_ERROR,
+                );
+            }
+        }
+    });
+
+    let weak_ui = ui.as_weak();
+    let import_repository = Rc::clone(repository);
+    let import_plan = Rc::clone(&pending_plan);
+    ui.on_confirm_adif_import(move || {
+        let Some(ui) = weak_ui.upgrade() else {
+            return;
+        };
+        let result = (|| -> Result<AdifImportReport, Box<dyn Error>> {
+            let plan = import_plan
+                .borrow_mut()
+                .take()
+                .ok_or("Preview the ADIF file before importing")?;
+            let report = import_repository.import_adif_plan(plan, current_utc_timestamp()?)?;
             logging::info(&format!(
                 "ADIF import completed: {} imported, {} duplicate(s) skipped",
                 report.imported, report.duplicates_skipped
@@ -635,26 +693,30 @@ fn connect_adif_handlers(ui: &MainWindow, repository: &Rc<QsoRepository>) {
             refresh_qso_list(&ui, &import_repository, ui.get_search_text().as_str())?;
             Ok(report)
         })();
+        ui.set_adif_preview_visible(false);
         match result {
-            Ok(report) => {
-                let kind = if report.imported == 0 {
-                    STATUS_INFO
-                } else {
-                    STATUS_SUCCESS
-                };
-                set_status(
-                    &ui,
-                    format!(
-                        "Imported {} ADIF QSO(s); skipped {} duplicate(s)",
-                        report.imported, report.duplicates_skipped
-                    ),
-                    kind,
-                );
-            }
+            Ok(report) => set_status(
+                &ui,
+                format!(
+                    "Imported {} ADIF QSO(s); skipped {} duplicate(s)",
+                    report.imported, report.duplicates_skipped
+                ),
+                STATUS_SUCCESS,
+            ),
             Err(error) => {
                 logging::error("ADIF import failed");
                 set_status(&ui, format!("Could not import ADIF: {error}"), STATUS_ERROR);
             }
+        }
+    });
+
+    let weak_ui = ui.as_weak();
+    let cancel_plan = Rc::clone(&pending_plan);
+    ui.on_cancel_adif_import(move || {
+        *cancel_plan.borrow_mut() = None;
+        if let Some(ui) = weak_ui.upgrade() {
+            ui.set_adif_preview_visible(false);
+            set_status(&ui, "ADIF import canceled; no changes made", STATUS_INFO);
         }
     });
 

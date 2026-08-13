@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{BTreeMap, HashSet};
 use std::error::Error;
 use std::path::Path;
 
@@ -37,6 +37,26 @@ pub struct Ft8Filter {
 pub struct AdifImportReport {
     pub imported: usize,
     pub duplicates_skipped: usize,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct AdifImportPreview {
+    pub total: usize,
+    pub new_qsos: usize,
+    pub duplicates: usize,
+    pub invalid: usize,
+    pub modes: BTreeMap<String, usize>,
+}
+
+pub struct AdifImportPlan {
+    preview: AdifImportPreview,
+    qsos: Vec<ImportedQso>,
+}
+
+impl AdifImportPlan {
+    pub fn preview(&self) -> &AdifImportPreview {
+        &self.preview
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -149,29 +169,44 @@ impl QsoRepository {
         })
     }
 
-    pub fn import_adif(
+    pub fn prepare_adif_import(
         &self,
         document: &AdifDocument,
-        now_utc: i64,
-    ) -> std::result::Result<AdifImportReport, Box<dyn Error>> {
-        let imported = document
-            .records
-            .iter()
-            .enumerate()
-            .map(|(index, record)| {
-                record_to_domain(record)
-                    .map_err(|error| format!("ADIF record {}: {error}", index + 1))
-            })
-            .collect::<std::result::Result<Vec<_>, _>>()?;
+    ) -> std::result::Result<AdifImportPlan, Box<dyn Error>> {
+        let mut identities = existing_qso_identities(&self.connection)?;
+        let mut preview = AdifImportPreview {
+            total: document.records.len(),
+            ..Default::default()
+        };
+        let mut qsos = Vec::new();
 
-        let transaction = self.connection.unchecked_transaction()?;
-        let mut identities = existing_qso_identities(&transaction)?;
-        let mut report = AdifImportReport::default();
-        for imported_qso in &imported {
+        for record in &document.records {
+            let Ok(imported_qso) = record_to_domain(record) else {
+                preview.invalid += 1;
+                continue;
+            };
+            *preview
+                .modes
+                .entry(imported_qso.qso.mode.clone())
+                .or_default() += 1;
             if !identities.insert(QsoIdentity::from(&imported_qso.qso)) {
-                report.duplicates_skipped += 1;
+                preview.duplicates += 1;
                 continue;
             }
+            preview.new_qsos += 1;
+            qsos.push(imported_qso);
+        }
+
+        Ok(AdifImportPlan { preview, qsos })
+    }
+
+    pub fn import_adif_plan(
+        &self,
+        plan: AdifImportPlan,
+        now_utc: i64,
+    ) -> std::result::Result<AdifImportReport, Box<dyn Error>> {
+        let transaction = self.connection.unchecked_transaction()?;
+        for imported_qso in &plan.qsos {
             let qso_id = insert_qso(&transaction, &imported_qso.qso, now_utc)?;
             match &imported_qso.mode_metadata {
                 ImportedModeMetadata::Dmr(metadata) => {
@@ -183,10 +218,25 @@ impl QsoRepository {
                 ImportedModeMetadata::Generic => {}
             }
             insert_adif_extra_fields(&transaction, qso_id, &imported_qso.extra_fields)?;
-            report.imported += 1;
         }
         transaction.commit()?;
-        Ok(report)
+        Ok(AdifImportReport {
+            imported: plan.preview.new_qsos,
+            duplicates_skipped: plan.preview.duplicates,
+        })
+    }
+
+    pub fn import_adif(
+        &self,
+        document: &AdifDocument,
+        now_utc: i64,
+    ) -> std::result::Result<AdifImportReport, Box<dyn Error>> {
+        for (index, record) in document.records.iter().enumerate() {
+            record_to_domain(record)
+                .map_err(|error| format!("ADIF record {}: {error}", index + 1))?;
+        }
+        let plan = self.prepare_adif_import(document)?;
+        self.import_adif_plan(plan, now_utc)
     }
 
     pub fn get_adif_extra_fields(&self, qso_id: i64) -> Result<Vec<AdifField>> {
@@ -776,6 +826,55 @@ mod tests {
                 data_type: Some("S".into()),
             }]
         );
+    }
+
+    #[test]
+    fn previews_adif_without_writing_and_imports_only_after_confirmation() {
+        let repository = QsoRepository::in_memory().unwrap();
+        let existing = NewQso::new("PY2ABC", 1_700_000_000, 14_074_000, "FT8").unwrap();
+        repository.insert(&existing, 1_700_000_001).unwrap();
+        let document = parse(
+            "<CALL:6>PY2ABC<QSO_DATE:8>20231114<TIME_ON:6>221320<FREQ:6>14.074<MODE:3>FT8<EOR>\
+             <CALL:6>PU2XYZ<QSO_DATE:8>20231114<TIME_ON:6>221321<FREQ:7>438.500<MODE:3>DMR<EOR>\
+             <CALL:6>PY2BAD<MODE:3>FT8<EOR>",
+        )
+        .unwrap();
+
+        let plan = repository.prepare_adif_import(&document).unwrap();
+        assert_eq!(
+            plan.preview(),
+            &AdifImportPreview {
+                total: 3,
+                new_qsos: 1,
+                duplicates: 1,
+                invalid: 1,
+                modes: BTreeMap::from([("DMR".into(), 1), ("FT8".into(), 1)]),
+            }
+        );
+        assert_eq!(repository.list().unwrap().len(), 1);
+
+        assert_eq!(
+            repository.import_adif_plan(plan, 1_700_000_100).unwrap(),
+            AdifImportReport {
+                imported: 1,
+                duplicates_skipped: 1,
+            }
+        );
+        assert_eq!(repository.list().unwrap().len(), 2);
+    }
+
+    #[test]
+    fn dropping_an_adif_plan_cancels_without_writing() {
+        let repository = QsoRepository::in_memory().unwrap();
+        let document = parse(
+            "<CALL:6>PU2XYZ<QSO_DATE:8>20231114<TIME_ON:6>221321<FREQ:7>438.500<MODE:3>DMR<EOR>",
+        )
+        .unwrap();
+
+        let plan = repository.prepare_adif_import(&document).unwrap();
+        assert_eq!(plan.preview().new_qsos, 1);
+        drop(plan);
+        assert!(repository.list().unwrap().is_empty());
     }
 
     #[test]

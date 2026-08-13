@@ -80,13 +80,19 @@ export component MainWindow inherits Window {
     in-out property <string> backup-path-text;
     in-out property <string> pending-delete-id;
     in-out property <string> pending-delete-label;
+    in-out property <bool> adif-preview-visible: false;
+    in-out property <int> adif-preview-total;
+    in-out property <int> adif-preview-new;
+    in-out property <int> adif-preview-duplicates;
+    in-out property <int> adif-preview-invalid;
+    in-out property <string> adif-preview-modes;
 
     callback save-qso(); callback search-qso(string); callback mode-input-changed(string);
     callback filter-dmr(); callback clear-dmr-filter();
     callback filter-ft8(); callback clear-ft8-filter();
     callback save-local-callsign(); callback save-external-links(); callback restore-external-link-defaults();
     callback open-callsign-lookup(string); callback open-grid-lookup(string);
-    callback import-adif(); callback export-adif();
+    callback preview-adif(); callback confirm-adif-import(); callback cancel-adif-import(); callback export-adif();
     callback choose-adif-import(); callback choose-adif-export(); callback choose-backup-destination();
     callback backup-database(); callback delete-qso(string); callback clear-editor();
 
@@ -95,6 +101,7 @@ export component MainWindow inherits Window {
             if event.text == Key.Escape {
                 root.pending-delete-id = "";
                 root.pending-delete-label = "";
+                if root.adif-preview-visible { root.cancel-adif-import(); }
                 if root.active-page == 1 { root.clear-editor(); root.active-page = 0; }
                 return accept;
             }
@@ -473,15 +480,37 @@ export component MainWindow inherits Window {
                         Text { text: "Exchange logbook data safely. Import is transactional and export never overwrites an existing file."; color: Theme.text-secondary; }
                         HorizontalBox {
                             spacing: Theme.space-sm;
-                            LineEdit { text <=> root.adif-path-text; placeholder-text: "/path/to/logbook.adi"; horizontal-stretch: 1; }
-                            Button { text: "Choose import…"; clicked => { root.choose-adif-import(); } }
-                            Button { text: "Choose export…"; clicked => { root.choose-adif-export(); } }
+                            LineEdit { text <=> root.adif-path-text; placeholder-text: "/path/to/logbook.adi"; horizontal-stretch: 1; edited => { root.adif-preview-visible = false; } }
+                            Button { text: "Choose import…"; clicked => { root.adif-preview-visible = false; root.choose-adif-import(); } }
+                            Button { text: "Choose export…"; clicked => { root.adif-preview-visible = false; root.choose-adif-export(); } }
                         }
                         HorizontalBox {
                             spacing: Theme.space-sm;
                             Rectangle { horizontal-stretch: 1; }
-                            Button { text: "Import ADIF"; clicked => { root.import-adif(); } }
+                            Button { text: "Preview import"; clicked => { root.preview-adif(); } }
                             Button { text: "Export ADIF"; primary: true; clicked => { root.export-adif(); } }
+                        }
+                        if root.adif-preview-visible : Rectangle {
+                            background: Theme.surface-raised; border-width: 1px; border-color: root.adif-preview-invalid > 0 ? Theme.warning : Theme.accent-secondary; border-radius: Theme.radius-md;
+                            VerticalBox {
+                                padding: Theme.space-md; spacing: Theme.space-sm;
+                                Text { text: "ADIF IMPORT PREVIEW"; color: Theme.accent; font-weight: 700; }
+                                HorizontalBox {
+                                    spacing: Theme.space-lg;
+                                    Text { text: "Total  " + root.adif-preview-total; color: Theme.text-secondary; }
+                                    Text { text: "New  " + root.adif-preview-new; color: Theme.success; font-weight: 700; }
+                                    Text { text: "Duplicates  " + root.adif-preview-duplicates; color: Theme.text-muted; }
+                                    Text { text: "Invalid  " + root.adif-preview-invalid; color: root.adif-preview-invalid > 0 ? Theme.warning : Theme.text-muted; }
+                                    Rectangle { horizontal-stretch: 1; }
+                                }
+                                Text { text: "Modes  " + root.adif-preview-modes; color: Theme.text-secondary; wrap: word-wrap; }
+                                Text { text: root.adif-preview-invalid > 0 ? "Invalid records will not be imported." : "The database has not been changed yet."; color: root.adif-preview-invalid > 0 ? Theme.warning : Theme.text-muted; }
+                                HorizontalBox {
+                                    Rectangle { horizontal-stretch: 1; }
+                                    Button { text: "Cancel"; clicked => { root.cancel-adif-import(); } }
+                                    Button { text: "Import " + root.adif-preview-new + " QSO(s)"; primary: true; enabled: root.adif-preview-new > 0; clicked => { root.confirm-adif-import(); } }
+                                }
+                            }
                         }
                     }
                 }

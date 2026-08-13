@@ -75,6 +75,8 @@ No GNU/Linux, o projeto segue a XDG Base Directory Specification.
 
 Em **Tools**, os botões gráficos permitem selecionar um ADIF existente para importação e escolher destinos para exportação e backup. Os campos de caminho continuam editáveis para uso avançado. Cancelar o diálogo não altera dados nem gera erro.
 
+Antes de gravar, a importação apresenta um preview com o total de registros, novos QSOs, duplicados, inválidos e distribuição dos registros válidos por modo. O arquivo é analisado uma única vez e a confirmação grava exatamente o plano exibido; cancelar ou pressionar `Esc` descarta o plano sem alterar o banco. Registros inválidos são informados e não são importados.
+
 A importação ignora duplicados exatos, inclusive registros repetidos no mesmo arquivo. A identidade é composta por callsign normalizado, data/hora UTC inicial, frequência e modo normalizado. O QSO já existente é preservado sem mesclar ou sobrescrever metadados; a interface informa quantos registros foram importados e quantos duplicados foram ignorados. A criação e edição manual continuam permitindo QSOs com a mesma identidade quando isso for intencional.
 
 A interface permite criar um snapshot consistente para um caminho terminado em `.sqlite3`. O destino não pode existir, evitando sobrescrita acidental. O snapshot é validado antes de ser anunciado como concluído.

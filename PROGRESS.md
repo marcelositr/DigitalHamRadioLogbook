@@ -242,8 +242,20 @@ Este arquivo é o checkpoint persistente do projeto. Ao retomar o trabalho, ler 
 - [x] Informar separadamente QSOs importados e duplicados ignorados na UI e no log.
 - [x] Cobrir reimportação, QSO manual existente e diferenças em cada campo da identidade.
 - [x] Validar fmt, clippy, 60 testes, build e startup X11 isolado.
-- [ ] Homologar visualmente a reimportação pela UI no i3.
+- [x] Homologar visualmente a reimportação e a exportação pela UI no i3.
+
+## Marco 16 — Preview seguro da importação ADIF
+
+- [x] Analisar o arquivo sem alterar o banco.
+- [x] Exibir total, novos QSOs, duplicados, inválidos e distribuição por modo.
+- [x] Manter um plano imutável em memória, sem reler o arquivo na confirmação.
+- [x] Importar somente registros válidos e novos após confirmação explícita.
+- [x] Cancelar pelo botão ou `Esc` sem escrita no banco.
+- [x] Desabilitar a confirmação quando não houver QSO novo.
+- [x] Cobrir preview sem escrita, cancelamento e confirmação por testes.
+- [x] Validar fmt, clippy, 62 testes, build e startup X11 isolado.
+- [ ] Homologar visualmente o preview no i3.
 
 ## Próxima ação exata
 
-Marco 15 implementado e validado exclusivamente na branch `develop`. Pausar para homologação da reimportação pela UI no i3; não iniciar o Marco 16 antes dessa aprovação.
+Marco 16 implementado e validado exclusivamente na branch `develop`. Publicar e pausar para homologação visual do preview no i3.
