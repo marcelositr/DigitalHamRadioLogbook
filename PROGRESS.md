@@ -256,6 +256,17 @@ Este arquivo é o checkpoint persistente do projeto. Ao retomar o trabalho, ler 
 - [x] Validar fmt, clippy, 62 testes, build e startup X11 isolado.
 - [x] Homologar visualmente o preview no i3.
 
+## Marco 17A — Proteção contra perda de edição
+
+- [x] Comparar o formulário atual com um snapshot completo do estado inicial.
+- [x] Não exibir aviso quando o formulário não foi alterado.
+- [x] Proteger troca de aba, `Esc`, Cancel e abertura de um novo QSO.
+- [x] Oferecer Continue editing e Discard changes em confirmação inline responsiva.
+- [x] Cobrir campos comuns, DMR e FT8 no snapshot.
+- [x] Manter salvamento e erros de validação sem interferência.
+- [x] Validar fmt, clippy, 63 testes, build e startup X11 isolado.
+- [ ] Homologar visualmente os fluxos de descarte no i3.
+
 ## Próxima ação exata
 
-Marco 16 concluído, homologado e publicado exclusivamente na branch `develop`. Definir o escopo do Marco 17 antes de iniciar novas alterações.
+Concluir a validação automatizada do Marco 17A exclusivamente na branch `develop`, publicar e pausar para homologação visual.

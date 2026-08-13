@@ -118,6 +118,8 @@ O menu superior separa as tarefas para manter todos os controles acessíveis mes
 
 Ao editar um registro pela tabela, o mesmo formulário é aberto preenchido. As ações de salvar e cancelar permanecem fixas no rodapé enquanto os campos podem ser rolados.
 
+Ao criar ou editar um QSO, sair do formulário por uma aba, pelo botão **Cancel** ou por `Esc` exige confirmação quando houver alterações não salvas. **Continue editing** preserva o formulário atual e **Discard changes** limpa o editor e conclui a navegação solicitada. Formulários sem mudanças não exibem aviso, e rascunhos não são persistidos em disco.
+
 ## Consultas externas
 
 Na tabela do Logbook, clicar em um callsign ou GridSquare abre o navegador padrão usando os templates configurados em **Settings**.

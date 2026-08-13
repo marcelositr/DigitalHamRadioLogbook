@@ -86,6 +86,8 @@ export component MainWindow inherits Window {
     in-out property <int> adif-preview-duplicates;
     in-out property <int> adif-preview-invalid;
     in-out property <string> adif-preview-modes;
+    in-out property <bool> discard-editor-visible: false;
+    in-out property <int> pending-page: 0;
 
     callback save-qso(); callback search-qso(string); callback mode-input-changed(string);
     callback filter-dmr(); callback clear-dmr-filter();
@@ -95,6 +97,7 @@ export component MainWindow inherits Window {
     callback preview-adif(); callback confirm-adif-import(); callback cancel-adif-import(); callback export-adif();
     callback choose-adif-import(); callback choose-adif-export(); callback choose-backup-destination();
     callback backup-database(); callback delete-qso(string); callback clear-editor();
+    callback request-page(int); callback confirm-discard-editor(); callback keep-editing(); callback editor-opened();
 
     FocusScope {
         key-pressed(event) => {
@@ -102,7 +105,8 @@ export component MainWindow inherits Window {
                 root.pending-delete-id = "";
                 root.pending-delete-label = "";
                 if root.adif-preview-visible { root.cancel-adif-import(); }
-                if root.active-page == 1 { root.clear-editor(); root.active-page = 0; }
+                if root.discard-editor-visible { root.keep-editing(); }
+                else if root.active-page == 1 { root.request-page(0); }
                 return accept;
             }
             return reject;
@@ -137,25 +141,25 @@ export component MainWindow inherits Window {
                     width: 100px; border-radius: 4px;
                     background: root.active-page == 0 ? Theme.primary : logbook-touch.has-hover ? Theme.border : Theme.surface;
                     Text { text: "Logbook"; color: Theme.text-primary; font-weight: root.active-page == 0 ? 700 : 500; horizontal-alignment: center; vertical-alignment: center; }
-                    logbook-touch := TouchArea { clicked => { root.active-page = 0; } }
+                    logbook-touch := TouchArea { clicked => { root.request-page(0); } }
                 }
                 Rectangle {
                     width: 112px; border-radius: 4px;
                     background: root.active-page == 1 ? Theme.primary : new-qso-touch.has-hover ? Theme.border : Theme.surface;
                     Text { text: "New QSO"; color: Theme.text-primary; font-weight: root.active-page == 1 ? 700 : 500; horizontal-alignment: center; vertical-alignment: center; }
-                    new-qso-touch := TouchArea { clicked => { root.clear-editor(); root.active-page = 1; } }
+                    new-qso-touch := TouchArea { clicked => { root.request-page(1); } }
                 }
                 Rectangle {
                     width: 92px; border-radius: 4px;
                     background: root.active-page == 2 ? Theme.primary : tools-touch.has-hover ? Theme.border : Theme.surface;
                     Text { text: "Tools"; color: Theme.text-primary; font-weight: root.active-page == 2 ? 700 : 500; horizontal-alignment: center; vertical-alignment: center; }
-                    tools-touch := TouchArea { clicked => { root.active-page = 2; } }
+                    tools-touch := TouchArea { clicked => { root.request-page(2); } }
                 }
                 Rectangle {
                     width: 104px; border-radius: 4px;
                     background: root.active-page == 3 ? Theme.primary : settings-touch.has-hover ? Theme.border : Theme.surface;
                     Text { text: "Settings"; color: Theme.text-primary; font-weight: root.active-page == 3 ? 700 : 500; horizontal-alignment: center; vertical-alignment: center; }
-                    settings-touch := TouchArea { clicked => { root.active-page = 3; } }
+                    settings-touch := TouchArea { clicked => { root.request-page(3); } }
                 }
                 Rectangle { horizontal-stretch: 1; }
             }
@@ -178,7 +182,7 @@ export component MainWindow inherits Window {
                     text: root.filters-expanded ? "Close filters" : root.filters-applied ? "Filters active" : "Filters";
                     clicked => { root.filters-expanded = !root.filters-expanded; }
                 }
-                Button { text: "+ New QSO"; primary: true; clicked => { root.clear-editor(); root.active-page = 1; } }
+                Button { text: "+ New QSO"; primary: true; clicked => { root.request-page(1); } }
             }
 
             if root.filters-applied : Rectangle {
@@ -331,7 +335,7 @@ export component MainWindow inherits Window {
                             root.ft8-audio-frequency-text = qso.ft8-audio-frequency;
                             root.ft8-source-software-text = qso.ft8-source-software;
                             root.ft8-protocol-text = qso.ft8-protocol == "" ? "FT8" : qso.ft8-protocol;
-                            root.ft8-final-message-text = qso.ft8-final-message; root.active-page = 1;
+                            root.ft8-final-message-text = qso.ft8-final-message; root.active-page = 1; root.editor-opened();
                         }
                         }
                         Button { text: "Delete"; clicked => { root.pending-delete-id = qso.id; root.pending-delete-label = qso.callsign; } }
@@ -454,13 +458,26 @@ export component MainWindow inherits Window {
                     Rectangle { height: 8px; }
                 }
             }
+            if root.discard-editor-visible : Rectangle {
+                background: Theme.surface-raised; border-width: 1px; border-color: Theme.warning; border-radius: Theme.radius-md;
+                HorizontalBox {
+                    padding: Theme.space-md; spacing: Theme.space-md;
+                    VerticalBox {
+                        spacing: 2px; horizontal-stretch: 1;
+                        Text { text: "Discard unsaved changes?"; color: Theme.warning; font-weight: 700; }
+                        Text { text: "Your changes to this QSO have not been saved."; color: Theme.text-secondary; }
+                    }
+                    Button { text: "Continue editing"; clicked => { root.keep-editing(); } }
+                    Button { text: "Discard changes"; clicked => { root.confirm-discard-editor(); } }
+                }
+            }
             Rectangle {
                 height: 58px; background: Theme.surface; border-width: 1px; border-color: Theme.border;
                 HorizontalBox {
                     padding-left: 16px; padding-right: 16px; spacing: 8px;
                     Text { text: "Enter to save notes  •  Esc to cancel"; color: Theme.text-muted; vertical-alignment: center; }
                     Rectangle { horizontal-stretch: 1; }
-                    Button { text: "Cancel"; clicked => { root.clear-editor(); root.active-page = 0; } }
+                    Button { text: "Cancel"; clicked => { root.request-page(0); } }
                     Button { text: root.editing-id == "" ? "Save QSO" : "Save changes"; primary: true; clicked => { root.save-qso(); } }
                 }
             }
