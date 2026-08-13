@@ -1,5 +1,7 @@
 # Digital Ham Radio Logbook
 
+[![CI](https://github.com/marcelositr/DigitalHamRadioLogbook/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/marcelositr/DigitalHamRadioLogbook/actions/workflows/ci.yml)
+
 Aplicativo desktop local e offline para registrar contatos de radioamador realizados em modos digitais.
 
 ## Estado atual
@@ -58,9 +60,12 @@ cargo run
 
 ```sh
 cargo fmt --check
-cargo clippy --all-targets --all-features -- -D warnings
-cargo test
+cargo clippy --locked --all-targets --all-features -- -D warnings
+cargo test --locked
+cargo build --locked
 ```
+
+O workflow `.github/workflows/ci.yml` executa esses controles em `main`, `develop`, pull requests e manualmente. Um job adicional testa em paralelo a migração de bancos novos e das versões de schema 1–5 para a versão atual, preservando dados representativos e verificando idempotência, `quick_check` e chaves estrangeiras.
 
 ## Localização dos dados
 

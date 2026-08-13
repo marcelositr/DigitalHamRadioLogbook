@@ -297,6 +297,137 @@ mod tests {
     }
 
     #[test]
+    fn migrates_every_supported_schema_version_without_losing_data() {
+        let versions = std::env::var("MIGRATION_SOURCE_VERSION")
+            .ok()
+            .map(|value| {
+                vec![value
+                    .parse::<i64>()
+                    .expect("schema version must be an integer")]
+            })
+            .unwrap_or_else(|| (0..=CURRENT_SCHEMA_VERSION).collect());
+
+        for version in versions {
+            assert!((0..=CURRENT_SCHEMA_VERSION).contains(&version));
+            let mut connection = Connection::open_in_memory().unwrap();
+            connection
+                .execute_batch("PRAGMA foreign_keys = ON;")
+                .unwrap();
+            apply_schema_through(&mut connection, version);
+            seed_version_data(&connection, version);
+
+            run(&mut connection).unwrap();
+            run(&mut connection).unwrap();
+
+            let migrated_version: i64 = connection
+                .query_row("SELECT MAX(version) FROM schema_migrations", [], |row| {
+                    row.get(0)
+                })
+                .unwrap();
+            assert_eq!(migrated_version, CURRENT_SCHEMA_VERSION);
+            assert_eq!(
+                scalar(&connection, "SELECT COUNT(*) FROM qsos"),
+                i64::from(version > 0)
+            );
+            if version >= 2 {
+                assert_eq!(scalar(&connection, "SELECT COUNT(*) FROM dmr_metadata"), 1);
+                assert_eq!(
+                    scalar(&connection, "SELECT COUNT(*) FROM digital_routes"),
+                    1
+                );
+            }
+            if version >= 3 {
+                assert_eq!(scalar(&connection, "SELECT COUNT(*) FROM ft8_metadata"), 1);
+            }
+            if version >= 4 {
+                assert_eq!(
+                    scalar(&connection, "SELECT COUNT(*) FROM adif_extra_fields"),
+                    1
+                );
+            }
+            assert_eq!(
+                connection
+                    .query_row("PRAGMA quick_check", [], |row| row.get::<_, String>(0))
+                    .unwrap(),
+                "ok"
+            );
+            assert_eq!(
+                scalar(&connection, "SELECT COUNT(*) FROM pragma_foreign_key_check"),
+                0
+            );
+        }
+    }
+
+    fn apply_schema_through(connection: &mut Connection, version: i64) {
+        if version == 0 {
+            return;
+        }
+        connection.execute_batch(INITIAL_SCHEMA).unwrap();
+        if version >= 2 {
+            connection.execute_batch(DMR_SCHEMA).unwrap();
+        }
+        if version >= 3 {
+            connection.execute_batch(FT8_SCHEMA).unwrap();
+        }
+        if version >= 4 {
+            connection.execute_batch(ADIF_EXTRA_FIELDS_SCHEMA).unwrap();
+        }
+        if version >= 5 {
+            connection.execute_batch(QUERY_INDEXES_SCHEMA).unwrap();
+        }
+    }
+
+    fn seed_version_data(connection: &Connection, version: i64) {
+        if version == 0 {
+            return;
+        }
+        connection
+            .execute(
+                "INSERT INTO qsos (
+                    callsign, datetime_start_utc, frequency_hz, band, mode,
+                    created_at_utc, updated_at_utc
+                 ) VALUES ('PU2MIG', 1700000000, 438500000, '70cm', 'DMR', 1700000000, 1700000000)",
+                [],
+            )
+            .unwrap();
+        let qso_id = connection.last_insert_rowid();
+        if version >= 2 {
+            connection
+                .execute(
+                    "INSERT INTO digital_routes(qso_id, access_type, network) VALUES (?1, 'simplex', 'Local')",
+                    [qso_id],
+                )
+                .unwrap();
+            connection
+                .execute(
+                    "INSERT INTO dmr_metadata(qso_id, talkgroup, call_type) VALUES (?1, 9, 'group')",
+                    [qso_id],
+                )
+                .unwrap();
+        }
+        if version >= 3 {
+            connection
+                .execute(
+                    "INSERT INTO ft8_metadata(qso_id, snr_received_db) VALUES (?1, -12)",
+                    [qso_id],
+                )
+                .unwrap();
+        }
+        if version >= 4 {
+            connection
+                .execute(
+                    "INSERT INTO adif_extra_fields(qso_id, field_order, name, value) VALUES (?1, 0, 'APP_TEST', 'preserved')",
+                    [qso_id],
+                )
+                .unwrap();
+        }
+    }
+
+    fn scalar(connection: &Connection, sql: &str) -> i64 {
+        connection.query_row(sql, [], |row| row.get(0)).unwrap()
+    }
+
+    #[test]
     fn rejects_a_database_from_a_future_schema_version() {
         let mut connection = Connection::open_in_memory().unwrap();
         connection

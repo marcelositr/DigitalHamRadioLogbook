@@ -343,11 +343,24 @@ Este arquivo é o checkpoint persistente do projeto. Ao retomar o trabalho, ler 
 - [x] Executar startup X11 com HOME/XDG isolados; aplicação permaneceu ativa até o `timeout` esperado.
 - [x] Homologar visualmente no i3 em `1050×680`, incluindo preview com registros inválidos.
 
+## Marco 23 — CI no GitHub e matriz de migrations (IMPLEMENTADO — AGUARDANDO CI REMOTA)
+
+- [x] Criar workflow para pushes e pull requests em `main` e `develop`, além de execução manual.
+- [x] Restringir permissões do workflow a leitura de conteúdo e cancelar execuções obsoletas da mesma referência.
+- [x] Fixar Ubuntu 24.04, instalar dependências Linux explícitas e usar toolchain Rust estável.
+- [x] Executar fmt, clippy estrito, 73 testes e build com `Cargo.lock` no job de qualidade.
+- [x] Criar matriz paralela para bancos novos e schemas v1–v5.
+- [x] Preservar fixtures representativos de QSO, DMR, rota digital, FT8 e campos ADIF conforme disponíveis em cada versão.
+- [x] Validar chegada ao schema atual, segunda execução idempotente, `quick_check` e ausência de violações de chave estrangeira.
+- [x] Executar localmente a matriz completa e cada uma das seis entradas isoladas.
+- [x] Executar startup X11 com HOME/XDG isolados; aplicação permaneceu ativa até o `timeout` esperado.
+- [x] Documentar comandos locked, cobertura da CI e adicionar badge da branch `develop` ao README.
+- [ ] Publicar em `develop` e confirmar todos os jobs verdes no GitHub Actions.
+
 ## Marcos planejados
 
-- [ ] Marco 23 — CI no GitHub e matriz de migrations.
 - [ ] Marco 24 — Acessibilidade e navegação por teclado.
 
 ## Próxima ação exata
 
-Marco 22 concluído e homologado. Publicar o checkpoint exclusivamente na branch `develop`; depois aguardar autorização antes de iniciar o Marco 23.
+Executar a validação local completa do Marco 23, publicar exclusivamente em `develop` e confirmar o workflow remoto antes de marcar o marco como concluído.
