@@ -300,8 +300,8 @@ Este arquivo é o checkpoint persistente do projeto. Ao retomar o trabalho, ler 
 - [x] Preservar mensagens de validação já claras sem ruído adicional.
 - [x] Cobrir erros tipados e mensagens internas por testes.
 - [x] Validar fmt, clippy, 67 testes, build e startup X11 isolado.
-- [ ] Homologar mensagens acionáveis no i3.
+- [x] Homologar mensagens acionáveis no i3.
 
 ## Próxima ação exata
 
-Concluir a validação automatizada do Marco 19 exclusivamente na branch `develop`, publicar e pausar para homologação.
+Marco 19 concluído, homologado e publicado exclusivamente na branch `develop`. Definir o próximo marco antes de iniciar novas alterações.
