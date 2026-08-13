@@ -20,7 +20,10 @@ use app::file_dialogs::connect_file_dialog_handlers;
 use app::filters::{connect_dmr_filter_handlers, connect_ft8_filter_handlers};
 use app::paths::{config_path, database_path};
 use app::qso_editor::{connect_mode_handler, connect_save_handler};
-use app::qso_list::{connect_delete_handler, connect_search_handler, refresh_qso_list};
+use app::qso_list::{
+    connect_delete_handler, connect_pagination_handlers, connect_search_handler, refresh_qso_list,
+    LogbookViewState,
+};
 use app::settings_close::{
     connect_close_handlers, connect_external_link_handlers, connect_station_config_handler,
 };
@@ -52,19 +55,21 @@ fn main() -> Result<(), Box<dyn Error>> {
         set_status(&ui, "Configure the local station callsign", STATUS_WARNING);
     }
     ui.set_datetime_text(format_utc_datetime(current_utc_timestamp()?)?.into());
-    refresh_qso_list(&ui, &repository, "")?;
+    let logbook_state = Rc::new(RefCell::new(LogbookViewState::default()));
+    refresh_qso_list(&ui, &repository, &logbook_state)?;
     let editor_baseline = Rc::new(RefCell::new(editor_snapshot(&ui)));
     let pending_adif_plan = Rc::new(RefCell::new(None::<AdifImportPlan>));
     connect_station_config_handler(&ui, &app_config, config_path.clone());
     connect_mode_handler(&ui);
     connect_external_link_handlers(&ui, &app_config, config_path.clone());
-    connect_save_handler(&ui, &repository);
-    connect_search_handler(&ui, &repository);
-    connect_dmr_filter_handlers(&ui, &repository);
-    connect_ft8_filter_handlers(&ui, &repository);
-    connect_delete_handler(&ui, &repository);
+    connect_save_handler(&ui, &repository, &logbook_state);
+    connect_search_handler(&ui, &repository, &logbook_state);
+    connect_dmr_filter_handlers(&ui, &repository, &logbook_state);
+    connect_ft8_filter_handlers(&ui, &repository, &logbook_state);
+    connect_delete_handler(&ui, &repository, &logbook_state);
+    connect_pagination_handlers(&ui, &repository, &logbook_state);
     connect_file_dialog_handlers(&ui, &app_config, config_path.clone());
-    connect_adif_handlers(&ui, &repository, &pending_adif_plan);
+    connect_adif_handlers(&ui, &repository, &pending_adif_plan, &logbook_state);
     connect_backup_handler(&ui, &repository);
     connect_editor_navigation_handlers(&ui, &editor_baseline);
     connect_close_handlers(

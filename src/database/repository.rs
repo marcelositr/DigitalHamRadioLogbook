@@ -78,6 +78,23 @@ impl From<&NewQso> for QsoIdentity {
     }
 }
 
+pub const DEFAULT_PAGE_SIZE: usize = 100;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct QsoListItem {
+    pub qso: Qso,
+    pub dmr: Option<DmrMetadata>,
+    pub ft8: Option<Ft8Metadata>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct QsoPage {
+    pub items: Vec<QsoListItem>,
+    pub total: usize,
+    pub offset: usize,
+    pub limit: usize,
+}
+
 pub struct QsoRepository {
     connection: Connection,
 }
@@ -363,6 +380,168 @@ impl QsoRepository {
         Ok(changed > 0)
     }
 
+    pub fn search_page(&self, query: &str, offset: usize, limit: usize) -> Result<QsoPage> {
+        let pattern = trimmed_pattern(Some(query));
+        let total: i64 = self.connection.query_row(
+            "SELECT COUNT(*) FROM qsos q
+             WHERE (?1 IS NULL OR q.callsign LIKE ?1 COLLATE NOCASE
+                    OR q.mode LIKE ?1 COLLATE NOCASE)",
+            params![pattern],
+            |row| row.get(0),
+        )?;
+        let (offset, limit, sql_offset, sql_limit) = normalize_page(offset, limit);
+        let mut statement = self.connection.prepare(&format!(
+            "{LIST_ITEM_SELECT}
+             WHERE (?1 IS NULL OR q.callsign LIKE ?1 COLLATE NOCASE
+                    OR q.mode LIKE ?1 COLLATE NOCASE)
+             ORDER BY q.datetime_start_utc DESC, q.id DESC
+             LIMIT ?2 OFFSET ?3"
+        ))?;
+        let items = statement
+            .query_map(params![pattern, sql_limit, sql_offset], map_qso_list_item)?
+            .collect::<Result<Vec<_>>>()?;
+        Ok(QsoPage {
+            items,
+            total: count_to_usize(total),
+            offset,
+            limit,
+        })
+    }
+
+    pub fn search_dmr_page(
+        &self,
+        filter: &DmrFilter,
+        offset: usize,
+        limit: usize,
+    ) -> Result<QsoPage> {
+        let network = trimmed_value(filter.network.as_deref()).map(contains_pattern);
+        let repeater = trimmed_value(filter.repeater.as_deref()).map(contains_pattern);
+        let hotspot = trimmed_value(filter.hotspot.as_deref()).map(contains_pattern);
+        let filter_params = params![
+            filter.dmr_id.map(i64::from),
+            filter.talkgroup.map(i64::from),
+            network,
+            repeater,
+            hotspot,
+            filter.timeslot.map(i64::from),
+        ];
+        let total: i64 = self.connection.query_row(
+            "SELECT COUNT(*) FROM qsos q
+             JOIN dmr_metadata d ON d.qso_id = q.id
+             JOIN digital_routes r ON r.qso_id = q.id
+             WHERE (?1 IS NULL OR d.remote_dmr_id = ?1 OR d.local_dmr_id = ?1)
+               AND (?2 IS NULL OR d.talkgroup = ?2)
+               AND (?3 IS NULL OR r.network LIKE ?3 COLLATE NOCASE)
+               AND (?4 IS NULL OR r.repeater_callsign LIKE ?4 COLLATE NOCASE)
+               AND (?5 IS NULL OR r.hotspot LIKE ?5 COLLATE NOCASE)
+               AND (?6 IS NULL OR d.timeslot = ?6)",
+            filter_params,
+            |row| row.get(0),
+        )?;
+        let (offset, limit, sql_offset, sql_limit) = normalize_page(offset, limit);
+        let mut statement = self.connection.prepare(&format!(
+            "{LIST_ITEM_SELECT}
+             WHERE d.qso_id IS NOT NULL
+               AND (?1 IS NULL OR d.remote_dmr_id = ?1 OR d.local_dmr_id = ?1)
+               AND (?2 IS NULL OR d.talkgroup = ?2)
+               AND (?3 IS NULL OR r.network LIKE ?3 COLLATE NOCASE)
+               AND (?4 IS NULL OR r.repeater_callsign LIKE ?4 COLLATE NOCASE)
+               AND (?5 IS NULL OR r.hotspot LIKE ?5 COLLATE NOCASE)
+               AND (?6 IS NULL OR d.timeslot = ?6)
+             ORDER BY q.datetime_start_utc DESC, q.id DESC
+             LIMIT ?7 OFFSET ?8"
+        ))?;
+        let items = statement
+            .query_map(
+                params![
+                    filter.dmr_id.map(i64::from),
+                    filter.talkgroup.map(i64::from),
+                    network,
+                    repeater,
+                    hotspot,
+                    filter.timeslot.map(i64::from),
+                    sql_limit,
+                    sql_offset,
+                ],
+                map_qso_list_item,
+            )?
+            .collect::<Result<Vec<_>>>()?;
+        Ok(QsoPage {
+            items,
+            total: count_to_usize(total),
+            offset,
+            limit,
+        })
+    }
+
+    pub fn search_ft8_page(
+        &self,
+        filter: &Ft8Filter,
+        offset: usize,
+        limit: usize,
+    ) -> Result<QsoPage> {
+        let callsign = trimmed_pattern(filter.callsign.as_deref());
+        let grid = trimmed_pattern(filter.grid.as_deref());
+        let band = trimmed_pattern(filter.band.as_deref());
+        let total: i64 = self.connection.query_row(
+            "SELECT COUNT(*) FROM qsos q
+             JOIN ft8_metadata f ON f.qso_id = q.id
+             WHERE (?1 IS NULL OR q.callsign LIKE ?1 COLLATE NOCASE)
+               AND (?2 IS NULL OR q.grid_locator LIKE ?2 COLLATE NOCASE)
+               AND (?3 IS NULL OR q.band LIKE ?3 COLLATE NOCASE)
+               AND (?4 IS NULL OR f.snr_received_db >= ?4)
+               AND (?5 IS NULL OR f.snr_received_db <= ?5)
+               AND (?6 IS NULL OR q.datetime_start_utc >= ?6)
+               AND (?7 IS NULL OR q.datetime_start_utc <= ?7)",
+            params![
+                callsign,
+                grid,
+                band,
+                filter.minimum_snr_received_db,
+                filter.maximum_snr_received_db,
+                filter.start_utc,
+                filter.end_utc,
+            ],
+            |row| row.get(0),
+        )?;
+        let (offset, limit, sql_offset, sql_limit) = normalize_page(offset, limit);
+        let mut statement = self.connection.prepare(&format!(
+            "{LIST_ITEM_SELECT}
+             WHERE f.qso_id IS NOT NULL
+               AND (?1 IS NULL OR q.callsign LIKE ?1 COLLATE NOCASE)
+               AND (?2 IS NULL OR q.grid_locator LIKE ?2 COLLATE NOCASE)
+               AND (?3 IS NULL OR q.band LIKE ?3 COLLATE NOCASE)
+               AND (?4 IS NULL OR f.snr_received_db >= ?4)
+               AND (?5 IS NULL OR f.snr_received_db <= ?5)
+               AND (?6 IS NULL OR q.datetime_start_utc >= ?6)
+               AND (?7 IS NULL OR q.datetime_start_utc <= ?7)
+             ORDER BY q.datetime_start_utc DESC, q.id DESC
+             LIMIT ?8 OFFSET ?9"
+        ))?;
+        let items = statement
+            .query_map(
+                params![
+                    callsign,
+                    grid,
+                    band,
+                    filter.minimum_snr_received_db,
+                    filter.maximum_snr_received_db,
+                    filter.start_utc,
+                    filter.end_utc,
+                    sql_limit,
+                    sql_offset,
+                ],
+                map_qso_list_item,
+            )?
+            .collect::<Result<Vec<_>>>()?;
+        Ok(QsoPage {
+            items,
+            total: count_to_usize(total),
+            offset,
+            limit,
+        })
+    }
+
     pub fn search_ft8(&self, filter: &Ft8Filter) -> Result<Vec<Qso>> {
         let callsign = trimmed_pattern(filter.callsign.as_deref());
         let grid = trimmed_pattern(filter.grid.as_deref());
@@ -552,11 +731,23 @@ fn new_qso_from_stored(qso: &Qso) -> NewQso {
     }
 }
 
+fn trimmed_value(value: Option<&str>) -> Option<&str> {
+    value.map(str::trim).filter(|value| !value.is_empty())
+}
+
 fn trimmed_pattern(value: Option<&str>) -> Option<String> {
-    value
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-        .map(contains_pattern)
+    trimmed_value(value).map(contains_pattern)
+}
+
+fn normalize_page(offset: usize, limit: usize) -> (usize, usize, i64, i64) {
+    let maximum = i64::MAX as usize;
+    let offset = offset.min(maximum);
+    let limit = limit.max(1).min(maximum);
+    (offset, limit, offset as i64, limit as i64)
+}
+
+fn count_to_usize(count: i64) -> usize {
+    usize::try_from(count).unwrap_or(usize::MAX)
 }
 
 fn contains_pattern(value: &str) -> String {
@@ -739,6 +930,64 @@ fn parse_stored_call_type(value: &str) -> Result<DmrCallType> {
 fn parse_stored_access_type(value: &str) -> Result<DmrAccessType> {
     value.parse().map_err(|error| {
         rusqlite::Error::FromSqlConversionFailure(7, rusqlite::types::Type::Text, Box::new(error))
+    })
+}
+
+const LIST_ITEM_SELECT: &str = "
+    SELECT q.id, q.callsign, q.datetime_start_utc, q.datetime_end_utc,
+           q.frequency_hz, q.band, q.mode, q.submode, q.rst_sent,
+           q.rst_received, q.grid_locator, q.name, q.qth, q.notes,
+           q.created_at_utc, q.updated_at_utc,
+           d.qso_id, d.remote_dmr_id, d.local_dmr_id, d.talkgroup,
+           d.timeslot, d.color_code, r.network, d.call_type, r.access_type,
+           r.repeater_callsign, r.hotspot, d.rx_frequency_hz,
+           d.tx_frequency_hz, d.notes,
+           f.qso_id, f.snr_sent_db, f.snr_received_db, f.power_watts,
+           f.audio_frequency_hz, f.source_software, f.protocol, f.final_message
+    FROM qsos q
+    LEFT JOIN dmr_metadata d ON d.qso_id = q.id
+    LEFT JOIN digital_routes r ON r.qso_id = q.id
+    LEFT JOIN ft8_metadata f ON f.qso_id = q.id";
+
+fn map_qso_list_item(row: &rusqlite::Row<'_>) -> Result<QsoListItem> {
+    let dmr = if row.get::<_, Option<i64>>(16)?.is_some() {
+        let call_type: String = row.get(23)?;
+        let access_type: String = row.get(24)?;
+        Some(DmrMetadata {
+            remote_dmr_id: row.get(17)?,
+            local_dmr_id: row.get(18)?,
+            talkgroup: row.get(19)?,
+            timeslot: row.get(20)?,
+            color_code: row.get(21)?,
+            network: row.get(22)?,
+            call_type: parse_stored_call_type(&call_type)?,
+            access_type: parse_stored_access_type(&access_type)?,
+            repeater_callsign: row.get(25)?,
+            hotspot: row.get(26)?,
+            rx_frequency_hz: row.get(27)?,
+            tx_frequency_hz: row.get(28)?,
+            notes: row.get(29)?,
+        })
+    } else {
+        None
+    };
+    let ft8 = if row.get::<_, Option<i64>>(30)?.is_some() {
+        Some(Ft8Metadata {
+            snr_sent_db: row.get(31)?,
+            snr_received_db: row.get(32)?,
+            power_watts: row.get(33)?,
+            audio_frequency_hz: row.get(34)?,
+            source_software: row.get(35)?,
+            protocol: row.get(36)?,
+            final_message: row.get(37)?,
+        })
+    } else {
+        None
+    };
+    Ok(QsoListItem {
+        qso: map_qso(row)?,
+        dmr,
+        ft8,
     })
 }
 
@@ -1391,6 +1640,99 @@ mod tests {
             repository.search_dmr(&DmrFilter::default()).unwrap().len(),
             2
         );
+    }
+
+    #[test]
+    fn paginates_search_with_total_stable_order_and_safe_limits() {
+        let repository = QsoRepository::in_memory().unwrap();
+        for (callsign, timestamp) in [
+            ("PU2AAA", 1_700_000_000),
+            ("PU2BBB", 1_700_000_010),
+            ("PU2CCC", 1_700_000_010),
+        ] {
+            let qso = NewQso::new(callsign, timestamp, 145_500_000, "FM").unwrap();
+            repository.insert(&qso, timestamp).unwrap();
+        }
+
+        let first = repository.search_page("pu2", 0, 2).unwrap();
+        assert_eq!(first.total, 3);
+        assert_eq!(first.offset, 0);
+        assert_eq!(first.limit, 2);
+        assert_eq!(first.items.len(), 2);
+        assert_eq!(first.items[0].qso.callsign, "PU2CCC");
+        assert_eq!(first.items[1].qso.callsign, "PU2BBB");
+
+        let second = repository.search_page("pu2", 2, 2).unwrap();
+        assert_eq!(second.total, 3);
+        assert_eq!(second.items.len(), 1);
+        assert_eq!(second.items[0].qso.callsign, "PU2AAA");
+
+        let minimum = repository.search_page("", 0, 0).unwrap();
+        assert_eq!(minimum.limit, 1);
+        assert_eq!(minimum.items.len(), 1);
+        let safe = repository.search_page("", usize::MAX, usize::MAX).unwrap();
+        assert_eq!(safe.offset, i64::MAX as usize);
+        assert_eq!(safe.limit, i64::MAX as usize);
+        assert!(safe.items.is_empty());
+    }
+
+    #[test]
+    fn paged_queries_join_mode_metadata() {
+        let repository = QsoRepository::in_memory().unwrap();
+        let dmr_qso = NewQso::new("PU2DMR", 1_700_000_000, 438_500_000, "DMR").unwrap();
+        let dmr = DmrMetadata::from_input(DmrMetadataInput {
+            talkgroup: "724".into(),
+            network: "BrandMeister".into(),
+            call_type: "group".into(),
+            access_type: "simplex".into(),
+            ..Default::default()
+        })
+        .unwrap();
+        repository
+            .insert_dmr(&dmr_qso, &dmr, 1_700_000_001)
+            .unwrap();
+        let ft8_qso = NewQso::new("PY2FT8", 1_700_000_010, 14_074_000, "FT8").unwrap();
+        let ft8 = Ft8Metadata::from_input(Ft8MetadataInput {
+            snr_received_db: "-12".into(),
+            ..Default::default()
+        })
+        .unwrap();
+        repository
+            .insert_ft8(&ft8_qso, &ft8, 1_700_000_011)
+            .unwrap();
+
+        let all = repository.search_page("", 0, DEFAULT_PAGE_SIZE).unwrap();
+        assert_eq!(all.total, 2);
+        assert_eq!(all.items[0].ft8, Some(ft8.clone()));
+        assert!(all.items[0].dmr.is_none());
+        assert_eq!(all.items[1].dmr, Some(dmr.clone()));
+        assert!(all.items[1].ft8.is_none());
+
+        let dmr_page = repository
+            .search_dmr_page(
+                &DmrFilter {
+                    talkgroup: Some(724),
+                    ..Default::default()
+                },
+                0,
+                10,
+            )
+            .unwrap();
+        assert_eq!(dmr_page.total, 1);
+        assert_eq!(dmr_page.items[0].dmr, Some(dmr));
+
+        let ft8_page = repository
+            .search_ft8_page(
+                &Ft8Filter {
+                    minimum_snr_received_db: Some(-15),
+                    ..Default::default()
+                },
+                0,
+                10,
+            )
+            .unwrap();
+        assert_eq!(ft8_page.total, 1);
+        assert_eq!(ft8_page.items[0].ft8, Some(ft8));
     }
 
     #[test]

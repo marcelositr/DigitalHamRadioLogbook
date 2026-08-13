@@ -1,6 +1,6 @@
 use rusqlite::{Connection, Error, Result, Transaction};
 
-const CURRENT_SCHEMA_VERSION: i64 = 4;
+const CURRENT_SCHEMA_VERSION: i64 = 5;
 
 const INITIAL_SCHEMA: &str = r#"
 CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -81,6 +81,30 @@ INSERT INTO schema_migrations(version, applied_at_utc)
 VALUES (4, CAST(strftime('%s', 'now') AS INTEGER));
 "#;
 
+const QUERY_INDEXES_SCHEMA: &str = r#"
+CREATE INDEX IF NOT EXISTS idx_qsos_datetime_start_id_desc
+ON qsos(datetime_start_utc DESC, id DESC);
+CREATE INDEX IF NOT EXISTS idx_qsos_mode_datetime_start_id_desc
+ON qsos(mode, datetime_start_utc DESC, id DESC);
+CREATE INDEX IF NOT EXISTS idx_qsos_callsign_nocase
+ON qsos(callsign COLLATE NOCASE);
+CREATE INDEX IF NOT EXISTS idx_qsos_grid_locator_nocase
+ON qsos(grid_locator COLLATE NOCASE);
+CREATE INDEX IF NOT EXISTS idx_qsos_band_nocase
+ON qsos(band COLLATE NOCASE);
+CREATE INDEX IF NOT EXISTS idx_dmr_metadata_local_id ON dmr_metadata(local_dmr_id);
+CREATE INDEX IF NOT EXISTS idx_dmr_metadata_timeslot ON dmr_metadata(timeslot);
+CREATE INDEX IF NOT EXISTS idx_digital_routes_network_nocase
+ON digital_routes(network COLLATE NOCASE);
+CREATE INDEX IF NOT EXISTS idx_digital_routes_repeater_nocase
+ON digital_routes(repeater_callsign COLLATE NOCASE);
+CREATE INDEX IF NOT EXISTS idx_digital_routes_hotspot_nocase
+ON digital_routes(hotspot COLLATE NOCASE);
+
+INSERT INTO schema_migrations(version, applied_at_utc)
+VALUES (5, CAST(strftime('%s', 'now') AS INTEGER));
+"#;
+
 const FT8_SCHEMA: &str = r#"
 CREATE TABLE IF NOT EXISTS ft8_metadata (
     qso_id INTEGER PRIMARY KEY,
@@ -132,6 +156,15 @@ pub fn run(connection: &mut Connection) -> Result<()> {
         transaction.execute_batch(ADIF_EXTRA_FIELDS_SCHEMA)?;
     }
 
+    let has_query_indexes: bool = transaction.query_row(
+        "SELECT EXISTS(SELECT 1 FROM schema_migrations WHERE version = 5)",
+        [],
+        |row| row.get(0),
+    )?;
+    if !has_query_indexes {
+        transaction.execute_batch(QUERY_INDEXES_SCHEMA)?;
+    }
+
     validate_schema(&transaction)?;
     transaction.commit()
 }
@@ -177,6 +210,29 @@ fn validate_schema(transaction: &Transaction<'_>) -> Result<()> {
             )));
         }
     }
+    for index in [
+        "idx_qsos_datetime_start_id_desc",
+        "idx_qsos_mode_datetime_start_id_desc",
+        "idx_qsos_callsign_nocase",
+        "idx_qsos_grid_locator_nocase",
+        "idx_qsos_band_nocase",
+        "idx_dmr_metadata_local_id",
+        "idx_dmr_metadata_timeslot",
+        "idx_digital_routes_network_nocase",
+        "idx_digital_routes_repeater_nocase",
+        "idx_digital_routes_hotspot_nocase",
+    ] {
+        let exists: bool = transaction.query_row(
+            "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = ?1)",
+            [index],
+            |row| row.get(0),
+        )?;
+        if !exists {
+            return Err(Error::InvalidParameterName(format!(
+                "database schema is inconsistent: missing index {index}"
+            )));
+        }
+    }
     Ok(())
 }
 
@@ -196,7 +252,7 @@ mod tests {
                 row.get(0)
             })
             .unwrap();
-        assert_eq!(version, 4);
+        assert_eq!(version, 5);
 
         let dmr_table_exists: bool = connection
             .query_row(
@@ -224,6 +280,20 @@ mod tests {
             )
             .unwrap();
         assert!(extra_fields_table_exists);
+
+        let indexes: i64 = connection
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name IN (
+                    'idx_qsos_datetime_start_id_desc',
+                    'idx_qsos_mode_datetime_start_id_desc',
+                    'idx_dmr_metadata_local_id',
+                    'idx_digital_routes_network_nocase'
+                )",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(indexes, 4);
     }
 
     #[test]

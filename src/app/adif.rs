@@ -4,6 +4,7 @@ pub(crate) fn connect_adif_handlers(
     ui: &MainWindow,
     repository: &Rc<QsoRepository>,
     pending_plan: &Rc<RefCell<Option<AdifImportPlan>>>,
+    state: &SharedLogbookViewState,
 ) {
     let weak_ui = ui.as_weak();
     let preview_repository = Rc::clone(repository);
@@ -61,6 +62,7 @@ pub(crate) fn connect_adif_handlers(
     let weak_ui = ui.as_weak();
     let import_repository = Rc::clone(repository);
     let import_plan = Rc::clone(pending_plan);
+    let import_state = Rc::clone(state);
     ui.on_confirm_adif_import(move || {
         let Some(ui) = weak_ui.upgrade() else {
             return;
@@ -75,7 +77,7 @@ pub(crate) fn connect_adif_handlers(
                 "ADIF import completed: {} imported, {} duplicate(s) skipped",
                 report.imported, report.duplicates_skipped
             ));
-            refresh_qso_list(&ui, &import_repository, ui.get_search_text().as_str())?;
+            refresh_qso_list(&ui, &import_repository, &import_state)?;
             Ok(report)
         })();
         ui.set_adif_preview_visible(false);

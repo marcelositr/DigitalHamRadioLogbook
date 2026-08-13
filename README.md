@@ -115,10 +115,12 @@ Após mudanças de interface, use o checklist persistente em `docs/VISUAL-QA.md`
 
 O menu superior separa as tarefas para manter todos os controles acessíveis mesmo em gerenciadores de janela tiled, como i3:
 
-- **Logbook**: pesquisa, filtros, tabela e ações de edição/exclusão;
+- **Logbook**: pesquisa, filtros, tabela paginada e ações de edição/exclusão;
 - **New QSO**: formulário rolável para criar um contato;
 - **Tools**: importação/exportação ADIF e backup;
 - **Settings**: configuração do callsign da estação local.
+
+O Logbook consulta até 100 QSOs por página diretamente no SQLite e mostra a faixa atual, o total e os controles **Previous/Next**. Busca e filtros DMR/FT8 preservam seus critérios ao navegar entre páginas. Metadados DMR e FT8 são carregados junto dos QSOs, evitando consultas adicionais por linha.
 
 Ao editar um registro pela tabela, o mesmo formulário é aberto preenchido. As ações de salvar e cancelar permanecem fixas no rodapé enquanto os campos podem ser rolados.
 

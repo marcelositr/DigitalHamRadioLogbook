@@ -18,6 +18,11 @@ export component MainWindow inherits Window {
     in-out property <bool> filters-expanded: false;
     in-out property <bool> filters-applied: false;
     in-out property <[QsoRow]> qsos;
+    in-out property <int> logbook-page-offset;
+    in-out property <int> logbook-page-limit;
+    in-out property <int> logbook-page-total;
+    in-out property <int> logbook-page-number;
+    in-out property <int> logbook-page-count;
     in-out property <string> status-text: "Ready";
     in-out property <int> status-kind: 0; // 0 info, 1 success, 2 warning, 3 error
     in-out property <string> local-callsign-text;
@@ -85,6 +90,7 @@ export component MainWindow inherits Window {
     in-out property <string> exit-error-text;
 
     callback save-qso(); callback search-qso(string); callback mode-input-changed(string);
+    callback previous-logbook-page(); callback next-logbook-page();
     callback filter-dmr(); callback clear-dmr-filter();
     callback filter-ft8(); callback clear-ft8-filter();
     callback save-local-callsign(); callback save-external-links(); callback restore-external-link-defaults();
@@ -225,6 +231,11 @@ export component MainWindow inherits Window {
             pending-delete-id <=> root.pending-delete-id;
             pending-delete-label <=> root.pending-delete-label;
             qsos <=> root.qsos;
+            logbook-page-offset <=> root.logbook-page-offset;
+            logbook-page-limit <=> root.logbook-page-limit;
+            logbook-page-total <=> root.logbook-page-total;
+            logbook-page-number <=> root.logbook-page-number;
+            logbook-page-count <=> root.logbook-page-count;
             qth-text <=> root.qth-text;
             rst-received-text <=> root.rst-received-text;
             rst-sent-text <=> root.rst-sent-text;
@@ -236,6 +247,8 @@ export component MainWindow inherits Window {
             filter-dmr => { root.filter-dmr(); }
             filter-ft8 => { root.filter-ft8(); }
             mode-input-changed(value) => { root.mode-input-changed(value); }
+            previous-logbook-page => { root.previous-logbook-page(); }
+            next-logbook-page => { root.next-logbook-page(); }
             open-callsign-lookup(value) => { root.open-callsign-lookup(value); }
             open-grid-lookup(value) => { root.open-grid-lookup(value); }
             request-page(value) => { root.request-page(value); }

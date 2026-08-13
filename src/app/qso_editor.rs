@@ -17,15 +17,20 @@ fn mode_kind(mode: &str) -> i32 {
     }
 }
 
-pub(crate) fn connect_save_handler(ui: &MainWindow, repository: &Rc<QsoRepository>) {
+pub(crate) fn connect_save_handler(
+    ui: &MainWindow,
+    repository: &Rc<QsoRepository>,
+    state: &SharedLogbookViewState,
+) {
     let weak_ui = ui.as_weak();
     let repository = Rc::clone(repository);
+    let state = Rc::clone(state);
     ui.on_save_qso(move || {
         let Some(ui) = weak_ui.upgrade() else {
             return;
         };
 
-        let result = save_form(&ui, &repository);
+        let result = save_form(&ui, &repository, &state);
         match result {
             Ok(message) => {
                 set_status(&ui, message, STATUS_SUCCESS);
@@ -36,7 +41,11 @@ pub(crate) fn connect_save_handler(ui: &MainWindow, repository: &Rc<QsoRepositor
     });
 }
 
-fn save_form(ui: &MainWindow, repository: &QsoRepository) -> Result<&'static str, Box<dyn Error>> {
+fn save_form(
+    ui: &MainWindow,
+    repository: &QsoRepository,
+    state: &SharedLogbookViewState,
+) -> Result<&'static str, Box<dyn Error>> {
     let now_utc = current_utc_timestamp()?;
     let datetime_start_utc = parse_utc_datetime(ui.get_datetime_text().as_str())?;
     let frequency_hz = parse_mhz_to_hz(ui.get_frequency_text().as_str())?;
@@ -99,7 +108,7 @@ fn save_form(ui: &MainWindow, repository: &QsoRepository) -> Result<&'static str
         return Err("QSO no longer exists".into());
     }
 
-    refresh_qso_list(ui, repository, ui.get_search_text().as_str())?;
+    refresh_qso_list(ui, repository, state)?;
     clear_editor(ui)?;
     Ok(if id.is_empty() {
         "QSO saved"

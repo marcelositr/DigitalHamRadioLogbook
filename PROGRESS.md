@@ -315,6 +315,21 @@ Este arquivo é o checkpoint persistente do projeto. Ao retomar o trabalho, ler 
 - [x] Validar fmt, clippy, 67 testes, build e startup X11 isolado.
 - [x] Homologar visualmente e funcionalmente as quatro páginas no i3.
 
+## Marco 21 — Paginação e consultas eficientes
+
+- [x] Adicionar migration 5 com índices para ordenação e filtros frequentes.
+- [x] Paginar busca geral, DMR e FT8 diretamente no SQLite em páginas de 100 QSOs.
+- [x] Calcular total separadamente e manter ordenação estável por data e ID.
+- [x] Carregar QSO, DMR e FT8 por joins em uma consulta, eliminando N+1 na lista.
+- [x] Manter em memória o contexto de busca/filtro ao navegar Previous/Next.
+- [x] Reposicionar para uma página válida após exclusão e atualizar após salvar/importar.
+- [x] Exibir faixa, total, página atual e quantidade de páginas no Logbook.
+- [x] Preservar APIs antigas para exportação e compatibilidade interna.
+- [x] Validar com 10.000 QSOs isolados: schema 5, integridade ok e zero violações de FK.
+- [x] Medir primeira página (~0,42 ms), página 50 (~2,22 ms) e filtros (<2,3 ms) no ambiente local.
+- [x] Validar fmt, clippy, 72 testes, build e startup X11 com 10.000 QSOs.
+- [ ] Homologar paginação, busca e filtros no i3.
+
 ## Próxima ação exata
 
-Marco 20 concluído, homologado e publicado exclusivamente na branch `develop`. Definir o próximo marco antes de iniciar novas alterações.
+Marco 21 implementado e validado exclusivamente na branch `develop`. Publicar e pausar para homologação da paginação no i3.

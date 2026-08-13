@@ -50,6 +50,11 @@ export component LogbookPage inherits VerticalBox {
     in-out property <string> pending-delete-id;
     in-out property <string> pending-delete-label;
     in-out property <[QsoRow]> qsos;
+    in-out property <int> logbook-page-offset;
+    in-out property <int> logbook-page-limit;
+    in-out property <int> logbook-page-total;
+    in-out property <int> logbook-page-number;
+    in-out property <int> logbook-page-count;
     in-out property <string> qth-text;
     in-out property <string> rst-received-text;
     in-out property <string> rst-sent-text;
@@ -61,6 +66,8 @@ export component LogbookPage inherits VerticalBox {
     callback filter-dmr();
     callback filter-ft8();
     callback mode-input-changed(string);
+    callback previous-logbook-page();
+    callback next-logbook-page();
     callback open-callsign-lookup(string);
     callback open-grid-lookup(string);
     callback request-page(int);
@@ -238,6 +245,29 @@ export component LogbookPage inherits VerticalBox {
                         }
                         }
                         Button { text: "Delete"; clicked => { root.pending-delete-id = qso.id; root.pending-delete-label = qso.callsign; } }
+                    }
+                }
+            }
+
+            Rectangle {
+                height: 38px; background: Theme.surface-raised; border-radius: Theme.radius-sm;
+                HorizontalBox {
+                    padding-left: Theme.space-sm; padding-right: Theme.space-sm; padding-top: 3px; padding-bottom: 3px; spacing: Theme.space-sm;
+                    Text {
+                        text: root.logbook-page-total == 0
+                            ? "Showing 0–0 of 0 QSOs"
+                            : "Showing " + (root.logbook-page-offset + 1) + "–" + Math.min(root.logbook-page-offset + root.qsos.length, root.logbook-page-total) + " of " + root.logbook-page-total + " QSOs";
+                        color: Theme.text-secondary; vertical-alignment: center; horizontal-stretch: 1;
+                    }
+                    Text {
+                        text: "Page " + root.logbook-page-number + " of " + root.logbook-page-count;
+                        color: Theme.text-secondary; vertical-alignment: center;
+                    }
+                    Button { text: "Previous"; enabled: root.logbook-page-offset > 0; clicked => { root.previous-logbook-page(); } }
+                    Button {
+                        text: "Next";
+                        enabled: root.logbook-page-total > 0 && root.logbook-page-offset + root.logbook-page-limit < root.logbook-page-total;
+                        clicked => { root.next-logbook-page(); }
                     }
                 }
             }

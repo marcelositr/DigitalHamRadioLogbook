@@ -1,8 +1,13 @@
 use super::*;
 
-pub(crate) fn connect_dmr_filter_handlers(ui: &MainWindow, repository: &Rc<QsoRepository>) {
+pub(crate) fn connect_dmr_filter_handlers(
+    ui: &MainWindow,
+    repository: &Rc<QsoRepository>,
+    state: &SharedLogbookViewState,
+) {
     let weak_ui = ui.as_weak();
     let filter_repository = Rc::clone(repository);
+    let filter_state = Rc::clone(state);
     ui.on_filter_dmr(move || {
         let Some(ui) = weak_ui.upgrade() else {
             return;
@@ -22,11 +27,12 @@ pub(crate) fn connect_dmr_filter_handlers(ui: &MainWindow, repository: &Rc<QsoRe
                 hotspot: optional_filter_text(ui.get_dmr_filter_hotspot_text().as_str()),
                 timeslot: parse_optional_timeslot(ui.get_dmr_filter_timeslot_text().as_str())?,
             };
-            refresh_rows(
-                &ui,
-                filter_repository.search_dmr(&filter)?,
-                &filter_repository,
-            )?;
+            {
+                let mut state = filter_state.borrow_mut();
+                state.query = LogbookQuery::Dmr(filter);
+                state.offset = 0;
+            }
+            refresh_qso_list(&ui, &filter_repository, &filter_state)?;
             Ok(())
         })();
         match result {
@@ -45,12 +51,18 @@ pub(crate) fn connect_dmr_filter_handlers(ui: &MainWindow, repository: &Rc<QsoRe
 
     let weak_ui = ui.as_weak();
     let clear_repository = Rc::clone(repository);
+    let clear_state = Rc::clone(state);
     ui.on_clear_dmr_filter(move || {
         let Some(ui) = weak_ui.upgrade() else {
             return;
         };
         clear_dmr_filter_fields(&ui);
-        match refresh_qso_list(&ui, &clear_repository, ui.get_search_text().as_str()) {
+        {
+            let mut state = clear_state.borrow_mut();
+            state.query = LogbookQuery::General(ui.get_search_text().to_string());
+            state.offset = 0;
+        }
+        match refresh_qso_list(&ui, &clear_repository, &clear_state) {
             Ok(()) => {
                 ui.set_filters_applied(false);
                 ui.set_filters_expanded(false);
@@ -102,9 +114,14 @@ fn optional_filter_text(input: &str) -> Option<String> {
     (!input.is_empty()).then(|| input.to_owned())
 }
 
-pub(crate) fn connect_ft8_filter_handlers(ui: &MainWindow, repository: &Rc<QsoRepository>) {
+pub(crate) fn connect_ft8_filter_handlers(
+    ui: &MainWindow,
+    repository: &Rc<QsoRepository>,
+    state: &SharedLogbookViewState,
+) {
     let weak_ui = ui.as_weak();
     let filter_repository = Rc::clone(repository);
+    let filter_state = Rc::clone(state);
     ui.on_filter_ft8(move || {
         let Some(ui) = weak_ui.upgrade() else {
             return;
@@ -129,11 +146,12 @@ pub(crate) fn connect_ft8_filter_handlers(ui: &MainWindow, repository: &Rc<QsoRe
             ) {
                 return Err("Minimum SNR cannot exceed maximum SNR".into());
             }
-            refresh_rows(
-                &ui,
-                filter_repository.search_ft8(&filter)?,
-                &filter_repository,
-            )?;
+            {
+                let mut state = filter_state.borrow_mut();
+                state.query = LogbookQuery::Ft8(filter);
+                state.offset = 0;
+            }
+            refresh_qso_list(&ui, &filter_repository, &filter_state)?;
             Ok(())
         })();
         match result {
@@ -152,12 +170,18 @@ pub(crate) fn connect_ft8_filter_handlers(ui: &MainWindow, repository: &Rc<QsoRe
 
     let weak_ui = ui.as_weak();
     let clear_repository = Rc::clone(repository);
+    let clear_state = Rc::clone(state);
     ui.on_clear_ft8_filter(move || {
         let Some(ui) = weak_ui.upgrade() else {
             return;
         };
         clear_ft8_filter_fields(&ui);
-        match refresh_qso_list(&ui, &clear_repository, ui.get_search_text().as_str()) {
+        {
+            let mut state = clear_state.borrow_mut();
+            state.query = LogbookQuery::General(ui.get_search_text().to_string());
+            state.offset = 0;
+        }
+        match refresh_qso_list(&ui, &clear_repository, &clear_state) {
             Ok(()) => {
                 ui.set_filters_applied(false);
                 ui.set_filters_expanded(false);

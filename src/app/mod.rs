@@ -43,7 +43,7 @@ use datetime_frequency::{
 use editor_navigation::{editor_snapshot, has_pending_exit_work, EditorSnapshot};
 
 use qso_editor::clear_editor;
-use qso_list::{refresh_qso_list, refresh_rows};
+use qso_list::{refresh_qso_list, LogbookQuery, SharedLogbookViewState};
 use status::{
     actionable_error, set_status, STATUS_ERROR, STATUS_INFO, STATUS_SUCCESS, STATUS_WARNING,
 };
