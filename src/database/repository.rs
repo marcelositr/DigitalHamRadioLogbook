@@ -46,6 +46,10 @@ pub struct AdifImportPreview {
     pub duplicates: usize,
     pub invalid: usize,
     pub modes: BTreeMap<String, usize>,
+    pub bands: BTreeMap<String, usize>,
+    pub earliest_utc: Option<i64>,
+    pub latest_utc: Option<i64>,
+    pub invalid_details: Vec<String>,
 }
 
 pub struct AdifImportPlan {
@@ -197,21 +201,60 @@ impl QsoRepository {
         };
         let mut qsos = Vec::new();
 
-        for record in &document.records {
-            let Ok(imported_qso) = record_to_domain(record) else {
-                preview.invalid += 1;
-                continue;
+        for (index, record) in document.records.iter().enumerate() {
+            let imported_qso = match record_to_domain(record) {
+                Ok(imported_qso) => imported_qso,
+                Err(error) => {
+                    preview.invalid += 1;
+                    if preview.invalid_details.len() < 20 {
+                        preview
+                            .invalid_details
+                            .push(format!("Record {} — {error}", index + 1));
+                    }
+                    continue;
+                }
             };
             *preview
                 .modes
                 .entry(imported_qso.qso.mode.clone())
                 .or_default() += 1;
+            *preview
+                .bands
+                .entry(
+                    imported_qso
+                        .qso
+                        .band
+                        .clone()
+                        .unwrap_or_else(|| "Unknown".to_owned()),
+                )
+                .or_default() += 1;
+            preview.earliest_utc = Some(
+                preview
+                    .earliest_utc
+                    .map_or(imported_qso.qso.datetime_start_utc, |current| {
+                        current.min(imported_qso.qso.datetime_start_utc)
+                    }),
+            );
+            preview.latest_utc = Some(
+                preview
+                    .latest_utc
+                    .map_or(imported_qso.qso.datetime_start_utc, |current| {
+                        current.max(imported_qso.qso.datetime_start_utc)
+                    }),
+            );
             if !identities.insert(QsoIdentity::from(&imported_qso.qso)) {
                 preview.duplicates += 1;
                 continue;
             }
             preview.new_qsos += 1;
             qsos.push(imported_qso);
+        }
+
+        if preview.invalid > preview.invalid_details.len() {
+            preview.invalid_details.push(format!(
+                "… {} additional invalid record(s) omitted",
+                preview.invalid - preview.invalid_details.len()
+            ));
         }
 
         Ok(AdifImportPlan { preview, qsos })
@@ -1098,6 +1141,10 @@ mod tests {
                 duplicates: 1,
                 invalid: 1,
                 modes: BTreeMap::from([("DMR".into(), 1), ("FT8".into(), 1)]),
+                bands: BTreeMap::from([("20m".into(), 1), ("70cm".into(), 1)]),
+                earliest_utc: Some(1_700_000_000),
+                latest_utc: Some(1_700_000_001),
+                invalid_details: vec!["Record 3 — missing ADIF field QSO_DATE".into()],
             }
         );
         assert_eq!(repository.list().unwrap().len(), 1);

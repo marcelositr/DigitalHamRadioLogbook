@@ -83,6 +83,9 @@ export component MainWindow inherits Window {
     in-out property <int> adif-preview-duplicates;
     in-out property <int> adif-preview-invalid;
     in-out property <string> adif-preview-modes;
+    in-out property <string> adif-preview-bands;
+    in-out property <string> adif-preview-date-range;
+    in-out property <string> adif-preview-invalid-details;
     in-out property <bool> discard-editor-visible: false;
     in-out property <int> pending-page: 0;
     in-out property <bool> exit-confirmation-visible: false;
@@ -300,6 +303,9 @@ export component MainWindow inherits Window {
             adif-preview-duplicates <=> root.adif-preview-duplicates;
             adif-preview-invalid <=> root.adif-preview-invalid;
             adif-preview-modes <=> root.adif-preview-modes;
+            adif-preview-bands <=> root.adif-preview-bands;
+            adif-preview-date-range <=> root.adif-preview-date-range;
+            adif-preview-invalid-details <=> root.adif-preview-invalid-details;
             adif-preview-new <=> root.adif-preview-new;
             adif-preview-total <=> root.adif-preview-total;
             adif-preview-visible <=> root.adif-preview-visible;

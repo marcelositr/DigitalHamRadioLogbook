@@ -23,21 +23,29 @@ pub(crate) fn connect_adif_handlers(
         match result {
             Ok(plan) => {
                 let preview = plan.preview();
-                let modes = preview
-                    .modes
-                    .iter()
-                    .map(|(mode, count)| format!("{mode}: {count}"))
-                    .collect::<Vec<_>>()
-                    .join("  •  ");
+                let modes = format_distribution(&preview.modes);
+                let bands = format_distribution(&preview.bands);
+                let date_range = match (preview.earliest_utc, preview.latest_utc) {
+                    (Some(earliest), Some(latest)) => format!(
+                        "{}  →  {}",
+                        format_utc_datetime(earliest).unwrap_or_else(|_| earliest.to_string()),
+                        format_utc_datetime(latest).unwrap_or_else(|_| latest.to_string())
+                    ),
+                    _ => "No valid dates".to_owned(),
+                };
+                let invalid_details = if preview.invalid_details.is_empty() {
+                    "No invalid records".to_owned()
+                } else {
+                    preview.invalid_details.join("\n")
+                };
                 ui.set_adif_preview_total(preview.total as i32);
                 ui.set_adif_preview_new(preview.new_qsos as i32);
                 ui.set_adif_preview_duplicates(preview.duplicates as i32);
                 ui.set_adif_preview_invalid(preview.invalid as i32);
-                ui.set_adif_preview_modes(if modes.is_empty() {
-                    "None".into()
-                } else {
-                    modes.into()
-                });
+                ui.set_adif_preview_modes(modes.into());
+                ui.set_adif_preview_bands(bands.into());
+                ui.set_adif_preview_date_range(date_range.into());
+                ui.set_adif_preview_invalid_details(invalid_details.into());
                 ui.set_adif_preview_visible(true);
                 *preview_plan.borrow_mut() = Some(plan);
                 set_status(
@@ -153,6 +161,18 @@ pub(crate) fn connect_adif_handlers(
         }
     });
 }
+
+fn format_distribution(distribution: &std::collections::BTreeMap<String, usize>) -> String {
+    if distribution.is_empty() {
+        return "None".to_owned();
+    }
+    distribution
+        .iter()
+        .map(|(label, count)| format!("{label}: {count}"))
+        .collect::<Vec<_>>()
+        .join("  •  ")
+}
+
 pub(super) fn write_new_file_atomically(
     path: &Path,
     contents: &[u8],

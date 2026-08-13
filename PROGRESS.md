@@ -1,6 +1,6 @@
 # Progresso de implementação
 
-Última atualização: 2026-08-12
+Última atualização: 2026-08-13
 
 Este arquivo é o checkpoint persistente do projeto. Ao retomar o trabalho, ler `SPEC.md` e este arquivo antes de modificar código.
 
@@ -330,6 +330,24 @@ Este arquivo é o checkpoint persistente do projeto. Ao retomar o trabalho, ler 
 - [x] Validar fmt, clippy, 72 testes, build e startup X11 com 10.000 QSOs.
 - [x] Homologar paginação, busca e filtros no i3 com a base isolada de 10.000 QSOs.
 
+## Marco 22 — Relatório detalhado da importação ADIF (CONCLUÍDO)
+
+- [x] Manter total, novos QSOs, duplicados, inválidos e distribuição por modo.
+- [x] Adicionar distribuição por banda para todos os registros ADIF válidos.
+- [x] Exibir o intervalo entre a primeira e a última data/hora UTC válida.
+- [x] Expor a regra exata de duplicidade no próprio preview.
+- [x] Listar número e motivo dos registros inválidos, limitando a apresentação a 20 detalhes e informando omissões.
+- [x] Manter registros inválidos fora do plano de escrita e a confirmação sem releitura do arquivo.
+- [x] Preservar cancelamento e preview sem qualquer escrita no banco.
+- [x] Validar `cargo fmt --check`, clippy estrito, 72 testes e build locked.
+- [x] Executar startup X11 com HOME/XDG isolados; aplicação permaneceu ativa até o `timeout` esperado.
+- [x] Homologar visualmente no i3 em `1050×680`, incluindo preview com registros inválidos.
+
+## Marcos planejados
+
+- [ ] Marco 23 — CI no GitHub e matriz de migrations.
+- [ ] Marco 24 — Acessibilidade e navegação por teclado.
+
 ## Próxima ação exata
 
-Marco 21 concluído, homologado e publicado exclusivamente na branch `develop`. Definir o próximo marco antes de iniciar novas alterações.
+Marco 22 concluído e homologado. Publicar o checkpoint exclusivamente na branch `develop`; depois aguardar autorização antes de iniciar o Marco 23.

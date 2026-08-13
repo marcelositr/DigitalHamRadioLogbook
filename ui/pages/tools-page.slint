@@ -6,6 +6,9 @@ export component ToolsPage inherits ScrollView {
     in-out property <int> adif-preview-duplicates;
     in-out property <int> adif-preview-invalid;
     in-out property <string> adif-preview-modes;
+    in-out property <string> adif-preview-bands;
+    in-out property <string> adif-preview-date-range;
+    in-out property <string> adif-preview-invalid-details;
     in-out property <int> adif-preview-new;
     in-out property <int> adif-preview-total;
     in-out property <bool> adif-preview-visible;
@@ -56,7 +59,25 @@ export component ToolsPage inherits ScrollView {
                                     Rectangle { horizontal-stretch: 1; }
                                 }
                                 Text { text: "Modes  " + root.adif-preview-modes; color: Theme.text-secondary; wrap: word-wrap; }
-                                Text { text: root.adif-preview-invalid > 0 ? "Invalid records will not be imported." : "The database has not been changed yet."; color: root.adif-preview-invalid > 0 ? Theme.warning : Theme.text-muted; }
+                                Text { text: "Bands  " + root.adif-preview-bands; color: Theme.text-secondary; wrap: word-wrap; }
+                                Text { text: "UTC range  " + root.adif-preview-date-range; color: Theme.text-secondary; wrap: word-wrap; }
+                                Rectangle {
+                                    background: Theme.background; border-width: 1px; border-color: Theme.border; border-radius: Theme.radius-sm;
+                                    VerticalBox {
+                                        padding: Theme.space-sm; spacing: Theme.space-xs;
+                                        Text { text: "DUPLICATE RULE"; color: Theme.accent-secondary; font-size: 11px; font-weight: 700; }
+                                        Text { text: "Same normalized callsign + start UTC + frequency + mode. Existing QSOs and later repetitions in this file are skipped."; color: Theme.text-muted; wrap: word-wrap; }
+                                    }
+                                }
+                                if root.adif-preview-invalid > 0 : Rectangle {
+                                    background: Theme.background; border-width: 1px; border-color: Theme.warning; border-radius: Theme.radius-sm;
+                                    VerticalBox {
+                                        padding: Theme.space-sm; spacing: Theme.space-xs;
+                                        Text { text: "INVALID RECORDS — NOT IMPORTED"; color: Theme.warning; font-size: 11px; font-weight: 700; }
+                                        Text { text: root.adif-preview-invalid-details; color: Theme.text-secondary; wrap: word-wrap; }
+                                    }
+                                }
+                                Text { text: "Preview only — the database has not been changed."; color: Theme.text-muted; }
                                 HorizontalBox {
                                     Rectangle { horizontal-stretch: 1; }
                                     Button { text: "Cancel"; clicked => { root.cancel-adif-import(); } }
