@@ -372,6 +372,19 @@ Este arquivo é o checkpoint persistente do projeto. Ao retomar o trabalho, ler 
 - [x] Validar fmt, clippy estrito, 73 testes, build e startup X11 isolado.
 - [x] Homologar clique único, teclado, foco e layout no i3 em `1050×680`.
 
+## Marco 25 — Preparação da versão v0.2.0 (EM ANDAMENTO)
+
+- [x] Confirmar `v0.1.0` como última tag/release pública e revisar o histórico até `develop`.
+- [x] Atualizar a versão do pacote para `0.2.0` em `Cargo.toml` e `Cargo.lock`.
+- [x] Criar release notes verificáveis em `docs/RELEASE-NOTES-v0.2.0.md`.
+- [x] Validar fmt, clippy estrito, 73 testes, build locked e startup X11 isolado.
+- [x] Gerar tarball Linux release e checksum para `0.2.0`.
+- [x] Verificar checksum, conteúdo mínimo, permissões e bibliotecas compartilhadas.
+- [x] Testar instalação, atualização, execução e desinstalação dupla em HOME/XDG isolados.
+- [x] Confirmar preservação do banco e da configuração por SHA-256.
+- [ ] Publicar o commit de preparação em `develop` e confirmar CI verde.
+- [ ] Aguardar autorização explícita antes de integrar em `main`, criar tag ou publicar a release.
+
 ## Próxima ação exata
 
-Marco 24 concluído e homologado. Publicar exclusivamente em `develop` e confirmar o workflow remoto; depois definir os próximos aprimoramentos antes de iniciar alterações.
+Executar validação completa e ensaio de distribuição da versão `0.2.0`. Não criar tag nem GitHub Release antes da aprovação final do usuário.
