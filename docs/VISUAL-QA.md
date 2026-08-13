@@ -80,6 +80,20 @@ Approved on 2026-08-13 in i3/tiled mode, including the isolated 10,000-QSO datab
 - [x] External-link templates, privacy notice, Restore defaults, and Save links are fully visible.
 - [x] Saving updates the header badge without layout shift or clipping.
 
+## Marco 24 accessibility and keyboard regression
+
+Approved on 2026-08-13 in i3 at `1050×680`; the initial double-click regression caused by the overlapping focus scope was corrected and click-once behavior was re-approved.
+
+- [x] `Tab` reaches Logbook, New QSO, Tools, and Settings in visual order.
+- [x] Focused navigation and external lookup actions show a high-contrast Frost outline.
+- [x] `Enter` and `Space` activate every focused navigation item.
+- [x] Callsign and non-empty grid links are reachable by `Tab` and activate with `Enter` or `Space`.
+- [x] Empty grids remain plain text and do not add an unusable Tab stop.
+- [x] Native fields and buttons remain in visible order after the custom keyboard actions.
+- [x] Search `Enter`, Notes `Enter`, and global `Escape` behavior remain unchanged.
+- [x] Accessible semantics are exposed for banner, navigation, one main region per page, search/form regions, labeled key fields, actionable links, and polite status updates.
+- [x] All controls remain visible and usable at `1050×680` in i3.
+
 ## Keyboard and focus
 
 - [x] `Tab` follows the visible control order only.

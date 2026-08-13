@@ -1,5 +1,5 @@
 import { Button, LineEdit, ListView, ScrollView, VerticalBox, HorizontalBox } from "std-widgets.slint";
-import { Theme, EmptyState, ModeBadge, PageTitle, SectionTitle, StationBadge, StatusBar } from "design-system.slint";
+import { Theme, EmptyState, KeyboardAction, ModeBadge, PageTitle, SectionTitle, StationBadge, StatusBar } from "design-system.slint";
 
 import { QsoRow } from "models/qso-types.slint";
 import { LogbookPage } from "pages/logbook-page.slint";
@@ -123,6 +123,8 @@ export component MainWindow inherits Window {
         spacing: 0px;
 
         Rectangle {
+            accessible-role: banner;
+            accessible-label: "Application header";
             height: 72px;
             background: Theme.background;
             HorizontalBox {
@@ -139,34 +141,16 @@ export component MainWindow inherits Window {
         }
 
         Rectangle {
+            accessible-role: navigation;
+            accessible-label: "Main pages";
             height: 48px;
             background: Theme.surface;
             HorizontalBox {
                 padding-left: Theme.space-md; padding-right: Theme.space-md; padding-top: 6px; padding-bottom: 6px; spacing: Theme.space-sm;
-                Rectangle {
-                    width: 100px; border-radius: 4px;
-                    background: root.active-page == 0 ? Theme.primary : logbook-touch.has-hover ? Theme.border : Theme.surface;
-                    Text { text: "Logbook"; color: Theme.text-primary; font-weight: root.active-page == 0 ? 700 : 500; horizontal-alignment: center; vertical-alignment: center; }
-                    logbook-touch := TouchArea { clicked => { root.request-page(0); } }
-                }
-                Rectangle {
-                    width: 112px; border-radius: 4px;
-                    background: root.active-page == 1 ? Theme.primary : new-qso-touch.has-hover ? Theme.border : Theme.surface;
-                    Text { text: "New QSO"; color: Theme.text-primary; font-weight: root.active-page == 1 ? 700 : 500; horizontal-alignment: center; vertical-alignment: center; }
-                    new-qso-touch := TouchArea { clicked => { root.request-page(1); } }
-                }
-                Rectangle {
-                    width: 92px; border-radius: 4px;
-                    background: root.active-page == 2 ? Theme.primary : tools-touch.has-hover ? Theme.border : Theme.surface;
-                    Text { text: "Tools"; color: Theme.text-primary; font-weight: root.active-page == 2 ? 700 : 500; horizontal-alignment: center; vertical-alignment: center; }
-                    tools-touch := TouchArea { clicked => { root.request-page(2); } }
-                }
-                Rectangle {
-                    width: 104px; border-radius: 4px;
-                    background: root.active-page == 3 ? Theme.primary : settings-touch.has-hover ? Theme.border : Theme.surface;
-                    Text { text: "Settings"; color: Theme.text-primary; font-weight: root.active-page == 3 ? 700 : 500; horizontal-alignment: center; vertical-alignment: center; }
-                    settings-touch := TouchArea { clicked => { root.request-page(3); } }
-                }
+                KeyboardAction { width: 100px; label: "Logbook"; description: "Open the logbook page"; active: root.active-page == 0; activated => { root.request-page(0); } }
+                KeyboardAction { width: 112px; label: "New QSO"; description: "Open the QSO editor"; active: root.active-page == 1; activated => { root.request-page(1); } }
+                KeyboardAction { width: 92px; label: "Tools"; description: "Open ADIF and backup tools"; active: root.active-page == 2; activated => { root.request-page(2); } }
+                KeyboardAction { width: 104px; label: "Settings"; description: "Open application settings"; active: root.active-page == 3; activated => { root.request-page(3); } }
                 Rectangle { horizontal-stretch: 1; }
             }
         }

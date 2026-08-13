@@ -2,6 +2,8 @@ import { Button, LineEdit, ListView, ScrollView, VerticalBox, HorizontalBox } fr
 import { Theme, PageTitle, SectionTitle } from "../design-system.slint";
 
 export component ToolsPage inherits ScrollView {
+    accessible-role: main;
+    accessible-label: "Tools";
     in-out property <string> adif-path-text;
     in-out property <int> adif-preview-duplicates;
     in-out property <int> adif-preview-invalid;
@@ -35,7 +37,7 @@ export component ToolsPage inherits ScrollView {
                         Text { text: "Exchange logbook data safely. Import is transactional and export never overwrites an existing file."; color: Theme.text-secondary; }
                         HorizontalBox {
                             spacing: Theme.space-sm;
-                            LineEdit { text <=> root.adif-path-text; placeholder-text: "/path/to/logbook.adi"; horizontal-stretch: 1; edited => { root.invalidate-adif-preview(); } }
+                            LineEdit { accessible-label: "ADIF import or export path"; text <=> root.adif-path-text; placeholder-text: "/path/to/logbook.adi"; horizontal-stretch: 1; edited => { root.invalidate-adif-preview(); } }
                             Button { text: "Choose import…"; clicked => { root.invalidate-adif-preview(); root.choose-adif-import(); } }
                             Button { text: "Choose export…"; clicked => { root.invalidate-adif-preview(); root.choose-adif-export(); } }
                         }
@@ -95,7 +97,7 @@ export component ToolsPage inherits ScrollView {
                         Text { text: "Create a consistent SQLite snapshot. The destination must not already exist."; color: Theme.text-secondary; }
                         HorizontalBox {
                             spacing: 8px;
-                            LineEdit { text <=> root.backup-path-text; placeholder-text: "/path/to/logbook-backup.sqlite3"; horizontal-stretch: 1; }
+                            LineEdit { accessible-label: "Database backup destination"; text <=> root.backup-path-text; placeholder-text: "/path/to/logbook-backup.sqlite3"; horizontal-stretch: 1; }
                             Button { text: "Choose destination…"; clicked => { root.choose-backup-destination(); } }
                             Button { text: "Create backup"; primary: true; clicked => { root.backup-database(); } }
                         }

@@ -2,6 +2,8 @@ import { Button, LineEdit, ListView, ScrollView, VerticalBox, HorizontalBox } fr
 import { Theme, SectionTitle } from "../design-system.slint";
 
 export component QsoEditorPage inherits VerticalBox {
+    accessible-role: main;
+    accessible-label: editing-id == "" ? "New QSO" : "Edit QSO";
     in-out property <string> band-text;
     in-out property <string> callsign-text;
     in-out property <string> datetime-text;
@@ -50,18 +52,21 @@ export component QsoEditorPage inherits VerticalBox {
                 }
             }
             ScrollView {
+                accessible-role: form;
+                accessible-label: root.editing-id == "" ? "New QSO form" : "Edit QSO form";
                 vertical-stretch: 1;
                 VerticalBox {
                     padding: 16px; spacing: 12px;
                     SectionTitle { text: "CONTACT"; }
                     HorizontalBox {
                         spacing: 10px;
-                        VerticalBox { spacing: Theme.space-xs; horizontal-stretch: 2; Text { text: "Callsign *"; color: Theme.text-primary; } LineEdit { text <=> root.callsign-text; placeholder-text: "PU2XYZ"; } }
-                        VerticalBox { spacing: Theme.space-xs; horizontal-stretch: 3; Text { text: "Date and time (UTC) *"; color: Theme.text-primary; } LineEdit { text <=> root.datetime-text; placeholder-text: "YYYY-MM-DD HH:MM:SS UTC"; } }
+                        VerticalBox { spacing: Theme.space-xs; horizontal-stretch: 2; Text { text: "Callsign *"; color: Theme.text-primary; } LineEdit { accessible-label: "Callsign, required"; text <=> root.callsign-text; placeholder-text: "PU2XYZ"; } }
+                        VerticalBox { spacing: Theme.space-xs; horizontal-stretch: 3; Text { text: "Date and time (UTC) *"; color: Theme.text-primary; } LineEdit { accessible-label: "Date and time UTC, required"; text <=> root.datetime-text; placeholder-text: "YYYY-MM-DD HH:MM:SS UTC"; } }
                         VerticalBox {
                                                     spacing: Theme.space-xs; horizontal-stretch: 2;
                                                     Text { text: "Mode *"; color: Theme.text-primary; }
                                                     LineEdit {
+                                                        accessible-label: "Mode, required";
                                                         text <=> root.mode-text; placeholder-text: "DMR, FT8, M17...";
                                                         edited => { root.mode-input-changed(root.mode-text); }
                                                     }
@@ -69,9 +74,9 @@ export component QsoEditorPage inherits VerticalBox {
                     }
                     HorizontalBox {
                         spacing: 10px;
-                        VerticalBox { spacing: Theme.space-xs; horizontal-stretch: 3; Text { text: "Frequency (MHz) *"; color: Theme.text-primary; } LineEdit { text <=> root.frequency-text; placeholder-text: "438.500"; } }
-                        VerticalBox { spacing: Theme.space-xs; horizontal-stretch: 2; Text { text: "Band override"; } LineEdit { text <=> root.band-text; placeholder-text: "Derived automatically when empty"; } }
-                        VerticalBox { spacing: Theme.space-xs; horizontal-stretch: 2; Text { text: "Grid locator"; } LineEdit { text <=> root.grid-text; placeholder-text: "GG66AA"; } }
+                        VerticalBox { spacing: Theme.space-xs; horizontal-stretch: 3; Text { text: "Frequency (MHz) *"; color: Theme.text-primary; } LineEdit { accessible-label: "Frequency in megahertz, required"; text <=> root.frequency-text; placeholder-text: "438.500"; } }
+                        VerticalBox { spacing: Theme.space-xs; horizontal-stretch: 2; Text { text: "Band override"; } LineEdit { accessible-label: "Band override"; text <=> root.band-text; placeholder-text: "Derived automatically when empty"; } }
+                        VerticalBox { spacing: Theme.space-xs; horizontal-stretch: 2; Text { text: "Grid locator"; } LineEdit { accessible-label: "Grid locator"; text <=> root.grid-text; placeholder-text: "GG66AA"; } }
                     }
 
                     SectionTitle { text: "REPORT AND STATION DETAILS"; }
@@ -133,7 +138,7 @@ export component QsoEditorPage inherits VerticalBox {
                     }
 
                     SectionTitle { text: "NOTES"; }
-                    LineEdit { text <=> root.notes-text; placeholder-text: "Contact notes"; accepted => { root.save-qso(); } }
+                    LineEdit { accessible-label: "Contact notes"; accessible-description: "Press Enter to save the QSO"; text <=> root.notes-text; placeholder-text: "Contact notes"; accepted => { root.save-qso(); } }
                     Rectangle { height: 8px; }
                 }
             }

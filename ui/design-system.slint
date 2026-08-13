@@ -34,6 +34,49 @@ export global Theme {
     out property <length> radius-md: 6px;
 }
 
+export component KeyboardAction inherits Rectangle {
+    in property <string> label;
+    in property <string> description;
+    in property <bool> active: false;
+    in property <bool> link: false;
+    in property <bool> enabled: true;
+    callback activated();
+
+    accessible-role: button;
+    accessible-label: root.label;
+    accessible-description: root.description;
+    accessible-enabled: root.enabled;
+    accessible-action-default => { if root.enabled { root.activated(); } }
+    border-width: action-focus.has-focus ? 2px : 0px;
+    border-color: Theme.accent;
+    border-radius: Theme.radius-sm;
+    background: root.link ? transparent : root.active ? Theme.primary : pointer.has-hover ? Theme.border : Theme.surface;
+
+    Text {
+        text: root.label;
+        color: root.link ? pointer.has-hover || action-focus.has-focus ? Theme.text-primary : Theme.accent : Theme.text-primary;
+        font-weight: root.active || root.link ? 700 : 500;
+        horizontal-alignment: root.link ? left : center;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+    action-focus := FocusScope {
+        enabled: root.enabled;
+        focus-on-click: false;
+        key-pressed(event) => {
+            if event.text == Key.Return || event.text == Key.Space {
+                root.activated();
+                return accept;
+            }
+            return reject;
+        }
+    }
+    pointer := TouchArea {
+        enabled: root.enabled;
+        clicked => { action-focus.focus(); root.activated(); }
+    }
+}
+
 export component SectionTitle inherits Text {
     color: Theme.accent;
     font-size: 16px;
@@ -116,6 +159,9 @@ export component StatusBar inherits Rectangle {
     in property <string> message;
     in property <int> kind; // 0 info, 1 success, 2 warning, 3 error
 
+    accessible-role: content-info;
+    accessible-label: message;
+    accessible-live-region: polite;
     height: 36px;
     background: kind == 3 ? Theme.danger : kind == 2 ? Theme.warning : kind == 1 ? Theme.success : Theme.surface;
     border-width: 1px;

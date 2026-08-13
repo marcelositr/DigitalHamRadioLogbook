@@ -357,10 +357,21 @@ Este arquivo é o checkpoint persistente do projeto. Ao retomar o trabalho, ler 
 - [x] Documentar comandos locked, cobertura da CI e adicionar badge da branch `develop` ao README.
 - [x] Publicar em `develop` e confirmar os sete jobs verdes no GitHub Actions ([execução #1](https://github.com/marcelositr/DigitalHamRadioLogbook/actions/runs/31740488824)).
 
-## Marcos planejados
+## Marco 24 — Acessibilidade e navegação por teclado (CONCLUÍDO)
 
-- [ ] Marco 24 — Acessibilidade e navegação por teclado.
+- [x] Auditar widgets nativos, `TouchArea`, ordem de foco, atalhos e suporte de acessibilidade do Slint 1.17.
+- [x] Criar ação visual reutilizável com mouse, Tab, Enter, Espaço e foco Nord de alto contraste.
+- [x] Corrigir a regressão em que o `FocusScope` exigia dois cliques, preservando clique único e ativação por teclado.
+- [x] Tornar as quatro opções da navegação superior acessíveis por teclado.
+- [x] Tornar links de callsign e GridSquare acessíveis por teclado sem criar foco para grids vazios.
+- [x] Expor papel, rótulo, descrição, estado habilitado e ação padrão às tecnologias assistivas.
+- [x] Marcar banner, navegação, conteúdo principal, busca, formulário e status live region.
+- [x] Adicionar rótulos explícitos aos campos essenciais de Logbook, editor, Tools e Settings.
+- [x] Preservar Search/Notes com Enter e cancelamento global com Escape.
+- [x] Documentar teclado no README e adicionar regressão específica ao checklist visual.
+- [x] Validar fmt, clippy estrito, 73 testes, build e startup X11 isolado.
+- [x] Homologar clique único, teclado, foco e layout no i3 em `1050×680`.
 
 ## Próxima ação exata
 
-Marco 23 concluído, publicado exclusivamente em `develop` e validado pelo GitHub Actions. Aguardar autorização antes de iniciar o Marco 24.
+Marco 24 concluído e homologado. Publicar exclusivamente em `develop` e confirmar o workflow remoto; depois definir os próximos aprimoramentos antes de iniciar alterações.

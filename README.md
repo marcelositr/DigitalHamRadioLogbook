@@ -129,6 +129,8 @@ O Logbook consulta até 100 QSOs por página diretamente no SQLite e mostra a fa
 
 Ao editar um registro pela tabela, o mesmo formulário é aberto preenchido. As ações de salvar e cancelar permanecem fixas no rodapé enquanto os campos podem ser rolados.
 
+A interface pode ser percorrida por `Tab`. A navegação superior e os links de callsign/GridSquare aceitam `Enter` ou `Space`, campos e botões seguem a ordem visual, `Enter` executa a pesquisa ou salva a partir de Notes, e `Escape` cancela o fluxo atual. Regiões principais, campos essenciais, ações personalizadas e mensagens de status também expõem semântica para tecnologias assistivas.
+
 Ao criar ou editar um QSO, sair do formulário por uma aba, pelo botão **Cancel** ou por `Esc` exige confirmação quando houver alterações não salvas. **Continue editing** preserva o formulário atual e **Discard changes** limpa o editor e conclui a navegação solicitada. Formulários sem mudanças não exibem aviso, e rascunhos não são persistidos em disco.
 
 No encerramento normal, o aplicativo lembra a última aba, o tipo de filtro selecionado e se o painel de filtros estava expandido. Pesquisa, valores preenchidos nos filtros, indicador de filtro aplicado e conteúdo parcial de QSO não são persistidos.

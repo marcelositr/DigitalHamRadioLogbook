@@ -1,8 +1,10 @@
 import { Button, LineEdit, ListView, ScrollView, VerticalBox, HorizontalBox } from "std-widgets.slint";
-import { Theme, EmptyState, ModeBadge } from "../design-system.slint";
+import { Theme, EmptyState, KeyboardAction, ModeBadge } from "../design-system.slint";
 import { QsoRow } from "../models/qso-types.slint";
 
 export component LogbookPage inherits VerticalBox {
+    accessible-role: main;
+    accessible-label: "Logbook";
     in-out property <int> active-filter;
     in-out property <int> active-page;
     in-out property <string> band-text;
@@ -76,8 +78,11 @@ export component LogbookPage inherits VerticalBox {
             padding: 12px; spacing: 8px;
 
             HorizontalBox {
+                accessible-role: search;
+                accessible-label: "Search and logbook actions";
                 spacing: 8px;
                 LineEdit {
+                    accessible-label: "Search by callsign or mode";
                     text <=> root.search-text; placeholder-text: "Search by callsign or mode";
                     horizontal-stretch: 1;
                     accepted => { root.active-filter = 0; root.filters-applied = false; root.search-qso(root.search-text); }
@@ -110,6 +115,8 @@ export component LogbookPage inherits VerticalBox {
             }
 
             if root.filters-expanded : Rectangle {
+                accessible-role: search;
+                accessible-label: "Advanced QSO filters";
                 background: Theme.surface; border-width: 1px; border-color: Theme.border; border-radius: Theme.radius-sm;
                 VerticalBox {
                     padding: 12px; spacing: 10px;
@@ -197,28 +204,23 @@ export component LogbookPage inherits VerticalBox {
                     HorizontalBox {
                         padding-left: Theme.space-sm; padding-right: Theme.space-sm; spacing: Theme.space-xs;
                         Text { text: qso.timestamp; color: Theme.text-secondary; min-width: 152px; vertical-alignment: center; overflow: elide; }
-                        Rectangle {
+                        KeyboardAction {
                             min-width: 100px;
-                            Text {
-                                text: qso.callsign; color: callsign-link.has-hover ? Theme.text-primary : Theme.accent;
-                                font-weight: 700; vertical-alignment: center; overflow: elide;
-                            }
-                            callsign-link := TouchArea { clicked => { root.open-callsign-lookup(qso.callsign); } }
+                            label: qso.callsign;
+                            description: "Open external callsign lookup for " + qso.callsign;
+                            link: true;
+                            activated => { root.open-callsign-lookup(qso.callsign); }
                         }
                         ModeBadge { mode: qso.mode; }
                         Text { text: qso.frequency; color: Theme.text-primary; min-width: 110px; vertical-alignment: center; overflow: elide; }
                         Text { text: qso.band; color: Theme.text-secondary; min-width: 55px; vertical-alignment: center; overflow: elide; }
-                        Rectangle {
+                        if qso.grid == "" : Text { text: "—"; color: Theme.text-muted; min-width: 65px; vertical-alignment: center; }
+                        if qso.grid != "" : KeyboardAction {
                             min-width: 65px;
-                            Text {
-                                text: qso.grid == "" ? "—" : qso.grid;
-                                color: qso.grid == "" ? Theme.text-muted : grid-link.has-hover ? Theme.text-primary : Theme.accent-secondary;
-                                vertical-alignment: center; overflow: elide;
-                            }
-                            grid-link := TouchArea {
-                                enabled: qso.grid != "";
-                                clicked => { root.open-grid-lookup(qso.grid); }
-                            }
+                            label: qso.grid;
+                            description: "Open external grid lookup for " + qso.grid;
+                            link: true;
+                            activated => { root.open-grid-lookup(qso.grid); }
                         }
                         Text { text: qso.route-summary == "" ? "—" : qso.route-summary; color: Theme.text-muted; min-width: 150px; horizontal-stretch: 1; vertical-alignment: center; overflow: elide; }
                         Button {

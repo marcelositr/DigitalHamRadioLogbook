@@ -2,6 +2,8 @@ import { Button, LineEdit, ListView, ScrollView, VerticalBox, HorizontalBox } fr
 import { Theme, PageTitle, SectionTitle } from "../design-system.slint";
 
 export component SettingsPage inherits ScrollView {
+    accessible-role: main;
+    accessible-label: "Settings";
     in-out property <string> callsign-url-text;
     in-out property <string> grid-url-text;
     in-out property <string> local-callsign-text;
@@ -21,7 +23,7 @@ export component SettingsPage inherits ScrollView {
                         Text { text: "Identify this station in the application header. The callsign is stored in the local XDG configuration directory."; color: Theme.text-secondary; }
                         HorizontalBox {
                             spacing: 8px;
-                            LineEdit { text <=> root.local-callsign-text; placeholder-text: "Local callsign"; }
+                            LineEdit { accessible-label: "Local station callsign"; text <=> root.local-callsign-text; placeholder-text: "Local callsign"; }
                             Button { text: "Save station"; primary: true; clicked => { root.save-local-callsign(); } }
                             Rectangle { horizontal-stretch: 1; }
                         }
@@ -39,12 +41,12 @@ export component SettingsPage inherits ScrollView {
                         VerticalBox {
                             spacing: Theme.space-xs;
                             Text { text: "Callsign URL template — requires {callsign}"; }
-                            LineEdit { text <=> root.callsign-url-text; horizontal-stretch: 1; }
+                            LineEdit { accessible-label: "Callsign lookup URL template"; accessible-description: "Must contain the callsign placeholder"; text <=> root.callsign-url-text; horizontal-stretch: 1; }
                         }
                         VerticalBox {
                             spacing: Theme.space-xs;
                             Text { text: "Grid URL template — requires {grid}"; }
-                            LineEdit { text <=> root.grid-url-text; horizontal-stretch: 1; }
+                            LineEdit { accessible-label: "Grid lookup URL template"; accessible-description: "Must contain the grid placeholder"; text <=> root.grid-url-text; horizontal-stretch: 1; }
                         }
                         HorizontalBox {
                             spacing: Theme.space-sm;
