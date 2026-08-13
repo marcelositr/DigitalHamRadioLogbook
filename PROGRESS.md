@@ -288,8 +288,8 @@ Este arquivo é o checkpoint persistente do projeto. Ao retomar o trabalho, ler 
 - [x] Oferecer Try again e Exit without saving preferences após falha.
 - [x] Não tocar no banco ao descartar trabalho não confirmado.
 - [x] Validar fmt, clippy, 65 testes, build e startup X11 isolado.
-- [ ] Homologar fechamento seguro no i3.
+- [x] Homologar fechamento seguro no i3.
 
 ## Próxima ação exata
 
-Concluir a validação automatizada do Marco 18 exclusivamente na branch `develop`, publicar e pausar para homologação.
+Marco 18 concluído, homologado e publicado exclusivamente na branch `develop`. Definir o próximo marco antes de iniciar novas alterações.
