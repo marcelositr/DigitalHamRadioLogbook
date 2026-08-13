@@ -276,8 +276,8 @@ Este arquivo é o checkpoint persistente do projeto. Ao retomar o trabalho, ler 
 - [x] Não persistir pesquisa, valores de filtros, filtro aplicado ou rascunhos de QSO.
 - [x] Preservar gravação atômica e permissões privadas da configuração.
 - [x] Validar fmt, clippy, 64 testes, build e startup X11 isolado.
-- [ ] Homologar persistência operacional no i3.
+- [x] Homologar persistência operacional no i3.
 
 ## Próxima ação exata
 
-Concluir a validação automatizada do Marco 17B exclusivamente na branch `develop`, publicar e pausar para homologação.
+Marco 17 concluído, homologado e publicado exclusivamente na branch `develop`. Definir o próximo marco antes de iniciar novas alterações.
