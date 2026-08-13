@@ -343,7 +343,7 @@ Este arquivo é o checkpoint persistente do projeto. Ao retomar o trabalho, ler 
 - [x] Executar startup X11 com HOME/XDG isolados; aplicação permaneceu ativa até o `timeout` esperado.
 - [x] Homologar visualmente no i3 em `1050×680`, incluindo preview com registros inválidos.
 
-## Marco 23 — CI no GitHub e matriz de migrations (IMPLEMENTADO — AGUARDANDO CI REMOTA)
+## Marco 23 — CI no GitHub e matriz de migrations (CONCLUÍDO)
 
 - [x] Criar workflow para pushes e pull requests em `main` e `develop`, além de execução manual.
 - [x] Restringir permissões do workflow a leitura de conteúdo e cancelar execuções obsoletas da mesma referência.
@@ -355,7 +355,7 @@ Este arquivo é o checkpoint persistente do projeto. Ao retomar o trabalho, ler 
 - [x] Executar localmente a matriz completa e cada uma das seis entradas isoladas.
 - [x] Executar startup X11 com HOME/XDG isolados; aplicação permaneceu ativa até o `timeout` esperado.
 - [x] Documentar comandos locked, cobertura da CI e adicionar badge da branch `develop` ao README.
-- [ ] Publicar em `develop` e confirmar todos os jobs verdes no GitHub Actions.
+- [x] Publicar em `develop` e confirmar os sete jobs verdes no GitHub Actions ([execução #1](https://github.com/marcelositr/DigitalHamRadioLogbook/actions/runs/31740488824)).
 
 ## Marcos planejados
 
@@ -363,4 +363,4 @@ Este arquivo é o checkpoint persistente do projeto. Ao retomar o trabalho, ler 
 
 ## Próxima ação exata
 
-Executar a validação local completa do Marco 23, publicar exclusivamente em `develop` e confirmar o workflow remoto antes de marcar o marco como concluído.
+Marco 23 concluído, publicado exclusivamente em `develop` e validado pelo GitHub Actions. Aguardar autorização antes de iniciar o Marco 24.
