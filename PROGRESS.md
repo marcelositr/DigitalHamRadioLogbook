@@ -278,6 +278,18 @@ Este arquivo é o checkpoint persistente do projeto. Ao retomar o trabalho, ler 
 - [x] Validar fmt, clippy, 64 testes, build e startup X11 isolado.
 - [x] Homologar persistência operacional no i3.
 
+## Marco 18 — Fechamento seguro da aplicação
+
+- [x] Interceptar fechamento da janela pela API nativa do Slint.
+- [x] Detectar edição de QSO e preview ADIF pendentes por estado compartilhado.
+- [x] Oferecer Continue working e Discard and exit em confirmação global responsiva.
+- [x] Salvar preferências operacionais antes de toda saída normal.
+- [x] Manter a janela aberta quando a persistência falhar.
+- [x] Oferecer Try again e Exit without saving preferences após falha.
+- [x] Não tocar no banco ao descartar trabalho não confirmado.
+- [x] Validar fmt, clippy, 65 testes, build e startup X11 isolado.
+- [ ] Homologar fechamento seguro no i3.
+
 ## Próxima ação exata
 
-Marco 17 concluído, homologado e publicado exclusivamente na branch `develop`. Definir o próximo marco antes de iniciar novas alterações.
+Concluir a validação automatizada do Marco 18 exclusivamente na branch `develop`, publicar e pausar para homologação.

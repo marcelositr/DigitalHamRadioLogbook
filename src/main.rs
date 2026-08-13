@@ -1,4 +1,4 @@
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::env;
 use std::error::Error;
 use std::fs::{self, OpenOptions};
@@ -20,7 +20,7 @@ use digital_ham_radio_logbook::domain::{
 };
 use digital_ham_radio_logbook::logging;
 use rfd::FileDialog;
-use slint::{ModelRc, SharedString, VecModel};
+use slint::{CloseRequestResponse, ModelRc, SharedString, VecModel};
 
 slint::include_modules!();
 
@@ -61,6 +61,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
     ui.set_datetime_text(format_utc_datetime(current_utc_timestamp()?)?.into());
     refresh_qso_list(&ui, &repository, "")?;
+    let editor_baseline = Rc::new(RefCell::new(editor_snapshot(&ui)));
+    let pending_adif_plan = Rc::new(RefCell::new(None::<AdifImportPlan>));
     connect_station_config_handler(&ui, &app_config, config_path.clone());
     connect_mode_handler(&ui);
     connect_external_link_handlers(&ui, &app_config, config_path.clone());
@@ -70,17 +72,18 @@ fn main() -> Result<(), Box<dyn Error>> {
     connect_ft8_filter_handlers(&ui, &repository);
     connect_delete_handler(&ui, &repository);
     connect_file_dialog_handlers(&ui, &app_config, config_path.clone());
-    connect_adif_handlers(&ui, &repository);
+    connect_adif_handlers(&ui, &repository, &pending_adif_plan);
     connect_backup_handler(&ui, &repository);
-    connect_editor_navigation_handlers(&ui);
+    connect_editor_navigation_handlers(&ui, &editor_baseline);
+    connect_close_handlers(
+        &ui,
+        &app_config,
+        config_path,
+        &editor_baseline,
+        &pending_adif_plan,
+    );
 
     ui.run()?;
-    let mut updated = app_config.borrow().clone();
-    updated.operational.active_page = ui.get_active_page();
-    updated.operational.active_filter = ui.get_active_filter();
-    updated.operational.filters_expanded = ui.get_filters_expanded();
-    config::save(&config_path, &updated)?;
-    *app_config.borrow_mut() = updated;
     logging::info("application stopped");
     Ok(())
 }
@@ -686,12 +689,14 @@ fn suggested_filename(prefix: &str, extension: &str) -> String {
     format!("{prefix}-{date}.{extension}")
 }
 
-fn connect_adif_handlers(ui: &MainWindow, repository: &Rc<QsoRepository>) {
-    let pending_plan = Rc::new(RefCell::new(None::<AdifImportPlan>));
-
+fn connect_adif_handlers(
+    ui: &MainWindow,
+    repository: &Rc<QsoRepository>,
+    pending_plan: &Rc<RefCell<Option<AdifImportPlan>>>,
+) {
     let weak_ui = ui.as_weak();
     let preview_repository = Rc::clone(repository);
-    let preview_plan = Rc::clone(&pending_plan);
+    let preview_plan = Rc::clone(pending_plan);
     ui.on_preview_adif(move || {
         let Some(ui) = weak_ui.upgrade() else {
             return;
@@ -744,7 +749,7 @@ fn connect_adif_handlers(ui: &MainWindow, repository: &Rc<QsoRepository>) {
 
     let weak_ui = ui.as_weak();
     let import_repository = Rc::clone(repository);
-    let import_plan = Rc::clone(&pending_plan);
+    let import_plan = Rc::clone(pending_plan);
     ui.on_confirm_adif_import(move || {
         let Some(ui) = weak_ui.upgrade() else {
             return;
@@ -780,12 +785,21 @@ fn connect_adif_handlers(ui: &MainWindow, repository: &Rc<QsoRepository>) {
     });
 
     let weak_ui = ui.as_weak();
-    let cancel_plan = Rc::clone(&pending_plan);
+    let cancel_plan = Rc::clone(pending_plan);
     ui.on_cancel_adif_import(move || {
         *cancel_plan.borrow_mut() = None;
         if let Some(ui) = weak_ui.upgrade() {
             ui.set_adif_preview_visible(false);
             set_status(&ui, "ADIF import canceled; no changes made", STATUS_INFO);
+        }
+    });
+
+    let weak_ui = ui.as_weak();
+    let invalidate_plan = Rc::clone(pending_plan);
+    ui.on_invalidate_adif_preview(move || {
+        *invalidate_plan.borrow_mut() = None;
+        if let Some(ui) = weak_ui.upgrade() {
+            ui.set_adif_preview_visible(false);
         }
     });
 
@@ -918,6 +932,15 @@ fn has_unsaved_changes(current: &EditorSnapshot, baseline: &EditorSnapshot) -> b
     current != baseline
 }
 
+fn has_pending_exit_work(
+    active_page: i32,
+    current: &EditorSnapshot,
+    baseline: &EditorSnapshot,
+    adif_preview_pending: bool,
+) -> bool {
+    (active_page == 1 && has_unsaved_changes(current, baseline)) || adif_preview_pending
+}
+
 fn editor_snapshot(ui: &MainWindow) -> EditorSnapshot {
     EditorSnapshot(vec![
         ui.get_editing_id().to_string(),
@@ -953,11 +976,133 @@ fn editor_snapshot(ui: &MainWindow) -> EditorSnapshot {
     ])
 }
 
-fn connect_editor_navigation_handlers(ui: &MainWindow) {
-    let baseline = Rc::new(RefCell::new(editor_snapshot(ui)));
+fn save_operational_preferences(
+    ui: &MainWindow,
+    app_config: &Rc<RefCell<AppConfig>>,
+    config_path: &Path,
+) -> Result<(), Box<dyn Error>> {
+    let mut updated = app_config.borrow().clone();
+    updated.operational.active_page = ui.get_active_page();
+    updated.operational.active_filter = ui.get_active_filter();
+    updated.operational.filters_expanded = ui.get_filters_expanded();
+    config::save(config_path, &updated)?;
+    *app_config.borrow_mut() = updated;
+    Ok(())
+}
+
+fn connect_close_handlers(
+    ui: &MainWindow,
+    app_config: &Rc<RefCell<AppConfig>>,
+    config_path: PathBuf,
+    baseline: &Rc<RefCell<EditorSnapshot>>,
+    pending_adif_plan: &Rc<RefCell<Option<AdifImportPlan>>>,
+) {
+    let exit_authorized = Rc::new(Cell::new(false));
 
     let weak_ui = ui.as_weak();
-    let opened_baseline = Rc::clone(&baseline);
+    let close_config = Rc::clone(app_config);
+    let close_path = config_path.clone();
+    let close_baseline = Rc::clone(baseline);
+    let close_plan = Rc::clone(pending_adif_plan);
+    let close_authorized = Rc::clone(&exit_authorized);
+    ui.window().on_close_requested(move || {
+        let Some(ui) = weak_ui.upgrade() else {
+            return CloseRequestResponse::HideWindow;
+        };
+        if close_authorized.get() {
+            return CloseRequestResponse::HideWindow;
+        }
+        if has_pending_exit_work(
+            ui.get_active_page(),
+            &editor_snapshot(&ui),
+            &close_baseline.borrow(),
+            close_plan.borrow().is_some(),
+        ) {
+            ui.set_exit_save_failed(false);
+            ui.set_exit_error_text("".into());
+            ui.set_exit_confirmation_visible(true);
+            set_status(
+                &ui,
+                "Pending work needs confirmation before exit",
+                STATUS_WARNING,
+            );
+            return CloseRequestResponse::KeepWindowShown;
+        }
+        match save_operational_preferences(&ui, &close_config, &close_path) {
+            Ok(()) => CloseRequestResponse::HideWindow,
+            Err(error) => {
+                ui.set_exit_save_failed(true);
+                ui.set_exit_error_text(error.to_string().into());
+                ui.set_exit_confirmation_visible(true);
+                set_status(&ui, "Could not save preferences before exit", STATUS_ERROR);
+                CloseRequestResponse::KeepWindowShown
+            }
+        }
+    });
+
+    let weak_ui = ui.as_weak();
+    ui.on_continue_working(move || {
+        if let Some(ui) = weak_ui.upgrade() {
+            ui.set_exit_confirmation_visible(false);
+            ui.set_exit_save_failed(false);
+            set_status(&ui, "Continuing work", STATUS_INFO);
+        }
+    });
+
+    let weak_ui = ui.as_weak();
+    let discard_config = Rc::clone(app_config);
+    let discard_path = config_path.clone();
+    let discard_authorized = Rc::clone(&exit_authorized);
+    ui.on_discard_and_exit(move || {
+        let Some(ui) = weak_ui.upgrade() else {
+            return;
+        };
+        match save_operational_preferences(&ui, &discard_config, &discard_path) {
+            Ok(()) => {
+                discard_authorized.set(true);
+                let _ = ui.window().hide();
+            }
+            Err(error) => {
+                ui.set_exit_save_failed(true);
+                ui.set_exit_error_text(error.to_string().into());
+                set_status(&ui, "Could not save preferences before exit", STATUS_ERROR);
+            }
+        }
+    });
+
+    let weak_ui = ui.as_weak();
+    let retry_config = Rc::clone(app_config);
+    let retry_path = config_path;
+    let retry_authorized = Rc::clone(&exit_authorized);
+    ui.on_retry_exit(move || {
+        let Some(ui) = weak_ui.upgrade() else {
+            return;
+        };
+        match save_operational_preferences(&ui, &retry_config, &retry_path) {
+            Ok(()) => {
+                retry_authorized.set(true);
+                let _ = ui.window().hide();
+            }
+            Err(error) => {
+                ui.set_exit_error_text(error.to_string().into());
+                set_status(&ui, "Could not save preferences before exit", STATUS_ERROR);
+            }
+        }
+    });
+
+    let weak_ui = ui.as_weak();
+    let force_authorized = Rc::clone(&exit_authorized);
+    ui.on_exit_without_saving(move || {
+        if let Some(ui) = weak_ui.upgrade() {
+            force_authorized.set(true);
+            let _ = ui.window().hide();
+        }
+    });
+}
+
+fn connect_editor_navigation_handlers(ui: &MainWindow, baseline: &Rc<RefCell<EditorSnapshot>>) {
+    let weak_ui = ui.as_weak();
+    let opened_baseline = Rc::clone(baseline);
     ui.on_editor_opened(move || {
         if let Some(ui) = weak_ui.upgrade() {
             *opened_baseline.borrow_mut() = editor_snapshot(&ui);
@@ -966,7 +1111,7 @@ fn connect_editor_navigation_handlers(ui: &MainWindow) {
     });
 
     let weak_ui = ui.as_weak();
-    let request_baseline = Rc::clone(&baseline);
+    let request_baseline = Rc::clone(baseline);
     ui.on_request_page(move |target| {
         let Some(ui) = weak_ui.upgrade() else {
             return;
@@ -1003,7 +1148,7 @@ fn connect_editor_navigation_handlers(ui: &MainWindow) {
     });
 
     let weak_ui = ui.as_weak();
-    let discard_baseline = Rc::clone(&baseline);
+    let discard_baseline = Rc::clone(baseline);
     ui.on_confirm_discard_editor(move || {
         let Some(ui) = weak_ui.upgrade() else {
             return;
@@ -1025,7 +1170,7 @@ fn connect_editor_navigation_handlers(ui: &MainWindow) {
     });
 
     let weak_ui = ui.as_weak();
-    let clear_baseline = Rc::clone(&baseline);
+    let clear_baseline = Rc::clone(baseline);
     ui.on_clear_editor(move || {
         if let Some(ui) = weak_ui.upgrade() {
             match clear_editor(&ui) {
@@ -1368,6 +1513,17 @@ mod tests {
 
         let specialized_change = EditorSnapshot(vec!["PY2ABC".into(), "FT8".into(), "-12".into()]);
         assert!(has_unsaved_changes(&specialized_change, &baseline));
+    }
+
+    #[test]
+    fn detects_pending_work_before_exit() {
+        let baseline = EditorSnapshot(vec!["PY2ABC".into()]);
+        let changed = EditorSnapshot(vec!["PU2XYZ".into()]);
+
+        assert!(!has_pending_exit_work(1, &baseline, &baseline, false));
+        assert!(has_pending_exit_work(1, &changed, &baseline, false));
+        assert!(!has_pending_exit_work(0, &changed, &baseline, false));
+        assert!(has_pending_exit_work(2, &baseline, &baseline, true));
     }
 
     #[test]

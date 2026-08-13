@@ -122,6 +122,8 @@ Ao criar ou editar um QSO, sair do formulário por uma aba, pelo botão **Cancel
 
 No encerramento normal, o aplicativo lembra a última aba, o tipo de filtro selecionado e se o painel de filtros estava expandido. Pesquisa, valores preenchidos nos filtros, indicador de filtro aplicado e conteúdo parcial de QSO não são persistidos.
 
+Fechar a janela pelo gerenciador de janelas é interceptado quando há edição de QSO ou preview ADIF pendente. **Continue working** mantém a janela e o estado atual; **Discard and exit** descarta somente o trabalho não confirmado, salva as preferências operacionais e encerra. Se a configuração não puder ser salva, a aplicação permanece aberta e oferece nova tentativa ou saída explícita sem salvar preferências. Término forçado do processo (`SIGKILL`) e queda de energia não podem ser interceptados.
+
 ## Consultas externas
 
 Na tabela do Logbook, clicar em um callsign ou GridSquare abre o navegador padrão usando os templates configurados em **Settings**.
