@@ -254,8 +254,8 @@ Este arquivo é o checkpoint persistente do projeto. Ao retomar o trabalho, ler 
 - [x] Desabilitar a confirmação quando não houver QSO novo.
 - [x] Cobrir preview sem escrita, cancelamento e confirmação por testes.
 - [x] Validar fmt, clippy, 62 testes, build e startup X11 isolado.
-- [ ] Homologar visualmente o preview no i3.
+- [x] Homologar visualmente o preview no i3.
 
 ## Próxima ação exata
 
-Marco 16 implementado e validado exclusivamente na branch `develop`. Publicar e pausar para homologação visual do preview no i3.
+Marco 16 concluído, homologado e publicado exclusivamente na branch `develop`. Definir o escopo do Marco 17 antes de iniciar novas alterações.
