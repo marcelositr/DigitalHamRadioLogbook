@@ -1,4 +1,4 @@
 mod migrations;
 mod repository;
 
-pub use repository::{DmrFilter, Ft8Filter, QsoRepository};
+pub use repository::{AdifImportReport, DmrFilter, Ft8Filter, QsoRepository};

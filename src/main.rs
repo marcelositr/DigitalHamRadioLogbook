@@ -12,7 +12,7 @@ use digital_ham_radio_logbook::adif::{export as export_adif_text, parse as parse
 use digital_ham_radio_logbook::config::{
     self, expand_url_template, AppConfig, DEFAULT_CALLSIGN_URL, DEFAULT_GRID_URL,
 };
-use digital_ham_radio_logbook::database::{DmrFilter, Ft8Filter, QsoRepository};
+use digital_ham_radio_logbook::database::{AdifImportReport, DmrFilter, Ft8Filter, QsoRepository};
 use digital_ham_radio_logbook::domain::{
     CommonQsoFields, DmrMetadata, DmrMetadataInput, Ft8Metadata, Ft8MetadataInput, NewQso,
 };
@@ -622,18 +622,35 @@ fn connect_adif_handlers(ui: &MainWindow, repository: &Rc<QsoRepository>) {
         let Some(ui) = weak_ui.upgrade() else {
             return;
         };
-        let result = (|| -> Result<usize, Box<dyn Error>> {
+        let result = (|| -> Result<AdifImportReport, Box<dyn Error>> {
             let path_text = ui.get_adif_path_text();
             let path = required_adif_path(path_text.as_str())?;
             let contents = fs::read_to_string(path)?;
             let document = parse_adif(&contents)?;
-            let imported = import_repository.import_adif(&document, current_utc_timestamp()?)?;
-            logging::info(&format!("ADIF import completed: {imported} record(s)"));
+            let report = import_repository.import_adif(&document, current_utc_timestamp()?)?;
+            logging::info(&format!(
+                "ADIF import completed: {} imported, {} duplicate(s) skipped",
+                report.imported, report.duplicates_skipped
+            ));
             refresh_qso_list(&ui, &import_repository, ui.get_search_text().as_str())?;
-            Ok(imported)
+            Ok(report)
         })();
         match result {
-            Ok(count) => set_status(&ui, format!("Imported {count} ADIF QSO(s)"), STATUS_SUCCESS),
+            Ok(report) => {
+                let kind = if report.imported == 0 {
+                    STATUS_INFO
+                } else {
+                    STATUS_SUCCESS
+                };
+                set_status(
+                    &ui,
+                    format!(
+                        "Imported {} ADIF QSO(s); skipped {} duplicate(s)",
+                        report.imported, report.duplicates_skipped
+                    ),
+                    kind,
+                );
+            }
             Err(error) => {
                 logging::error("ADIF import failed");
                 set_status(&ui, format!("Could not import ADIF: {error}"), STATUS_ERROR);

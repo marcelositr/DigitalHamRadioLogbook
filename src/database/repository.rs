@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::error::Error;
 use std::path::Path;
 
@@ -30,6 +31,31 @@ pub struct Ft8Filter {
     pub maximum_snr_received_db: Option<i16>,
     pub start_utc: Option<i64>,
     pub end_utc: Option<i64>,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct AdifImportReport {
+    pub imported: usize,
+    pub duplicates_skipped: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct QsoIdentity {
+    callsign: String,
+    datetime_start_utc: i64,
+    frequency_hz: i64,
+    mode: String,
+}
+
+impl From<&NewQso> for QsoIdentity {
+    fn from(qso: &NewQso) -> Self {
+        Self {
+            callsign: qso.callsign.clone(),
+            datetime_start_utc: qso.datetime_start_utc,
+            frequency_hz: qso.frequency_hz,
+            mode: qso.mode.clone(),
+        }
+    }
 }
 
 pub struct QsoRepository {
@@ -127,7 +153,7 @@ impl QsoRepository {
         &self,
         document: &AdifDocument,
         now_utc: i64,
-    ) -> std::result::Result<usize, Box<dyn Error>> {
+    ) -> std::result::Result<AdifImportReport, Box<dyn Error>> {
         let imported = document
             .records
             .iter()
@@ -139,7 +165,13 @@ impl QsoRepository {
             .collect::<std::result::Result<Vec<_>, _>>()?;
 
         let transaction = self.connection.unchecked_transaction()?;
+        let mut identities = existing_qso_identities(&transaction)?;
+        let mut report = AdifImportReport::default();
         for imported_qso in &imported {
+            if !identities.insert(QsoIdentity::from(&imported_qso.qso)) {
+                report.duplicates_skipped += 1;
+                continue;
+            }
             let qso_id = insert_qso(&transaction, &imported_qso.qso, now_utc)?;
             match &imported_qso.mode_metadata {
                 ImportedModeMetadata::Dmr(metadata) => {
@@ -151,9 +183,10 @@ impl QsoRepository {
                 ImportedModeMetadata::Generic => {}
             }
             insert_adif_extra_fields(&transaction, qso_id, &imported_qso.extra_fields)?;
+            report.imported += 1;
         }
         transaction.commit()?;
-        Ok(imported.len())
+        Ok(report)
     }
 
     pub fn get_adif_extra_fields(&self, qso_id: i64) -> Result<Vec<AdifField>> {
@@ -395,6 +428,22 @@ impl QsoRepository {
 
         rows.collect()
     }
+}
+
+fn existing_qso_identities(connection: &Connection) -> Result<HashSet<QsoIdentity>> {
+    let mut statement =
+        connection.prepare("SELECT callsign, datetime_start_utc, frequency_hz, mode FROM qsos")?;
+    let rows = statement.query_map([], |row| {
+        let callsign: String = row.get(0)?;
+        let mode: String = row.get(3)?;
+        Ok(QsoIdentity {
+            callsign: callsign.trim().to_uppercase(),
+            datetime_start_utc: row.get(1)?,
+            frequency_hz: row.get(2)?,
+            mode: mode.trim().to_uppercase(),
+        })
+    })?;
+    rows.collect()
 }
 
 #[cfg(unix)]
@@ -701,7 +750,13 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(repository.import_adif(&document, 1_700_000_100).unwrap(), 2);
+        assert_eq!(
+            repository.import_adif(&document, 1_700_000_100).unwrap(),
+            AdifImportReport {
+                imported: 2,
+                duplicates_skipped: 0,
+            }
+        );
         let qsos = repository.list().unwrap();
         assert_eq!(qsos.len(), 2);
         let ft8 = qsos.iter().find(|qso| qso.mode == "FT8").unwrap();
@@ -721,6 +776,96 @@ mod tests {
                 data_type: Some("S".into()),
             }]
         );
+    }
+
+    #[test]
+    fn skips_exact_duplicates_when_reimporting_adif() {
+        let repository = QsoRepository::in_memory().unwrap();
+        let document = parse(
+            "<CALL:6>PY2ABC<QSO_DATE:8>20231114<TIME_ON:6>221320<FREQ:6>14.074<MODE:3>FT8<EOR>\
+             <CALL:6>PU2XYZ<QSO_DATE:8>20231114<TIME_ON:6>221321<FREQ:7>438.500<MODE:3>DMR<EOR>",
+        )
+        .unwrap();
+
+        assert_eq!(
+            repository.import_adif(&document, 1_700_000_100).unwrap(),
+            AdifImportReport {
+                imported: 2,
+                duplicates_skipped: 0,
+            }
+        );
+        assert_eq!(
+            repository.import_adif(&document, 1_700_000_200).unwrap(),
+            AdifImportReport {
+                imported: 0,
+                duplicates_skipped: 2,
+            }
+        );
+        assert_eq!(repository.list().unwrap().len(), 2);
+    }
+
+    #[test]
+    fn skips_duplicates_within_one_adif_without_merging_fields() {
+        let repository = QsoRepository::in_memory().unwrap();
+        let document = parse(
+            "<CALL:6>PY2ABC<QSO_DATE:8>20231114<TIME_ON:6>221320<FREQ:6>14.074<MODE:3>FT8<COMMENT:5>first<EOR>\
+             <CALL:6>PY2ABC<QSO_DATE:8>20231114<TIME_ON:6>221320<FREQ:6>14.074<MODE:3>FT8<COMMENT:6>second<EOR>",
+        )
+        .unwrap();
+
+        assert_eq!(
+            repository.import_adif(&document, 1_700_000_100).unwrap(),
+            AdifImportReport {
+                imported: 1,
+                duplicates_skipped: 1,
+            }
+        );
+        let qsos = repository.list().unwrap();
+        assert_eq!(qsos.len(), 1);
+        assert_eq!(qsos[0].notes, "first");
+    }
+
+    #[test]
+    fn skips_adif_duplicate_of_a_manually_created_qso() {
+        let repository = QsoRepository::in_memory().unwrap();
+        let qso = NewQso::new("py2abc", 1_700_000_000, 14_074_000, "ft8").unwrap();
+        repository.insert(&qso, 1_700_000_001).unwrap();
+        let document = parse(
+            "<CALL:6>PY2ABC<QSO_DATE:8>20231114<TIME_ON:6>221320<FREQ:6>14.074<MODE:3>FT8<EOR>",
+        )
+        .unwrap();
+
+        assert_eq!(
+            repository.import_adif(&document, 1_700_000_100).unwrap(),
+            AdifImportReport {
+                imported: 0,
+                duplicates_skipped: 1,
+            }
+        );
+        assert_eq!(repository.list().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn imports_qsos_that_differ_in_any_identity_field() {
+        let repository = QsoRepository::in_memory().unwrap();
+        let existing = NewQso::new("PY2ABC", 1_700_000_000, 14_074_000, "FT8").unwrap();
+        repository.insert(&existing, 1_700_000_001).unwrap();
+        let document = parse(
+            "<CALL:6>PY2ABD<QSO_DATE:8>20231114<TIME_ON:6>221320<FREQ:6>14.074<MODE:3>FT8<EOR>\
+             <CALL:6>PY2ABC<QSO_DATE:8>20231114<TIME_ON:6>221321<FREQ:6>14.074<MODE:3>FT8<EOR>\
+             <CALL:6>PY2ABC<QSO_DATE:8>20231114<TIME_ON:6>221320<FREQ:6>14.075<MODE:3>FT8<EOR>\
+             <CALL:6>PY2ABC<QSO_DATE:8>20231114<TIME_ON:6>221320<FREQ:6>14.074<MODE:4>MFSK<EOR>",
+        )
+        .unwrap();
+
+        assert_eq!(
+            repository.import_adif(&document, 1_700_000_100).unwrap(),
+            AdifImportReport {
+                imported: 4,
+                duplicates_skipped: 0,
+            }
+        );
+        assert_eq!(repository.list().unwrap().len(), 5);
     }
 
     #[test]

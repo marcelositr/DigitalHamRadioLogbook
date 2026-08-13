@@ -232,6 +232,18 @@ Este arquivo é o checkpoint persistente do projeto. Ao retomar o trabalho, ler 
 - [x] Normalizar modo durante digitação (`DMR`, `dmr`, `Ft8`, espaços etc.); M17 confirmado como modo genérico.
 - [x] Ampliar a suíte para 56 testes.
 
+## Marco 15 — Integridade da importação ADIF
+
+- [x] Definir duplicidade exata por callsign, data/hora UTC inicial, frequência e modo normalizados.
+- [x] Validar o documento inteiro antes de iniciar a transação.
+- [x] Ignorar duplicados existentes e repetições dentro do mesmo documento.
+- [x] Preservar o primeiro registro sem mesclar ou sobrescrever metadados.
+- [x] Manter duplicados manuais legítimos permitidos.
+- [x] Informar separadamente QSOs importados e duplicados ignorados na UI e no log.
+- [x] Cobrir reimportação, QSO manual existente e diferenças em cada campo da identidade.
+- [x] Validar fmt, clippy, 60 testes, build e startup X11 isolado.
+- [ ] Homologar visualmente a reimportação pela UI no i3.
+
 ## Próxima ação exata
 
-Marco 14 homologado na branch `develop`: links, hover, navegador padrão, grid vazio, Settings e layout DMR/FT8 estão corretos no i3. Próxima decisão: abrir pull request de `develop` para `main`, definir a próxima versão e preparar uma nova release; não fazer merge automático sem revisão explícita.
+Marco 15 implementado e validado exclusivamente na branch `develop`. Pausar para homologação da reimportação pela UI no i3; não iniciar o Marco 16 antes dessa aprovação.
