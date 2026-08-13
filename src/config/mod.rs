@@ -13,6 +13,47 @@ pub struct AppConfig {
     pub station: StationConfig,
     #[serde(default)]
     pub external_links: ExternalLinksConfig,
+    #[serde(default)]
+    pub operational: OperationalConfig,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct OperationalConfig {
+    #[serde(default)]
+    pub active_page: i32,
+    #[serde(default)]
+    pub active_filter: i32,
+    #[serde(default)]
+    pub filters_expanded: bool,
+    #[serde(default)]
+    pub adif_import_directory: String,
+    #[serde(default)]
+    pub adif_export_directory: String,
+    #[serde(default)]
+    pub backup_directory: String,
+}
+
+impl OperationalConfig {
+    pub fn sanitized_active_page(&self) -> i32 {
+        if (0..=3).contains(&self.active_page) {
+            self.active_page
+        } else {
+            0
+        }
+    }
+
+    pub fn sanitized_active_filter(&self) -> i32 {
+        if (0..=2).contains(&self.active_filter) {
+            self.active_filter
+        } else {
+            0
+        }
+    }
+
+    pub fn existing_directory(value: &str) -> Option<PathBuf> {
+        let path = PathBuf::from(value);
+        path.is_dir().then_some(path)
+    }
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -226,9 +267,27 @@ mod tests {
     }
 
     #[test]
-    fn old_configuration_uses_default_external_links() {
+    fn old_configuration_uses_new_section_defaults() {
         let config: AppConfig = toml::from_str("[station]\ncallsign = 'PY2ABC'\n").unwrap();
         assert_eq!(config.external_links, ExternalLinksConfig::default());
+        assert_eq!(config.operational, OperationalConfig::default());
+    }
+
+    #[test]
+    fn sanitizes_operational_navigation_values_and_directories() {
+        let mut operational = OperationalConfig {
+            active_page: 99,
+            active_filter: -1,
+            ..Default::default()
+        };
+        assert_eq!(operational.sanitized_active_page(), 0);
+        assert_eq!(operational.sanitized_active_filter(), 0);
+        assert!(OperationalConfig::existing_directory("/path/that/does/not/exist").is_none());
+
+        operational.active_page = 3;
+        operational.active_filter = 2;
+        assert_eq!(operational.sanitized_active_page(), 3);
+        assert_eq!(operational.sanitized_active_filter(), 2);
     }
 
     #[test]
@@ -241,6 +300,14 @@ mod tests {
         let path = directory.join("config.toml");
         let mut config = AppConfig::default();
         config.set_callsign("PY2ABC").unwrap();
+        config.operational = OperationalConfig {
+            active_page: 2,
+            active_filter: 1,
+            filters_expanded: true,
+            adif_import_directory: "/tmp/import".into(),
+            adif_export_directory: "/tmp/export".into(),
+            backup_directory: "/tmp/backup".into(),
+        };
 
         save(&path, &config).unwrap();
         assert_eq!(load(&path).unwrap(), config);

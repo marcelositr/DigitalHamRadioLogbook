@@ -53,6 +53,9 @@ fn main() -> Result<(), Box<dyn Error>> {
             .into(),
     );
     ui.set_grid_url_text(app_config.borrow().external_links.grid_url.clone().into());
+    ui.set_active_page(app_config.borrow().operational.sanitized_active_page());
+    ui.set_active_filter(app_config.borrow().operational.sanitized_active_filter());
+    ui.set_filters_expanded(app_config.borrow().operational.filters_expanded);
     if app_config.borrow().station.callsign.is_empty() {
         set_status(&ui, "Configure the local station callsign", STATUS_WARNING);
     }
@@ -60,18 +63,24 @@ fn main() -> Result<(), Box<dyn Error>> {
     refresh_qso_list(&ui, &repository, "")?;
     connect_station_config_handler(&ui, &app_config, config_path.clone());
     connect_mode_handler(&ui);
-    connect_external_link_handlers(&ui, &app_config, config_path);
+    connect_external_link_handlers(&ui, &app_config, config_path.clone());
     connect_save_handler(&ui, &repository);
     connect_search_handler(&ui, &repository);
     connect_dmr_filter_handlers(&ui, &repository);
     connect_ft8_filter_handlers(&ui, &repository);
     connect_delete_handler(&ui, &repository);
-    connect_file_dialog_handlers(&ui);
+    connect_file_dialog_handlers(&ui, &app_config, config_path.clone());
     connect_adif_handlers(&ui, &repository);
     connect_backup_handler(&ui, &repository);
     connect_editor_navigation_handlers(&ui);
 
     ui.run()?;
+    let mut updated = app_config.borrow().clone();
+    updated.operational.active_page = ui.get_active_page();
+    updated.operational.active_filter = ui.get_active_filter();
+    updated.operational.filters_expanded = ui.get_filters_expanded();
+    config::save(&config_path, &updated)?;
+    *app_config.borrow_mut() = updated;
     logging::info("application stopped");
     Ok(())
 }
@@ -563,50 +572,110 @@ fn connect_delete_handler(ui: &MainWindow, repository: &Rc<QsoRepository>) {
     });
 }
 
-fn connect_file_dialog_handlers(ui: &MainWindow) {
+fn connect_file_dialog_handlers(
+    ui: &MainWindow,
+    app_config: &Rc<RefCell<AppConfig>>,
+    config_path: PathBuf,
+) {
     let weak_ui = ui.as_weak();
+    let import_config = Rc::clone(app_config);
+    let import_config_path = config_path.clone();
     ui.on_choose_adif_import(move || {
         let Some(ui) = weak_ui.upgrade() else {
             return;
         };
-        if let Some(path) = FileDialog::new()
+        let mut dialog = FileDialog::new()
             .set_title("Select an ADIF file to import")
-            .add_filter("ADIF logbook", &["adi", "adif"])
-            .pick_file()
-        {
+            .add_filter("ADIF logbook", &["adi", "adif"]);
+        if let Some(directory) = config::OperationalConfig::existing_directory(
+            &import_config.borrow().operational.adif_import_directory,
+        ) {
+            dialog = dialog.set_directory(directory);
+        }
+        if let Some(path) = dialog.pick_file() {
             ui.set_adif_path_text(path.to_string_lossy().into_owned().into());
+            if let Some(parent) = path.parent() {
+                let mut updated = import_config.borrow().clone();
+                updated.operational.adif_import_directory = parent.to_string_lossy().into_owned();
+                if let Err(error) = config::save(&import_config_path, &updated) {
+                    set_status(
+                        &ui,
+                        format!("ADIF selected, but could not remember folder: {error}"),
+                        STATUS_WARNING,
+                    );
+                    return;
+                }
+                *import_config.borrow_mut() = updated;
+            }
             set_status(&ui, "ADIF import file selected", STATUS_INFO);
         }
     });
 
     let weak_ui = ui.as_weak();
+    let export_config = Rc::clone(app_config);
+    let export_config_path = config_path.clone();
     ui.on_choose_adif_export(move || {
         let Some(ui) = weak_ui.upgrade() else {
             return;
         };
-        if let Some(path) = FileDialog::new()
+        let mut dialog = FileDialog::new()
             .set_title("Choose the ADIF export destination")
             .set_file_name(suggested_filename("logbook", "adi"))
-            .add_filter("ADIF logbook", &["adi", "adif"])
-            .save_file()
-        {
+            .add_filter("ADIF logbook", &["adi", "adif"]);
+        if let Some(directory) = config::OperationalConfig::existing_directory(
+            &export_config.borrow().operational.adif_export_directory,
+        ) {
+            dialog = dialog.set_directory(directory);
+        }
+        if let Some(path) = dialog.save_file() {
             ui.set_adif_path_text(path.to_string_lossy().into_owned().into());
+            if let Some(parent) = path.parent() {
+                let mut updated = export_config.borrow().clone();
+                updated.operational.adif_export_directory = parent.to_string_lossy().into_owned();
+                if let Err(error) = config::save(&export_config_path, &updated) {
+                    set_status(
+                        &ui,
+                        format!("Destination selected, but could not remember folder: {error}"),
+                        STATUS_WARNING,
+                    );
+                    return;
+                }
+                *export_config.borrow_mut() = updated;
+            }
             set_status(&ui, "ADIF export destination selected", STATUS_INFO);
         }
     });
 
     let weak_ui = ui.as_weak();
+    let backup_config = Rc::clone(app_config);
     ui.on_choose_backup_destination(move || {
         let Some(ui) = weak_ui.upgrade() else {
             return;
         };
-        if let Some(path) = FileDialog::new()
+        let mut dialog = FileDialog::new()
             .set_title("Choose the database backup destination")
             .set_file_name(suggested_filename("logbook-backup", "sqlite3"))
-            .add_filter("SQLite database", &["sqlite3"])
-            .save_file()
-        {
+            .add_filter("SQLite database", &["sqlite3"]);
+        if let Some(directory) = config::OperationalConfig::existing_directory(
+            &backup_config.borrow().operational.backup_directory,
+        ) {
+            dialog = dialog.set_directory(directory);
+        }
+        if let Some(path) = dialog.save_file() {
             ui.set_backup_path_text(path.to_string_lossy().into_owned().into());
+            if let Some(parent) = path.parent() {
+                let mut updated = backup_config.borrow().clone();
+                updated.operational.backup_directory = parent.to_string_lossy().into_owned();
+                if let Err(error) = config::save(&config_path, &updated) {
+                    set_status(
+                        &ui,
+                        format!("Destination selected, but could not remember folder: {error}"),
+                        STATUS_WARNING,
+                    );
+                    return;
+                }
+                *backup_config.borrow_mut() = updated;
+            }
             set_status(&ui, "Backup destination selected", STATUS_INFO);
         }
     });

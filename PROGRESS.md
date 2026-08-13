@@ -267,6 +267,17 @@ Este arquivo é o checkpoint persistente do projeto. Ao retomar o trabalho, ler 
 - [x] Validar fmt, clippy, 63 testes, build e startup X11 isolado.
 - [x] Homologar visualmente os fluxos de descarte no i3.
 
+## Marco 17B — Preferências operacionais
+
+- [x] Adicionar seção TOML retrocompatível para preferências operacionais.
+- [x] Lembrar separadamente as últimas pastas de importação, exportação e backup.
+- [x] Ignorar pastas removidas ou inacessíveis e usar o fallback do seletor.
+- [x] Restaurar última aba, tipo de filtro e painel expandido com valores sanitizados.
+- [x] Não persistir pesquisa, valores de filtros, filtro aplicado ou rascunhos de QSO.
+- [x] Preservar gravação atômica e permissões privadas da configuração.
+- [x] Validar fmt, clippy, 64 testes, build e startup X11 isolado.
+- [ ] Homologar persistência operacional no i3.
+
 ## Próxima ação exata
 
-Marco 17A concluído e homologado exclusivamente na branch `develop`. Publicar o checkpoint e definir o escopo do Marco 17B antes de iniciar novas alterações.
+Concluir a validação automatizada do Marco 17B exclusivamente na branch `develop`, publicar e pausar para homologação.
