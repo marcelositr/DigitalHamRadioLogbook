@@ -290,6 +290,18 @@ Este arquivo é o checkpoint persistente do projeto. Ao retomar o trabalho, ler 
 - [x] Validar fmt, clippy, 65 testes, build e startup X11 isolado.
 - [x] Homologar fechamento seguro no i3.
 
+## Marco 19 — Diagnóstico operacional acionável
+
+- [x] Centralizar mensagens acionáveis sem ocultar o detalhe técnico.
+- [x] Orientar escolha de novo nome quando o destino já existe.
+- [x] Orientar seleção de caminho existente para arquivo ou pasta ausente.
+- [x] Orientar uso de local gravável para permissão negada ou filesystem somente leitura.
+- [x] Aplicar a configuração, links externos, ADIF, backup e fechamento seguro.
+- [x] Preservar mensagens de validação já claras sem ruído adicional.
+- [x] Cobrir erros tipados e mensagens internas por testes.
+- [x] Validar fmt, clippy, 67 testes, build e startup X11 isolado.
+- [ ] Homologar mensagens acionáveis no i3.
+
 ## Próxima ação exata
 
-Marco 18 concluído, homologado e publicado exclusivamente na branch `develop`. Definir o próximo marco antes de iniciar novas alterações.
+Concluir a validação automatizada do Marco 19 exclusivamente na branch `develop`, publicar e pausar para homologação.

@@ -2,7 +2,7 @@ use std::cell::{Cell, RefCell};
 use std::env;
 use std::error::Error;
 use std::fs::{self, OpenOptions};
-use std::io::Write;
+use std::io::{ErrorKind, Write};
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -32,6 +32,43 @@ const STATUS_ERROR: i32 = 3;
 fn set_status(ui: &MainWindow, text: impl Into<SharedString>, kind: i32) {
     ui.set_status_text(text.into());
     ui.set_status_kind(kind);
+}
+
+fn actionable_error(context: &str, error: &(dyn Error + 'static)) -> String {
+    let detail = error.to_string();
+    let detail_lower = detail.to_ascii_lowercase();
+    let io_kind = io_error_kind(error);
+
+    let guidance = if detail_lower.contains("destination already exists")
+        || io_kind == Some(ErrorKind::AlreadyExists)
+    {
+        "Choose a new filename; existing files are never overwritten."
+    } else if detail_lower.contains("directory does not exist")
+        || io_kind == Some(ErrorKind::NotFound)
+    {
+        "Select an existing file or folder and try again."
+    } else if io_kind == Some(ErrorKind::PermissionDenied) {
+        "Choose a location where your user has permission, then try again."
+    } else if io_kind == Some(ErrorKind::ReadOnlyFilesystem) {
+        "Choose a writable location, then try again."
+    } else {
+        ""
+    };
+
+    if guidance.is_empty() {
+        format!("{context}: {detail}")
+    } else {
+        format!("{context}: {detail}. {guidance}")
+    }
+}
+
+fn io_error_kind(mut error: &(dyn Error + 'static)) -> Option<ErrorKind> {
+    loop {
+        if let Some(io_error) = error.downcast_ref::<std::io::Error>() {
+            return Some(io_error.kind());
+        }
+        error = error.source()?;
+    }
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -114,7 +151,7 @@ fn connect_station_config_handler(
                 logging::error("failed to save local station configuration");
                 set_status(
                     &ui,
-                    format!("Could not save station: {error}"),
+                    actionable_error("Could not save station", error.as_ref()),
                     STATUS_ERROR,
                 );
             }
@@ -165,7 +202,7 @@ fn connect_external_link_handlers(
             Ok(()) => set_status(&ui, "External lookup links saved", STATUS_SUCCESS),
             Err(error) => set_status(
                 &ui,
-                format!("Could not save lookup links: {error}"),
+                actionable_error("Could not save lookup links", error.as_ref()),
                 STATUS_ERROR,
             ),
         }
@@ -236,7 +273,7 @@ fn open_lookup(
         ),
         Err(error) => set_status(
             ui,
-            format!("Could not open {label} lookup: {error}"),
+            actionable_error(&format!("Could not open {label} lookup"), error.as_ref()),
             STATUS_ERROR,
         ),
     }
@@ -740,7 +777,7 @@ fn connect_adif_handlers(
                 logging::error("ADIF preview failed");
                 set_status(
                     &ui,
-                    format!("Could not preview ADIF: {error}"),
+                    actionable_error("Could not preview ADIF", error.as_ref()),
                     STATUS_ERROR,
                 );
             }
@@ -779,7 +816,11 @@ fn connect_adif_handlers(
             ),
             Err(error) => {
                 logging::error("ADIF import failed");
-                set_status(&ui, format!("Could not import ADIF: {error}"), STATUS_ERROR);
+                set_status(
+                    &ui,
+                    actionable_error("Could not import ADIF", error.as_ref()),
+                    STATUS_ERROR,
+                );
             }
         }
     });
@@ -827,7 +868,11 @@ fn connect_adif_handlers(
             ),
             Err(error) => {
                 logging::error("ADIF export failed");
-                set_status(&ui, format!("Could not export ADIF: {error}"), STATUS_ERROR);
+                set_status(
+                    &ui,
+                    actionable_error("Could not export ADIF", error.as_ref()),
+                    STATUS_ERROR,
+                );
             }
         }
     });
@@ -853,7 +898,7 @@ fn connect_backup_handler(ui: &MainWindow, repository: &Rc<QsoRepository>) {
                 logging::error("database backup failed");
                 set_status(
                     &ui,
-                    format!("Could not create backup: {error}"),
+                    actionable_error("Could not create backup", error.as_ref()),
                     STATUS_ERROR,
                 );
             }
@@ -1032,7 +1077,9 @@ fn connect_close_handlers(
             Ok(()) => CloseRequestResponse::HideWindow,
             Err(error) => {
                 ui.set_exit_save_failed(true);
-                ui.set_exit_error_text(error.to_string().into());
+                ui.set_exit_error_text(
+                    actionable_error("Could not save preferences", error.as_ref()).into(),
+                );
                 ui.set_exit_confirmation_visible(true);
                 set_status(&ui, "Could not save preferences before exit", STATUS_ERROR);
                 CloseRequestResponse::KeepWindowShown
@@ -1064,7 +1111,9 @@ fn connect_close_handlers(
             }
             Err(error) => {
                 ui.set_exit_save_failed(true);
-                ui.set_exit_error_text(error.to_string().into());
+                ui.set_exit_error_text(
+                    actionable_error("Could not save preferences", error.as_ref()).into(),
+                );
                 set_status(&ui, "Could not save preferences before exit", STATUS_ERROR);
             }
         }
@@ -1084,7 +1133,9 @@ fn connect_close_handlers(
                 let _ = ui.window().hide();
             }
             Err(error) => {
-                ui.set_exit_error_text(error.to_string().into());
+                ui.set_exit_error_text(
+                    actionable_error("Could not save preferences", error.as_ref()).into(),
+                );
                 set_status(&ui, "Could not save preferences before exit", STATUS_ERROR);
             }
         }
@@ -1524,6 +1575,35 @@ mod tests {
         assert!(has_pending_exit_work(1, &changed, &baseline, false));
         assert!(!has_pending_exit_work(0, &changed, &baseline, false));
         assert!(has_pending_exit_work(2, &baseline, &baseline, true));
+    }
+
+    #[test]
+    fn adds_actionable_guidance_to_common_file_errors() {
+        let exists = std::io::Error::from(ErrorKind::AlreadyExists);
+        assert!(
+            actionable_error("Could not export ADIF", &exists).contains("Choose a new filename")
+        );
+
+        let missing = std::io::Error::from(ErrorKind::NotFound);
+        assert!(actionable_error("Could not preview ADIF", &missing)
+            .contains("Select an existing file or folder"));
+
+        let denied = std::io::Error::from(ErrorKind::PermissionDenied);
+        assert!(actionable_error("Could not create backup", &denied)
+            .contains("where your user has permission"));
+
+        let validation = std::io::Error::new(ErrorKind::InvalidInput, "path must end in .adi");
+        assert_eq!(
+            actionable_error("Could not export ADIF", &validation),
+            "Could not export ADIF: path must end in .adi"
+        );
+    }
+
+    #[test]
+    fn recognizes_existing_destination_messages_without_typed_io_errors() {
+        let error = std::io::Error::other("destination already exists");
+        assert!(actionable_error("Could not create backup", &error)
+            .contains("existing files are never overwritten"));
     }
 
     #[test]

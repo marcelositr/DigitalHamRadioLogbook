@@ -145,6 +145,8 @@ Somente templates `http://` ou `https://` são aceitos, e os placeholders corres
 
 O aplicativo escreve logs operacionais simples em `stderr`, incluindo startup, encerramento, configuração, importação/exportação ADIF e backup. Não há telemetria, analytics ou envio automático pela rede. Conteúdo de QSOs e callsigns não é escrito nesses logs operacionais.
 
+Erros operacionais comuns exibem orientação prática junto do detalhe técnico: escolher outro nome quando o destino existe, selecionar arquivo/pasta existente quando o caminho desapareceu e usar um local gravável quando faltar permissão. Validações de formulário que já são claras permanecem diretas, sem texto extra.
+
 ## Integridade e recuperação
 
 A abertura do banco recusa schemas futuros, valida os objetos esperados e executa verificações SQLite de integridade e foreign keys. Backups passam pelas mesmas verificações. A configuração e a exportação ADIF são publicadas por temporário + rename, reduzindo o risco de arquivos parciais.
