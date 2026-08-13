@@ -372,7 +372,7 @@ Este arquivo é o checkpoint persistente do projeto. Ao retomar o trabalho, ler 
 - [x] Validar fmt, clippy estrito, 73 testes, build e startup X11 isolado.
 - [x] Homologar clique único, teclado, foco e layout no i3 em `1050×680`.
 
-## Marco 25 — Preparação da versão v0.2.0 (EM ANDAMENTO)
+## Marco 25 — Preparação da versão v0.2.0 (PRONTA PARA PUBLICAÇÃO)
 
 - [x] Confirmar `v0.1.0` como última tag/release pública e revisar o histórico até `develop`.
 - [x] Atualizar a versão do pacote para `0.2.0` em `Cargo.toml` e `Cargo.lock`.
@@ -383,9 +383,9 @@ Este arquivo é o checkpoint persistente do projeto. Ao retomar o trabalho, ler 
 - [x] Testar instalação, atualização, execução e desinstalação dupla em HOME/XDG isolados.
 - [x] Confirmar preservação do banco e da configuração por SHA-256.
 - [x] Publicar o commit de preparação em `develop` e confirmar sete jobs verdes ([execução](https://github.com/marcelositr/DigitalHamRadioLogbook/actions/runs/31744072246)).
-- [ ] Atualizar `actions/checkout` para v5, eliminando o aviso de Node.js 20, e confirmar novamente a CI.
+- [x] Atualizar `actions/checkout` para v5, eliminando o aviso de Node.js 20, e confirmar sete jobs verdes novamente ([execução](https://github.com/marcelositr/DigitalHamRadioLogbook/actions/runs/31744311303)).
 - [ ] Aguardar autorização explícita antes de integrar em `main`, criar tag ou publicar a release.
 
 ## Próxima ação exata
 
-Executar validação completa e ensaio de distribuição da versão `0.2.0`. Não criar tag nem GitHub Release antes da aprovação final do usuário.
+Preparação de `v0.2.0` concluída em `develop`. Aguardar autorização explícita para integrar o commit aprovado em `main`, criar a tag anotada `v0.2.0` e publicar a GitHub Release com tarball e checksum validados.
