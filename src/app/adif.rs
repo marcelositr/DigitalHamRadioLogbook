@@ -196,6 +196,11 @@ pub(super) fn write_new_file_atomically(
             .write(true)
             .create_new(true)
             .open(&temporary)?;
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            file.set_permissions(std::fs::Permissions::from_mode(0o600))?;
+        }
         file.write_all(contents)?;
         file.sync_all()?;
         if path.exists() {
@@ -230,6 +235,44 @@ pub(crate) fn required_adif_path(input: &str) -> Result<&Path, Box<dyn Error>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn temporary_directory(label: &str) -> std::path::PathBuf {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        std::env::temp_dir().join(format!("dhrl-adif-{label}-{}-{nonce}", std::process::id()))
+    }
+
+    #[test]
+    fn atomic_adif_write_preserves_existing_destination_and_cleans_failures() {
+        let directory = temporary_directory("filesystem");
+        fs::create_dir_all(&directory).unwrap();
+        let destination = directory.join("log.adi");
+        fs::write(&destination, b"existing").unwrap();
+
+        assert!(write_new_file_atomically(&destination, b"replacement").is_err());
+        assert_eq!(fs::read(&destination).unwrap(), b"existing");
+        let missing_parent = directory.join("missing").join("log.adi");
+        assert!(write_new_file_atomically(&missing_parent, b"data").is_err());
+        assert!(!missing_parent.exists());
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn atomic_adif_write_uses_private_permissions() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let directory = temporary_directory("permissions");
+        fs::create_dir_all(&directory).unwrap();
+        let destination = directory.join("log.adi");
+        write_new_file_atomically(&destination, b"<EOH>").unwrap();
+
+        let mode = fs::metadata(&destination).unwrap().permissions().mode() & 0o777;
+        assert_eq!(mode, 0o600);
+        std::fs::remove_dir_all(directory).unwrap();
+    }
 
     #[test]
     fn validates_adif_file_paths() {

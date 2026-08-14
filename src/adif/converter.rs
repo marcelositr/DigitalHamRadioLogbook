@@ -54,6 +54,7 @@ pub fn record_to_domain(record: &AdifRecord) -> Result<ImportedQso, AdifConversi
         _ => ImportedModeMetadata::Generic,
     };
     let known = known_fields(&qso.mode);
+    reject_duplicate_known_fields(record, &known)?;
     let extra_fields = record
         .fields
         .iter()
@@ -189,6 +190,22 @@ fn append_ft8(fields: &mut Vec<AdifField>, metadata: &Ft8Metadata) {
         "APP_DHRL_FINAL_MESSAGE",
         metadata.final_message.as_deref(),
     );
+}
+
+fn reject_duplicate_known_fields(
+    record: &AdifRecord,
+    known: &HashSet<&str>,
+) -> Result<(), AdifConversionError> {
+    let mut seen = HashSet::new();
+    for field in &record.fields {
+        if known.contains(field.name.as_str()) && !seen.insert(field.name.as_str()) {
+            return Err(AdifConversionError::new(format!(
+                "duplicate ADIF field {}",
+                field.name
+            )));
+        }
+    }
+    Ok(())
 }
 
 fn known_fields(mode: &str) -> HashSet<&'static str> {
@@ -397,6 +414,27 @@ mod tests {
         };
         assert_eq!(metadata.talkgroup, Some(724));
         assert_eq!(metadata.repeater_callsign.as_deref(), Some("PY2XYZ"));
+    }
+
+    #[test]
+    fn rejects_duplicate_known_fields_without_rejecting_repeated_unknown_fields() {
+        let duplicate_call = parse(
+            "<CALL:6>PY2ABC<CALL:6>PU2XYZ<QSO_DATE:8>20231114<TIME_ON:6>221320\
+             <FREQ:6>14.074<MODE:3>FT8<EOR>",
+        )
+        .unwrap();
+        let error = record_to_domain(&duplicate_call.records[0])
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("duplicate ADIF field CALL"));
+
+        let repeated_unknown = parse(
+            "<CALL:6>PY2ABC<QSO_DATE:8>20231114<TIME_ON:6>221320<FREQ:6>14.074\
+             <MODE:3>FT8<APP_VENDOR_FIELD:3>one<APP_VENDOR_FIELD:3>two<EOR>",
+        )
+        .unwrap();
+        let imported = record_to_domain(&repeated_unknown.records[0]).unwrap();
+        assert_eq!(imported.extra_fields.len(), 2);
     }
 
     #[test]
