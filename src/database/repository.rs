@@ -349,10 +349,7 @@ impl QsoRepository {
             transaction.rollback()?;
             return Ok(false);
         }
-        transaction.execute(
-            "DELETE FROM ft8_metadata WHERE qso_id = ?1",
-            params![qso_id],
-        )?;
+        delete_mode_metadata(&transaction, qso_id)?;
         insert_ft8_metadata(&transaction, qso_id, metadata)?;
         transaction.commit()?;
         Ok(true)
@@ -383,14 +380,7 @@ impl QsoRepository {
             transaction.rollback()?;
             return Ok(false);
         }
-        transaction.execute(
-            "DELETE FROM dmr_metadata WHERE qso_id = ?1",
-            params![qso_id],
-        )?;
-        transaction.execute(
-            "DELETE FROM digital_routes WHERE qso_id = ?1",
-            params![qso_id],
-        )?;
+        delete_mode_metadata(&transaction, qso_id)?;
         insert_dmr_metadata(&transaction, qso_id, metadata)?;
         transaction.commit()?;
         Ok(true)
@@ -413,7 +403,15 @@ impl QsoRepository {
     }
 
     pub fn update(&self, id: i64, qso: &NewQso, now_utc: i64) -> Result<bool> {
-        update_qso(&self.connection, id, qso, now_utc)
+        let transaction = self.connection.unchecked_transaction()?;
+        let changed = update_qso(&transaction, id, qso, now_utc)?;
+        if !changed {
+            transaction.rollback()?;
+            return Ok(false);
+        }
+        delete_mode_metadata(&transaction, id)?;
+        transaction.commit()?;
+        Ok(true)
     }
 
     pub fn delete(&self, id: i64) -> Result<bool> {
@@ -904,6 +902,22 @@ fn map_ft8_metadata(row: &rusqlite::Row<'_>) -> Result<Ft8Metadata> {
         protocol: row.get(5)?,
         final_message: row.get(6)?,
     })
+}
+
+fn delete_mode_metadata(transaction: &Transaction<'_>, qso_id: i64) -> Result<()> {
+    transaction.execute(
+        "DELETE FROM dmr_metadata WHERE qso_id = ?1",
+        params![qso_id],
+    )?;
+    transaction.execute(
+        "DELETE FROM digital_routes WHERE qso_id = ?1",
+        params![qso_id],
+    )?;
+    transaction.execute(
+        "DELETE FROM ft8_metadata WHERE qso_id = ?1",
+        params![qso_id],
+    )?;
+    Ok(())
 }
 
 fn insert_dmr_metadata(
@@ -1415,6 +1429,117 @@ mod tests {
         assert_eq!(
             repository.get_ft8_metadata(qso_id).unwrap(),
             Some(updated_metadata)
+        );
+    }
+
+    #[test]
+    fn changing_dmr_to_ft8_removes_dmr_metadata_and_route() {
+        let repository = QsoRepository::in_memory().unwrap();
+        let dmr_qso = NewQso::new("PU2DMR", 1_700_000_000, 438_500_000, "DMR").unwrap();
+        let dmr = DmrMetadata::from_input(DmrMetadataInput {
+            talkgroup: "724".into(),
+            network: "BrandMeister".into(),
+            call_type: "group".into(),
+            access_type: "simplex".into(),
+            ..Default::default()
+        })
+        .unwrap();
+        let qso_id = repository
+            .insert_dmr(&dmr_qso, &dmr, 1_700_000_001)
+            .unwrap();
+
+        let ft8_qso = NewQso::new("PU2DMR", 1_700_000_000, 14_074_000, "FT8").unwrap();
+        let ft8 = Ft8Metadata::from_input(Ft8MetadataInput {
+            snr_received_db: "-12".into(),
+            ..Default::default()
+        })
+        .unwrap();
+        assert!(repository
+            .update_ft8(qso_id, &ft8_qso, &ft8, 1_700_000_002)
+            .unwrap());
+
+        assert_eq!(repository.get_dmr_metadata(qso_id).unwrap(), None);
+        assert_eq!(repository.get_ft8_metadata(qso_id).unwrap(), Some(ft8));
+        assert_eq!(
+            repository
+                .search_dmr_page(&Default::default(), 0, 100)
+                .unwrap()
+                .total,
+            0
+        );
+    }
+
+    #[test]
+    fn changing_ft8_to_dmr_removes_ft8_metadata() {
+        let repository = QsoRepository::in_memory().unwrap();
+        let ft8_qso = NewQso::new("PY2FT8", 1_700_000_000, 14_074_000, "FT8").unwrap();
+        let ft8 = Ft8Metadata::from_input(Ft8MetadataInput {
+            snr_received_db: "-18".into(),
+            ..Default::default()
+        })
+        .unwrap();
+        let qso_id = repository
+            .insert_ft8(&ft8_qso, &ft8, 1_700_000_001)
+            .unwrap();
+
+        let dmr_qso = NewQso::new("PY2FT8", 1_700_000_000, 438_500_000, "DMR").unwrap();
+        let dmr = DmrMetadata::from_input(DmrMetadataInput {
+            talkgroup: "91".into(),
+            call_type: "group".into(),
+            access_type: "simplex".into(),
+            ..Default::default()
+        })
+        .unwrap();
+        assert!(repository
+            .update_dmr(qso_id, &dmr_qso, &dmr, 1_700_000_002)
+            .unwrap());
+
+        assert_eq!(repository.get_ft8_metadata(qso_id).unwrap(), None);
+        assert_eq!(repository.get_dmr_metadata(qso_id).unwrap(), Some(dmr));
+        assert_eq!(
+            repository
+                .search_ft8_page(&Default::default(), 0, 100)
+                .unwrap()
+                .total,
+            0
+        );
+    }
+
+    #[test]
+    fn changing_specialized_mode_to_generic_removes_all_mode_metadata() {
+        let repository = QsoRepository::in_memory().unwrap();
+        let dmr_qso = NewQso::new("PU2GEN", 1_700_000_000, 438_500_000, "DMR").unwrap();
+        let dmr = DmrMetadata::from_input(DmrMetadataInput {
+            talkgroup: "724".into(),
+            call_type: "group".into(),
+            access_type: "simplex".into(),
+            ..Default::default()
+        })
+        .unwrap();
+        let qso_id = repository
+            .insert_dmr(&dmr_qso, &dmr, 1_700_000_001)
+            .unwrap();
+
+        let generic_qso = NewQso::new("PU2GEN", 1_700_000_000, 145_500_000, "M17").unwrap();
+        assert!(repository
+            .update(qso_id, &generic_qso, 1_700_000_002)
+            .unwrap());
+
+        assert_eq!(repository.get_dmr_metadata(qso_id).unwrap(), None);
+        assert_eq!(repository.get_ft8_metadata(qso_id).unwrap(), None);
+        assert_eq!(
+            repository
+                .search_dmr_page(&Default::default(), 0, 100)
+                .unwrap()
+                .total,
+            0
+        );
+        assert_eq!(
+            repository
+                .search_ft8_page(&Default::default(), 0, 100)
+                .unwrap()
+                .total,
+            0
         );
     }
 

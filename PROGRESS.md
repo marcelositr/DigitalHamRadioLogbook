@@ -528,3 +528,36 @@ Abrir o aplicativo para homologação visual das quatro páginas em `1050×680` 
 ## Próxima ação exata
 
 Versão `v0.2.1` publicada e verificada em https://github.com/marcelositr/DigitalHamRadioLogbook/releases/tag/v0.2.1. `main` e a tag permanecem no commit `26b6669`; continuar novos trabalhos exclusivamente em `develop`.
+
+## Marco 29 — Hardening e confiabilidade v0.2.2 (EM ANDAMENTO)
+
+### Fase 1 — Auditoria e inventário (CONCLUÍDA)
+
+- [x] Ler integralmente `SPEC.md`, `PROGRESS.md`, `README.md`, CI e documentação de recuperação.
+- [x] Confirmar branch `develop`, versão fonte `0.2.1`, schema SQLite 5 e baseline de 73 testes.
+- [x] Auditar banco, migrations, transações, backup, configuração, XDG, ADIF, domínio, CRUD, filtros, encerramento, logging e panics.
+- [x] Classificar lacunas por severidade e registrar o inventário em `docs/HARDENING-v0.2.2.md`.
+- [x] Definir `0.2.2` como versão alvo em `Cargo.toml` e `Cargo.lock`.
+
+### Fase 2 — Integridade de modo e transações (EM ANDAMENTO)
+
+- [x] Reproduzir por testes a permanência indevida de metadados ao trocar DMR, FT8 e modo genérico.
+- [x] Confirmar os três testes vermelhos antes da correção.
+- [x] Remover todos os metadados incompatíveis dentro da mesma transação de update.
+- [x] Confirmar filtros do modo anterior vazios após a troca.
+- [x] Confirmar que os testes existentes de rollback DMR/FT8 continuam passando.
+- [x] Executar fmt, check, clippy estrito, 76 testes e build locked.
+- [ ] Criar commit lógico da unidade.
+
+### Próximas fases
+
+- [ ] Fase 3 — Abertura do banco, schema, migrations e corrupção.
+- [ ] Fase 4 — Backup e restauração controlada.
+- [ ] Fase 5 — Parser, importação e exportação ADIF.
+- [ ] Fase 6 — Configuração, XDG e encerramento.
+- [ ] Fase 7 — CRUD, pesquisa, filtros, logging, panics e limites.
+- [ ] Fase 8 — Regressão funcional, gates finais e preparação da v0.2.2.
+
+## Próxima ação exata
+
+Validar integralmente e commitar a correção de integridade na troca de modo; depois iniciar os testes file-based de abertura do banco e corrupção sem modificar dados reais.
