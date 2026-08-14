@@ -516,8 +516,8 @@ Abrir o aplicativo para homologação visual das quatro páginas em `1050×680` 
 - [x] Confirmar conteúdo mínimo, permissões e ausência de bibliotecas compartilhadas não resolvidas.
 - [x] Testar instalação, atualização, execução e desinstalação dupla em HOME/XDG isolados.
 - [x] Confirmar preservação de banco e configuração por SHA-256.
-- [ ] Commitar e publicar a preparação em `develop`.
-- [ ] Confirmar CI verde em `develop`.
+- [x] Commitar e publicar a preparação em `develop` no commit `f0884c3`.
+- [x] Confirmar sete jobs verdes em `develop` ([execução](https://github.com/marcelositr/DigitalHamRadioLogbook/actions/runs/31845011500)).
 - [ ] Integrar e publicar em `main`.
 - [ ] Confirmar CI verde em `main`.
 - [ ] Criar e publicar tag anotada `v0.2.1`.
