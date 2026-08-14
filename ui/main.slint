@@ -124,34 +124,37 @@ export component MainWindow inherits Window {
 
         Rectangle {
             accessible-role: banner;
-            accessible-label: "Application header";
-            height: 72px;
-            background: Theme.background;
+            accessible-label: "Application header and main navigation";
+            height: 66px;
+            background: Theme.surface;
+            border-width: 1px;
+            border-color: Theme.border-subtle;
             HorizontalBox {
                 padding-left: Theme.space-lg; padding-right: Theme.space-lg;
                 padding-top: Theme.space-sm; padding-bottom: Theme.space-sm;
-                spacing: Theme.space-md;
+                spacing: Theme.space-lg;
                 VerticalBox {
-                    spacing: Theme.space-xs; horizontal-stretch: 1; alignment: center;
-                    Text { text: "Digital Ham Radio Logbook"; color: Theme.text-primary; font-size: 21px; font-weight: 700; }
-                    Text { text: "Local, offline digital contact logging"; color: Theme.text-muted; font-size: 12px; }
+                    width: 226px;
+                    spacing: Theme.space-2xs;
+                    alignment: center;
+                    Text { text: "DIGITAL HAM RADIO"; color: Theme.text-muted; font-size: Theme.text-xs; font-weight: 700; }
+                    Text { text: "LOGBOOK"; color: Theme.text-primary; font-size: Theme.text-lg; font-weight: 700; }
+                }
+                Rectangle {
+                    accessible-role: navigation;
+                    accessible-label: "Main pages";
+                    background: transparent;
+                    horizontal-stretch: 1;
+                    HorizontalBox {
+                        spacing: Theme.space-xs;
+                        KeyboardAction { width: 94px; label: "Logbook"; description: "Open the logbook page"; active: root.active-page == 0; activated => { root.request-page(0); } }
+                        KeyboardAction { width: 108px; label: "+ New QSO"; description: "Open the QSO editor"; active: root.active-page == 1; primary: root.active-page != 1; activated => { root.request-page(1); } }
+                        KeyboardAction { width: 84px; label: "Tools"; description: "Open ADIF and backup tools"; active: root.active-page == 2; activated => { root.request-page(2); } }
+                        KeyboardAction { width: 94px; label: "Settings"; description: "Open application settings"; active: root.active-page == 3; activated => { root.request-page(3); } }
+                        Rectangle { horizontal-stretch: 1; }
+                    }
                 }
                 StationBadge { callsign: root.local-callsign-text; }
-            }
-        }
-
-        Rectangle {
-            accessible-role: navigation;
-            accessible-label: "Main pages";
-            height: 48px;
-            background: Theme.surface;
-            HorizontalBox {
-                padding-left: Theme.space-md; padding-right: Theme.space-md; padding-top: 6px; padding-bottom: 6px; spacing: Theme.space-sm;
-                KeyboardAction { width: 100px; label: "Logbook"; description: "Open the logbook page"; active: root.active-page == 0; activated => { root.request-page(0); } }
-                KeyboardAction { width: 112px; label: "New QSO"; description: "Open the QSO editor"; active: root.active-page == 1; activated => { root.request-page(1); } }
-                KeyboardAction { width: 92px; label: "Tools"; description: "Open ADIF and backup tools"; active: root.active-page == 2; activated => { root.request-page(2); } }
-                KeyboardAction { width: 104px; label: "Settings"; description: "Open application settings"; active: root.active-page == 3; activated => { root.request-page(3); } }
-                Rectangle { horizontal-stretch: 1; }
             }
         }
 

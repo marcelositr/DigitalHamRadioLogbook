@@ -1,5 +1,5 @@
-import { Button, LineEdit, ListView, ScrollView, VerticalBox, HorizontalBox } from "std-widgets.slint";
-import { Theme, SectionTitle } from "../design-system.slint";
+import { LineEdit, ScrollView, VerticalBox, HorizontalBox } from "std-widgets.slint";
+import { Theme, DataLabel, KeyboardAction, Panel, SectionTitle, Tag } from "../design-system.slint";
 
 export component QsoEditorPage inherits VerticalBox {
     accessible-role: main;
@@ -42,127 +42,249 @@ export component QsoEditorPage inherits VerticalBox {
     callback request-page(int);
     callback save-qso();
 
-            spacing: 0px;
-            Rectangle {
-                height: 48px; background: Theme.surface;
-                HorizontalBox {
-                    padding-left: 16px; padding-right: 16px;
-                    Text { text: root.editing-id == "" ? "New QSO" : "Edit QSO"; font-size: 18px; font-weight: 700; vertical-alignment: center; horizontal-stretch: 1; }
-                    Text { text: "* Required fields"; color: Theme.warning; vertical-alignment: center; }
+    spacing: 0px;
+
+    Rectangle {
+        height: 58px;
+        background: Theme.surface;
+        border-width: 1px;
+        border-color: Theme.border-subtle;
+
+        HorizontalBox {
+            padding-left: Theme.space-lg;
+            padding-right: Theme.space-lg;
+            spacing: Theme.space-md;
+
+            Rectangle { width: 3px; background: Theme.accent; }
+            VerticalBox {
+                spacing: Theme.space-2xs;
+                horizontal-stretch: 1;
+                Text {
+                    text: root.editing-id == "" ? "NEW QSO" : "EDIT QSO";
+                    color: Theme.text-primary;
+                    font-size: Theme.text-lg;
+                    font-weight: 700;
+                }
+                Text {
+                    text: root.editing-id == "" ? "Log a digital radio contact" : "Update contact and mode metadata";
+                    color: Theme.text-muted;
+                    font-size: Theme.text-xs;
                 }
             }
-            ScrollView {
-                accessible-role: form;
-                accessible-label: root.editing-id == "" ? "New QSO form" : "Edit QSO form";
-                vertical-stretch: 1;
+            Tag { width: 72px; height: 24px; text: root.mode-text == "" ? "NO MODE" : root.mode-text; accent: root.mode-text != ""; }
+            Text { text: "UTC"; color: Theme.text-muted; font-size: Theme.text-xs; font-weight: 700; vertical-alignment: center; }
+            Text { text: "* REQUIRED"; color: Theme.warning; font-size: Theme.text-xs; font-weight: 700; vertical-alignment: center; }
+        }
+    }
+
+    ScrollView {
+        accessible-role: form;
+        accessible-label: root.editing-id == "" ? "New QSO form" : "Edit QSO form";
+        vertical-stretch: 1;
+
+        VerticalBox {
+            padding: Theme.space-md;
+            spacing: Theme.space-sm;
+
+            Panel {
                 VerticalBox {
-                    padding: 16px; spacing: 12px;
-                    SectionTitle { text: "CONTACT"; }
+                    padding: Theme.space-md;
+                    spacing: Theme.space-sm;
                     HorizontalBox {
-                        spacing: 10px;
-                        VerticalBox { spacing: Theme.space-xs; horizontal-stretch: 2; Text { text: "Callsign *"; color: Theme.text-primary; } LineEdit { accessible-label: "Callsign, required"; text <=> root.callsign-text; placeholder-text: "PU2XYZ"; } }
-                        VerticalBox { spacing: Theme.space-xs; horizontal-stretch: 3; Text { text: "Date and time (UTC) *"; color: Theme.text-primary; } LineEdit { accessible-label: "Date and time UTC, required"; text <=> root.datetime-text; placeholder-text: "YYYY-MM-DD HH:MM:SS UTC"; } }
+                        spacing: Theme.space-sm;
+                        SectionTitle { text: "CONTACT"; horizontal-stretch: 1; }
+                        DataLabel { text: "IDENTITY / TIME / CARRIER"; }
+                    }
+                    Rectangle { height: 1px; background: Theme.divider; }
+                    HorizontalBox {
+                        spacing: Theme.space-sm;
                         VerticalBox {
-                                                    spacing: Theme.space-xs; horizontal-stretch: 2;
-                                                    Text { text: "Mode *"; color: Theme.text-primary; }
-                                                    LineEdit {
-                                                        accessible-label: "Mode, required";
-                                                        text <=> root.mode-text; placeholder-text: "DMR, FT8, M17...";
-                                                        edited => { root.mode-input-changed(root.mode-text); }
-                                                    }
-                                                }
+                            spacing: Theme.space-xs; horizontal-stretch: 2;
+                            DataLabel { text: "CALLSIGN  *"; }
+                            LineEdit { accessible-label: "Callsign, required"; text <=> root.callsign-text; placeholder-text: "PU2XYZ"; }
+                        }
+                        VerticalBox {
+                            spacing: Theme.space-xs; horizontal-stretch: 3;
+                            DataLabel { text: "DATE AND TIME (UTC)  *"; }
+                            LineEdit { accessible-label: "Date and time UTC, required"; text <=> root.datetime-text; placeholder-text: "YYYY-MM-DD HH:MM:SS UTC"; }
+                        }
+                        VerticalBox {
+                            spacing: Theme.space-xs; horizontal-stretch: 2;
+                            DataLabel { text: "MODE  *"; }
+                            LineEdit {
+                                accessible-label: "Mode, required";
+                                text <=> root.mode-text;
+                                placeholder-text: "DMR, FT8, M17...";
+                                edited => { root.mode-input-changed(root.mode-text); }
+                            }
+                        }
                     }
                     HorizontalBox {
-                        spacing: 10px;
-                        VerticalBox { spacing: Theme.space-xs; horizontal-stretch: 3; Text { text: "Frequency (MHz) *"; color: Theme.text-primary; } LineEdit { accessible-label: "Frequency in megahertz, required"; text <=> root.frequency-text; placeholder-text: "438.500"; } }
-                        VerticalBox { spacing: Theme.space-xs; horizontal-stretch: 2; Text { text: "Band override"; } LineEdit { accessible-label: "Band override"; text <=> root.band-text; placeholder-text: "Derived automatically when empty"; } }
-                        VerticalBox { spacing: Theme.space-xs; horizontal-stretch: 2; Text { text: "Grid locator"; } LineEdit { accessible-label: "Grid locator"; text <=> root.grid-text; placeholder-text: "GG66AA"; } }
-                    }
-
-                    SectionTitle { text: "REPORT AND STATION DETAILS"; }
-                    HorizontalBox {
-                        spacing: 10px;
-                        VerticalBox { spacing: 4px; Text { text: "RST sent"; } LineEdit { text <=> root.rst-sent-text; } }
-                        VerticalBox { spacing: 4px; Text { text: "RST received"; } LineEdit { text <=> root.rst-received-text; } }
-                        VerticalBox { spacing: 4px; Text { text: "Name"; } LineEdit { text <=> root.name-text; } }
-                        VerticalBox { spacing: 4px; Text { text: "QTH"; } LineEdit { text <=> root.qth-text; } }
-                    }
-
-                    if root.mode-kind == 1 : Rectangle {
-                        background: Theme.surface; border-width: 1px; border-color: Theme.border; border-radius: Theme.radius-md;
+                        spacing: Theme.space-sm;
                         VerticalBox {
-                            padding: Theme.space-md; spacing: Theme.space-md;
-                            SectionTitle { text: "DMR DETAILS"; }
-                        HorizontalBox {
-                            spacing: 10px;
-                            VerticalBox { spacing: Theme.space-xs; horizontal-stretch: 2; Text { text: "Remote DMR ID"; } LineEdit { text <=> root.dmr-remote-id-text; } }
-                            VerticalBox { spacing: Theme.space-xs; horizontal-stretch: 2; Text { text: "Local DMR ID"; } LineEdit { text <=> root.dmr-local-id-text; } }
-                            VerticalBox { spacing: Theme.space-xs; horizontal-stretch: 2; Text { text: "Talkgroup"; } LineEdit { text <=> root.dmr-talkgroup-text; } }
-                            VerticalBox { spacing: Theme.space-xs; Text { text: "Timeslot"; } LineEdit { text <=> root.dmr-timeslot-text; placeholder-text: "1 or 2"; } }
-                            VerticalBox { spacing: Theme.space-xs; Text { text: "Color code"; } LineEdit { text <=> root.dmr-color-code-text; placeholder-text: "0–15"; } }
+                            spacing: Theme.space-xs; horizontal-stretch: 3;
+                            DataLabel { text: "FREQUENCY (MHz)  *"; }
+                            LineEdit { accessible-label: "Frequency in megahertz, required"; text <=> root.frequency-text; placeholder-text: "438.500"; }
                         }
-                        HorizontalBox {
-                            spacing: 10px;
-                            VerticalBox { spacing: Theme.space-xs; horizontal-stretch: 3; Text { text: "Network"; } LineEdit { text <=> root.dmr-network-text; } }
-                            VerticalBox { spacing: Theme.space-xs; horizontal-stretch: 2; Text { text: "Call type"; } LineEdit { text <=> root.dmr-call-type-text; placeholder-text: "group or private"; } }
-                            VerticalBox { spacing: Theme.space-xs; horizontal-stretch: 3; Text { text: "Access type"; } LineEdit { text <=> root.dmr-access-type-text; placeholder-text: "repeater, hotspot, or simplex"; } }
-                        }
-                        HorizontalBox {
-                            spacing: 10px;
-                            VerticalBox { spacing: 4px; Text { text: "Repeater callsign"; } LineEdit { text <=> root.dmr-repeater-text; } }
-                            VerticalBox { spacing: 4px; Text { text: "Hotspot"; } LineEdit { text <=> root.dmr-hotspot-text; } }
-                            VerticalBox { spacing: 4px; horizontal-stretch: 2; Text { text: "DMR notes"; } LineEdit { text <=> root.dmr-notes-text; } }
-                        }
-                        }
-                    }
-
-                    if root.mode-kind == 2 : Rectangle {
-                        background: Theme.surface; border-width: 1px; border-color: Theme.border; border-radius: Theme.radius-md;
                         VerticalBox {
-                            padding: Theme.space-md; spacing: Theme.space-md;
-                            SectionTitle { text: "FT8 DETAILS"; }
-                        HorizontalBox {
-                            spacing: 10px;
-                            VerticalBox { spacing: 4px; Text { text: "SNR sent (dB)"; } LineEdit { text <=> root.ft8-snr-sent-text; } }
-                            VerticalBox { spacing: 4px; Text { text: "SNR received (dB)"; } LineEdit { text <=> root.ft8-snr-received-text; } }
-                            VerticalBox { spacing: 4px; Text { text: "Power (W)"; } LineEdit { text <=> root.ft8-power-text; } }
-                            VerticalBox { spacing: 4px; Text { text: "Audio frequency (Hz)"; } LineEdit { text <=> root.ft8-audio-frequency-text; } }
+                            spacing: Theme.space-xs; horizontal-stretch: 2;
+                            DataLabel { text: "BAND OVERRIDE"; }
+                            LineEdit { accessible-label: "Band override"; text <=> root.band-text; placeholder-text: "Auto when empty"; }
                         }
-                        HorizontalBox {
-                            spacing: 10px;
-                            VerticalBox { spacing: 4px; Text { text: "Source software"; } LineEdit { text <=> root.ft8-source-software-text; } }
-                            VerticalBox { spacing: 4px; Text { text: "Protocol"; } LineEdit { text <=> root.ft8-protocol-text; } }
-                            VerticalBox { spacing: 4px; Text { text: "Final message"; } LineEdit { text <=> root.ft8-final-message-text; } }
-                        }
+                        VerticalBox {
+                            spacing: Theme.space-xs; horizontal-stretch: 2;
+                            DataLabel { text: "GRID LOCATOR"; }
+                            LineEdit { accessible-label: "Grid locator"; text <=> root.grid-text; placeholder-text: "GG66AA"; }
                         }
                     }
-
-                    SectionTitle { text: "NOTES"; }
-                    LineEdit { accessible-label: "Contact notes"; accessible-description: "Press Enter to save the QSO"; text <=> root.notes-text; placeholder-text: "Contact notes"; accepted => { root.save-qso(); } }
-                    Rectangle { height: 8px; }
                 }
             }
-            if root.discard-editor-visible : Rectangle {
-                background: Theme.surface-raised; border-width: 1px; border-color: Theme.warning; border-radius: Theme.radius-md;
-                HorizontalBox {
-                    padding: Theme.space-md; spacing: Theme.space-md;
-                    VerticalBox {
-                        spacing: 2px; horizontal-stretch: 1;
-                        Text { text: "Discard unsaved changes?"; color: Theme.warning; font-weight: 700; }
-                        Text { text: "Your changes to this QSO have not been saved."; color: Theme.text-secondary; }
+
+            Panel {
+                VerticalBox {
+                    padding: Theme.space-md;
+                    spacing: Theme.space-sm;
+                    HorizontalBox {
+                        SectionTitle { text: "REPORT & STATION"; horizontal-stretch: 1; }
+                        DataLabel { text: "SIGNAL / OPERATOR"; }
                     }
-                    Button { text: "Continue editing"; clicked => { root.keep-editing(); } }
-                    Button { text: "Discard changes"; clicked => { root.confirm-discard-editor(); } }
+                    Rectangle { height: 1px; background: Theme.divider; }
+                    HorizontalBox {
+                        spacing: Theme.space-sm;
+                        VerticalBox { spacing: Theme.space-xs; DataLabel { text: "RST SENT"; } LineEdit { text <=> root.rst-sent-text; } }
+                        VerticalBox { spacing: Theme.space-xs; DataLabel { text: "RST RECEIVED"; } LineEdit { text <=> root.rst-received-text; } }
+                        VerticalBox { spacing: Theme.space-xs; DataLabel { text: "NAME"; } LineEdit { text <=> root.name-text; } }
+                        VerticalBox { spacing: Theme.space-xs; DataLabel { text: "QTH"; } LineEdit { text <=> root.qth-text; } }
+                    }
                 }
             }
-            Rectangle {
-                height: 58px; background: Theme.surface; border-width: 1px; border-color: Theme.border;
-                HorizontalBox {
-                    padding-left: 16px; padding-right: 16px; spacing: 8px;
-                    Text { text: "Enter to save notes  •  Esc to cancel"; color: Theme.text-muted; vertical-alignment: center; }
-                    Rectangle { horizontal-stretch: 1; }
-                    Button { text: "Cancel"; clicked => { root.request-page(0); } }
-                    Button { text: root.editing-id == "" ? "Save QSO" : "Save changes"; primary: true; clicked => { root.save-qso(); } }
+
+            if root.mode-kind == 1 : Panel {
+                raised: true;
+                VerticalBox {
+                    padding: Theme.space-md;
+                    spacing: Theme.space-sm;
+                    HorizontalBox {
+                        spacing: Theme.space-sm;
+                        SectionTitle { text: "DMR DETAILS"; horizontal-stretch: 1; }
+                        Tag { width: 54px; height: 22px; text: "DMR"; accent: true; }
+                        DataLabel { text: "DIGITAL VOICE PATH"; }
+                    }
+                    Rectangle { height: 1px; background: Theme.divider; }
+                    HorizontalBox {
+                        spacing: Theme.space-sm;
+                        VerticalBox { spacing: Theme.space-xs; horizontal-stretch: 2; DataLabel { text: "REMOTE DMR ID"; } LineEdit { text <=> root.dmr-remote-id-text; } }
+                        VerticalBox { spacing: Theme.space-xs; horizontal-stretch: 2; DataLabel { text: "LOCAL DMR ID"; } LineEdit { text <=> root.dmr-local-id-text; } }
+                        VerticalBox { spacing: Theme.space-xs; horizontal-stretch: 2; DataLabel { text: "TALKGROUP"; } LineEdit { text <=> root.dmr-talkgroup-text; } }
+                        VerticalBox { spacing: Theme.space-xs; DataLabel { text: "TIMESLOT"; } LineEdit { text <=> root.dmr-timeslot-text; placeholder-text: "1 or 2"; } }
+                        VerticalBox { spacing: Theme.space-xs; DataLabel { text: "COLOR CODE"; } LineEdit { text <=> root.dmr-color-code-text; placeholder-text: "0–15"; } }
+                    }
+                    HorizontalBox {
+                        spacing: Theme.space-sm;
+                        VerticalBox { spacing: Theme.space-xs; horizontal-stretch: 3; DataLabel { text: "NETWORK"; } LineEdit { text <=> root.dmr-network-text; } }
+                        VerticalBox { spacing: Theme.space-xs; horizontal-stretch: 2; DataLabel { text: "CALL TYPE"; } LineEdit { text <=> root.dmr-call-type-text; placeholder-text: "group or private"; } }
+                        VerticalBox { spacing: Theme.space-xs; horizontal-stretch: 3; DataLabel { text: "ACCESS TYPE"; } LineEdit { text <=> root.dmr-access-type-text; placeholder-text: "repeater, hotspot, or simplex"; } }
+                    }
+                    HorizontalBox {
+                        spacing: Theme.space-sm;
+                        VerticalBox { spacing: Theme.space-xs; DataLabel { text: "REPEATER CALLSIGN"; } LineEdit { text <=> root.dmr-repeater-text; } }
+                        VerticalBox { spacing: Theme.space-xs; DataLabel { text: "HOTSPOT"; } LineEdit { text <=> root.dmr-hotspot-text; } }
+                        VerticalBox { spacing: Theme.space-xs; horizontal-stretch: 2; DataLabel { text: "DMR NOTES"; } LineEdit { text <=> root.dmr-notes-text; } }
+                    }
                 }
+            }
+
+            if root.mode-kind == 2 : Panel {
+                raised: true;
+                VerticalBox {
+                    padding: Theme.space-md;
+                    spacing: Theme.space-sm;
+                    HorizontalBox {
+                        spacing: Theme.space-sm;
+                        SectionTitle { text: "FT8 DETAILS"; horizontal-stretch: 1; }
+                        Tag { width: 54px; height: 22px; text: "FT8"; accent: true; }
+                        DataLabel { text: "WEAK-SIGNAL EXCHANGE"; }
+                    }
+                    Rectangle { height: 1px; background: Theme.divider; }
+                    HorizontalBox {
+                        spacing: Theme.space-sm;
+                        VerticalBox { spacing: Theme.space-xs; DataLabel { text: "SNR SENT (dB)"; } LineEdit { text <=> root.ft8-snr-sent-text; } }
+                        VerticalBox { spacing: Theme.space-xs; DataLabel { text: "SNR RECEIVED (dB)"; } LineEdit { text <=> root.ft8-snr-received-text; } }
+                        VerticalBox { spacing: Theme.space-xs; DataLabel { text: "POWER (W)"; } LineEdit { text <=> root.ft8-power-text; } }
+                        VerticalBox { spacing: Theme.space-xs; DataLabel { text: "AUDIO FREQUENCY (Hz)"; } LineEdit { text <=> root.ft8-audio-frequency-text; } }
+                    }
+                    HorizontalBox {
+                        spacing: Theme.space-sm;
+                        VerticalBox { spacing: Theme.space-xs; DataLabel { text: "SOURCE SOFTWARE"; } LineEdit { text <=> root.ft8-source-software-text; } }
+                        VerticalBox { spacing: Theme.space-xs; DataLabel { text: "PROTOCOL"; } LineEdit { text <=> root.ft8-protocol-text; } }
+                        VerticalBox { spacing: Theme.space-xs; DataLabel { text: "FINAL MESSAGE"; } LineEdit { text <=> root.ft8-final-message-text; } }
+                    }
+                }
+            }
+
+            Panel {
+                VerticalBox {
+                    padding: Theme.space-md;
+                    spacing: Theme.space-sm;
+                    HorizontalBox {
+                        SectionTitle { text: "NOTES"; horizontal-stretch: 1; }
+                        DataLabel { text: "ENTER TO SAVE"; }
+                    }
+                    LineEdit {
+                        accessible-label: "Contact notes";
+                        accessible-description: "Press Enter to save the QSO";
+                        text <=> root.notes-text;
+                        placeholder-text: "Contact notes";
+                        accepted => { root.save-qso(); }
+                    }
+                }
+            }
+            Rectangle { height: Theme.space-xs; }
+        }
+    }
+
+    if root.discard-editor-visible : Rectangle {
+        background: Theme.warning-surface;
+        border-width: 1px;
+        border-color: Theme.warning;
+        HorizontalBox {
+            padding: Theme.space-md;
+            spacing: Theme.space-md;
+            Rectangle { width: 3px; background: Theme.warning; }
+            VerticalBox {
+                spacing: Theme.space-2xs;
+                horizontal-stretch: 1;
+                Text { text: "DISCARD UNSAVED CHANGES?"; color: Theme.warning; font-size: Theme.text-sm; font-weight: 700; }
+                Text { text: "Your changes to this QSO have not been saved."; color: Theme.text-secondary; font-size: Theme.text-xs; }
+            }
+            KeyboardAction { width: 108px; compact: true; label: "Continue editing"; description: "Return to the QSO editor"; activated => { root.keep-editing(); } }
+            KeyboardAction { width: 110px; compact: true; danger: true; label: "Discard changes"; description: "Discard unsaved QSO changes"; activated => { root.confirm-discard-editor(); } }
+        }
+    }
+
+    Rectangle {
+        height: 48px;
+        background: Theme.surface;
+        border-width: 1px;
+        border-color: Theme.border-subtle;
+        HorizontalBox {
+            padding-left: Theme.space-lg;
+            padding-right: Theme.space-lg;
+            spacing: Theme.space-sm;
+            DataLabel { text: "ENTER"; }
+            Text { text: "Save from Notes"; color: Theme.text-secondary; font-size: Theme.text-xs; vertical-alignment: center; }
+            Rectangle { width: 1px; height: 18px; background: Theme.divider; }
+            DataLabel { text: "ESC"; }
+            Text { text: "Cancel / close"; color: Theme.text-secondary; font-size: Theme.text-xs; vertical-alignment: center; }
+            Rectangle { horizontal-stretch: 1; }
+            KeyboardAction { width: 76px; label: "Cancel"; description: "Cancel QSO editing"; activated => { root.request-page(0); } }
+            KeyboardAction {
+                width: 116px;
+                label: root.editing-id == "" ? "Save QSO" : "Save changes";
+                description: root.editing-id == "" ? "Save new QSO" : "Save QSO changes";
+                primary: true;
+                activated => { root.save-qso(); }
             }
         }
+    }
+}

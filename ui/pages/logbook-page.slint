@@ -1,5 +1,5 @@
 import { Button, LineEdit, ListView, ScrollView, VerticalBox, HorizontalBox } from "std-widgets.slint";
-import { Theme, EmptyState, KeyboardAction, ModeBadge } from "../design-system.slint";
+import { Theme, DataLabel, EmptyState, FilterChip, KeyboardAction, ModeBadge, SearchField, TechnicalValue } from "../design-system.slint";
 import { QsoRow } from "../models/qso-types.slint";
 
 export component LogbookPage inherits VerticalBox {
@@ -75,41 +75,59 @@ export component LogbookPage inherits VerticalBox {
     callback request-page(int);
     callback search-qso(string);
 
-            padding: 12px; spacing: 8px;
+            padding: Theme.space-md; spacing: Theme.space-sm;
+
+            HorizontalBox {
+                spacing: Theme.space-md;
+                VerticalBox {
+                    spacing: Theme.space-2xs;
+                    Text { text: "QSO ACTIVITY"; color: Theme.text-primary; font-size: Theme.text-lg; font-weight: 700; }
+                    Text {
+                        text: root.logbook-page-total == 1 ? "1 contact in local log" : root.logbook-page-total + " contacts in local log";
+                        color: Theme.text-muted; font-size: Theme.text-xs;
+                    }
+                }
+                Rectangle { horizontal-stretch: 1; }
+                Text { text: "LOCAL / UTC"; color: Theme.text-muted; font-size: Theme.text-xs; font-weight: 700; vertical-alignment: center; }
+            }
 
             HorizontalBox {
                 accessible-role: search;
                 accessible-label: "Search and logbook actions";
-                spacing: 8px;
-                LineEdit {
-                    accessible-label: "Search by callsign or mode";
-                    text <=> root.search-text; placeholder-text: "Search by callsign or mode";
+                spacing: Theme.space-sm;
+                SearchField {
+                    text <=> root.search-text;
+                    placeholder-text: "Search callsign or mode";
                     horizontal-stretch: 1;
                     accepted => { root.active-filter = 0; root.filters-applied = false; root.search-qso(root.search-text); }
                 }
-                Button { text: "Search"; clicked => { root.active-filter = 0; root.filters-applied = false; root.search-qso(root.search-text); } }
-                Button { text: "Clear search"; clicked => { root.search-text = ""; root.active-filter = 0; root.filters-applied = false; root.search-qso(""); } }
-                Button {
-                    text: root.filters-expanded ? "Close filters" : root.filters-applied ? "Filters active" : "Filters";
-                    clicked => { root.filters-expanded = !root.filters-expanded; }
+                KeyboardAction {
+                    width: 76px; label: "Search"; description: "Search the logbook"; primary: true;
+                    activated => { root.active-filter = 0; root.filters-applied = false; root.search-qso(root.search-text); }
                 }
-                Button { text: "+ New QSO"; primary: true; clicked => { root.request-page(1); } }
+                KeyboardAction {
+                    width: 68px; label: "Clear"; description: "Clear the current search"; enabled: root.search-text != "";
+                    activated => { root.search-text = ""; root.active-filter = 0; root.filters-applied = false; root.search-qso(""); }
+                }
+                KeyboardAction {
+                    width: 92px;
+                    label: root.filters-expanded ? "Close filters" : root.filters-applied ? "Filters · ON" : "Filters";
+                    description: root.filters-expanded ? "Close advanced filters" : "Open advanced filters";
+                    active: root.filters-expanded || root.filters-applied;
+                    activated => { root.filters-expanded = !root.filters-expanded; }
+                }
             }
 
-            if root.filters-applied : Rectangle {
-                background: Theme.surface-raised; border-radius: Theme.radius-sm;
-                HorizontalBox {
-                    padding-left: 10px; padding-right: 8px; padding-top: 4px; padding-bottom: 4px; spacing: 8px;
-                    Text {
-                        text: root.active-filter == 1 ? "DMR filters active" : "FT8 filters active";
-                        color: Theme.accent; vertical-alignment: center; horizontal-stretch: 1;
-                    }
-                    Button {
-                        text: "Clear filters";
-                        clicked => {
-                            if root.active-filter == 1 { root.clear-dmr-filter(); }
-                            else if root.active-filter == 2 { root.clear-ft8-filter(); }
-                        }
+            if root.filters-applied : HorizontalBox {
+                spacing: Theme.space-sm;
+                FilterChip { text: root.active-filter == 1 ? "DMR FILTER" : "FT8 FILTER"; selected: true; }
+                Text { text: "Filtered view"; color: Theme.text-muted; font-size: Theme.text-xs; vertical-alignment: center; }
+                Rectangle { horizontal-stretch: 1; }
+                KeyboardAction {
+                    width: 86px; compact: true; label: "Clear filter"; description: "Clear active mode filter";
+                    activated => {
+                        if root.active-filter == 1 { root.clear-dmr-filter(); }
+                        else if root.active-filter == 2 { root.clear-ft8-filter(); }
                     }
                 }
             }
@@ -121,12 +139,16 @@ export component LogbookPage inherits VerticalBox {
                 VerticalBox {
                     padding: 12px; spacing: 10px;
                     HorizontalBox {
-                        spacing: 8px;
-                        Text { text: "Advanced filters"; color: Theme.text-primary; font-weight: 700; vertical-alignment: center; }
-                        Button { text: "All"; enabled: root.active-filter != 0; clicked => { root.active-filter = 0; root.filters-applied = false; root.search-qso(root.search-text); } }
-                        Button { text: "DMR"; enabled: root.active-filter != 1; clicked => { root.active-filter = 1; } }
-                        Button { text: "FT8"; enabled: root.active-filter != 2; clicked => { root.active-filter = 2; } }
+                        spacing: Theme.space-sm;
+                        VerticalBox {
+                            spacing: Theme.space-2xs;
+                            Text { text: "ADVANCED FILTER"; color: Theme.text-primary; font-size: Theme.text-sm; font-weight: 700; }
+                            Text { text: "Select a digital mode, then refine its technical fields."; color: Theme.text-muted; font-size: Theme.text-xs; }
+                        }
                         Rectangle { horizontal-stretch: 1; }
+                        KeyboardAction { width: 58px; compact: true; label: "All"; description: "Show all QSOs"; active: root.active-filter == 0; activated => { root.active-filter = 0; root.filters-applied = false; root.search-qso(root.search-text); } }
+                        KeyboardAction { width: 58px; compact: true; label: "DMR"; description: "Configure DMR filters"; active: root.active-filter == 1; activated => { root.active-filter = 1; } }
+                        KeyboardAction { width: 58px; compact: true; label: "FT8"; description: "Configure FT8 filters"; active: root.active-filter == 2; activated => { root.active-filter = 2; } }
                     }
 
                     if root.active-filter == 0 : Text {
@@ -147,8 +169,8 @@ export component LogbookPage inherits VerticalBox {
                             spacing: 6px;
                             LineEdit { text <=> root.dmr-filter-repeater-text; placeholder-text: "Repeater callsign"; horizontal-stretch: 1; }
                             LineEdit { text <=> root.dmr-filter-hotspot-text; placeholder-text: "Hotspot"; horizontal-stretch: 1; }
-                            Button { text: "Clear"; clicked => { root.clear-dmr-filter(); } }
-                            Button { text: "Apply filters"; primary: true; clicked => { root.filter-dmr(); } }
+                            KeyboardAction { width: 60px; compact: true; label: "Clear"; description: "Clear DMR filter fields"; activated => { root.clear-dmr-filter(); } }
+                            KeyboardAction { width: 96px; compact: true; primary: true; label: "Apply filter"; description: "Apply DMR filters"; activated => { root.filter-dmr(); } }
                         }
                     }
 
@@ -166,25 +188,21 @@ export component LogbookPage inherits VerticalBox {
                             spacing: 6px;
                             LineEdit { text <=> root.ft8-filter-start-text; placeholder-text: "Start: YYYY-MM-DD HH:MM:SS UTC"; }
                             LineEdit { text <=> root.ft8-filter-end-text; placeholder-text: "End: YYYY-MM-DD HH:MM:SS UTC"; }
-                            Button { text: "Clear"; clicked => { root.clear-ft8-filter(); } }
-                            Button { text: "Apply filters"; primary: true; clicked => { root.filter-ft8(); } }
+                            KeyboardAction { width: 60px; compact: true; label: "Clear"; description: "Clear FT8 filter fields"; activated => { root.clear-ft8-filter(); } }
+                            KeyboardAction { width: 96px; compact: true; primary: true; label: "Apply filter"; description: "Apply FT8 filters"; activated => { root.filter-ft8(); } }
                         }
                     }
                 }
             }
 
             Rectangle {
-                height: 34px; background: Theme.surface-raised; border-radius: Theme.radius-sm;
+                height: 25px; background: Theme.background;
                 HorizontalBox {
-                    padding-left: Theme.space-sm; padding-right: Theme.space-sm; spacing: Theme.space-xs;
-                    Text { text: "UTC DATE/TIME"; color: Theme.text-secondary; min-width: 152px; font-size: 12px; font-weight: 700; vertical-alignment: center; }
-                    Text { text: "CALLSIGN"; color: Theme.text-secondary; min-width: 100px; font-size: 12px; font-weight: 700; vertical-alignment: center; }
-                    Text { text: "MODE"; color: Theme.text-secondary; min-width: 64px; font-size: 12px; font-weight: 700; vertical-alignment: center; }
-                    Text { text: "FREQUENCY"; color: Theme.text-secondary; min-width: 110px; font-size: 12px; font-weight: 700; vertical-alignment: center; }
-                    Text { text: "BAND"; color: Theme.text-secondary; min-width: 55px; font-size: 12px; font-weight: 700; vertical-alignment: center; }
-                    Text { text: "GRID"; color: Theme.text-secondary; min-width: 65px; font-size: 12px; font-weight: 700; vertical-alignment: center; }
-                    Text { text: "ROUTE / DETAILS"; color: Theme.text-secondary; min-width: 150px; horizontal-stretch: 1; font-size: 12px; font-weight: 700; vertical-alignment: center; overflow: elide; }
-                    Text { text: "ACTIONS"; color: Theme.text-secondary; min-width: 124px; font-size: 12px; font-weight: 700; vertical-alignment: center; }
+                    padding-left: Theme.space-md; padding-right: Theme.space-md; spacing: Theme.space-sm;
+                    DataLabel { text: "UTC / STATION / MODE"; min-width: 344px; }
+                    DataLabel { text: "RF"; min-width: 150px; }
+                    DataLabel { text: "DIGITAL PATH / SIGNAL CONTEXT"; horizontal-stretch: 1; }
+                    DataLabel { text: "ACTIONS"; min-width: 108px; horizontal-alignment: right; }
                 }
             }
 
@@ -199,93 +217,113 @@ export component LogbookPage inherits VerticalBox {
             if root.qsos.length > 0 : ListView {
                 vertical-stretch: 1;
                 for qso[index] in root.qsos : Rectangle {
-                    height: 42px; background: Math.mod(index, 2) == 0 ? Theme.background : Theme.surface;
-                    border-width: 1px; border-color: Theme.surface-raised; border-radius: Theme.radius-sm;
-                    HorizontalBox {
-                        padding-left: Theme.space-sm; padding-right: Theme.space-sm; spacing: Theme.space-xs;
-                        Text { text: qso.timestamp; color: Theme.text-secondary; min-width: 152px; vertical-alignment: center; overflow: elide; }
-                        KeyboardAction {
-                            min-width: 100px;
-                            label: qso.callsign;
-                            description: "Open external callsign lookup for " + qso.callsign;
-                            link: true;
-                            activated => { root.open-callsign-lookup(qso.callsign); }
+                    height: 64px;
+                    background: Math.mod(index, 2) == 0 ? Theme.surface : Theme.background;
+                    border-width: 1px; border-color: Theme.border-subtle; border-radius: Theme.radius-xs;
+                    VerticalBox {
+                        padding-left: Theme.space-md; padding-right: Theme.space-md;
+                        padding-top: Theme.space-xs; padding-bottom: Theme.space-xs;
+                        spacing: Theme.space-2xs;
+                        HorizontalBox {
+                            height: 25px;
+                            vertical-stretch: 0;
+                            spacing: Theme.space-sm;
+                            Text { text: qso.timestamp; color: Theme.text-secondary; width: 150px; font-size: Theme.text-sm; vertical-alignment: center; overflow: elide; }
+                            KeyboardAction {
+                                width: 126px;
+                                label: qso.callsign;
+                                description: "Open external callsign lookup for " + qso.callsign;
+                                link: true;
+                                compact: true;
+                                activated => { root.open-callsign-lookup(qso.callsign); }
+                            }
+                            ModeBadge { mode: qso.mode; }
+                            TechnicalValue { text: qso.frequency; width: 116px; }
+                            Text { text: qso.band == "" ? "—" : qso.band; color: Theme.text-secondary; width: 48px; font-size: Theme.text-xs; font-weight: 700; vertical-alignment: center; overflow: elide; }
+                            Rectangle { horizontal-stretch: 1; }
                         }
-                        ModeBadge { mode: qso.mode; }
-                        Text { text: qso.frequency; color: Theme.text-primary; min-width: 110px; vertical-alignment: center; overflow: elide; }
-                        Text { text: qso.band; color: Theme.text-secondary; min-width: 55px; vertical-alignment: center; overflow: elide; }
-                        if qso.grid == "" : Text { text: "—"; color: Theme.text-muted; min-width: 65px; vertical-alignment: center; }
-                        if qso.grid != "" : KeyboardAction {
-                            min-width: 65px;
-                            label: qso.grid;
-                            description: "Open external grid lookup for " + qso.grid;
-                            link: true;
-                            activated => { root.open-grid-lookup(qso.grid); }
+                        HorizontalBox {
+                            height: 27px;
+                            vertical-stretch: 0;
+                            spacing: Theme.space-sm;
+                            Text { text: "PATH"; color: Theme.text-muted; width: 38px; font-size: Theme.text-xs; font-weight: 700; vertical-alignment: center; }
+                            Text { text: qso.route-summary == "" ? "Direct / no additional route data" : qso.route-summary; color: Theme.text-muted; min-width: 250px; horizontal-stretch: 1; font-size: Theme.text-xs; vertical-alignment: center; overflow: elide; }
+                            if qso.grid == "" : Text { text: "GRID  —"; color: Theme.text-disabled; width: 82px; font-size: Theme.text-xs; vertical-alignment: center; }
+                            if qso.grid != "" : KeyboardAction {
+                                width: 82px;
+                                label: "GRID  " + qso.grid;
+                                description: "Open external grid lookup for " + qso.grid;
+                                link: true;
+                                compact: true;
+                                activated => { root.open-grid-lookup(qso.grid); }
+                            }
+                            KeyboardAction {
+                                width: 48px; compact: true; label: "Edit"; description: "Edit QSO with " + qso.callsign;
+                                activated => {
+                                    root.editing-id = qso.id; root.callsign-text = qso.callsign;
+                                    root.datetime-text = qso.datetime-input; root.mode-text = qso.mode;
+                                    root.mode-input-changed(qso.mode); root.frequency-text = qso.frequency-input; root.band-text = qso.band;
+                                    root.rst-sent-text = qso.rst-sent; root.rst-received-text = qso.rst-received;
+                                    root.grid-text = qso.grid; root.name-text = qso.name; root.qth-text = qso.qth;
+                                    root.notes-text = qso.notes; root.dmr-remote-id-text = qso.dmr-remote-id;
+                                    root.dmr-local-id-text = qso.dmr-local-id; root.dmr-talkgroup-text = qso.dmr-talkgroup;
+                                    root.dmr-timeslot-text = qso.dmr-timeslot; root.dmr-color-code-text = qso.dmr-color-code;
+                                    root.dmr-network-text = qso.dmr-network;
+                                    root.dmr-call-type-text = qso.dmr-call-type == "" ? "group" : qso.dmr-call-type;
+                                    root.dmr-access-type-text = qso.dmr-access-type == "" ? "simplex" : qso.dmr-access-type;
+                                    root.dmr-repeater-text = qso.dmr-repeater; root.dmr-hotspot-text = qso.dmr-hotspot;
+                                    root.dmr-notes-text = qso.dmr-notes; root.ft8-snr-sent-text = qso.ft8-snr-sent;
+                                    root.ft8-snr-received-text = qso.ft8-snr-received; root.ft8-power-text = qso.ft8-power;
+                                    root.ft8-audio-frequency-text = qso.ft8-audio-frequency;
+                                    root.ft8-source-software-text = qso.ft8-source-software;
+                                    root.ft8-protocol-text = qso.ft8-protocol == "" ? "FT8" : qso.ft8-protocol;
+                                    root.ft8-final-message-text = qso.ft8-final-message; root.active-page = 1; root.editor-opened();
+                                }
+                            }
+                            KeyboardAction {
+                                width: 54px; compact: true; label: "Delete"; description: "Delete QSO with " + qso.callsign;
+                                activated => { root.pending-delete-id = qso.id; root.pending-delete-label = qso.callsign; }
+                            }
                         }
-                        Text { text: qso.route-summary == "" ? "—" : qso.route-summary; color: Theme.text-muted; min-width: 150px; horizontal-stretch: 1; vertical-alignment: center; overflow: elide; }
-                        Button {
-                        text: "Edit";
-                        clicked => {
-                            root.editing-id = qso.id; root.callsign-text = qso.callsign;
-                            root.datetime-text = qso.datetime-input; root.mode-text = qso.mode;
-                            root.mode-input-changed(qso.mode); root.frequency-text = qso.frequency-input; root.band-text = qso.band;
-                            root.rst-sent-text = qso.rst-sent; root.rst-received-text = qso.rst-received;
-                            root.grid-text = qso.grid; root.name-text = qso.name; root.qth-text = qso.qth;
-                            root.notes-text = qso.notes; root.dmr-remote-id-text = qso.dmr-remote-id;
-                            root.dmr-local-id-text = qso.dmr-local-id; root.dmr-talkgroup-text = qso.dmr-talkgroup;
-                            root.dmr-timeslot-text = qso.dmr-timeslot; root.dmr-color-code-text = qso.dmr-color-code;
-                            root.dmr-network-text = qso.dmr-network;
-                            root.dmr-call-type-text = qso.dmr-call-type == "" ? "group" : qso.dmr-call-type;
-                            root.dmr-access-type-text = qso.dmr-access-type == "" ? "simplex" : qso.dmr-access-type;
-                            root.dmr-repeater-text = qso.dmr-repeater; root.dmr-hotspot-text = qso.dmr-hotspot;
-                            root.dmr-notes-text = qso.dmr-notes; root.ft8-snr-sent-text = qso.ft8-snr-sent;
-                            root.ft8-snr-received-text = qso.ft8-snr-received; root.ft8-power-text = qso.ft8-power;
-                            root.ft8-audio-frequency-text = qso.ft8-audio-frequency;
-                            root.ft8-source-software-text = qso.ft8-source-software;
-                            root.ft8-protocol-text = qso.ft8-protocol == "" ? "FT8" : qso.ft8-protocol;
-                            root.ft8-final-message-text = qso.ft8-final-message; root.active-page = 1; root.editor-opened();
-                        }
-                        }
-                        Button { text: "Delete"; clicked => { root.pending-delete-id = qso.id; root.pending-delete-label = qso.callsign; } }
                     }
                 }
             }
 
             Rectangle {
-                height: 38px; background: Theme.surface-raised; border-radius: Theme.radius-sm;
+                height: 35px; background: Theme.surface; border-width: 1px; border-color: Theme.border-subtle; border-radius: Theme.radius-sm;
                 HorizontalBox {
-                    padding-left: Theme.space-sm; padding-right: Theme.space-sm; padding-top: 3px; padding-bottom: 3px; spacing: Theme.space-sm;
+                    padding-left: Theme.space-md; padding-right: Theme.space-xs; padding-top: Theme.space-xs; padding-bottom: Theme.space-xs; spacing: Theme.space-sm;
                     Text {
                         text: root.logbook-page-total == 0
-                            ? "Showing 0–0 of 0 QSOs"
-                            : "Showing " + (root.logbook-page-offset + 1) + "–" + Math.min(root.logbook-page-offset + root.qsos.length, root.logbook-page-total) + " of " + root.logbook-page-total + " QSOs";
-                        color: Theme.text-secondary; vertical-alignment: center; horizontal-stretch: 1;
+                            ? "0 QSOs"
+                            : (root.logbook-page-offset + 1) + "–" + Math.min(root.logbook-page-offset + root.qsos.length, root.logbook-page-total) + " / " + root.logbook-page-total + " QSOs";
+                        color: Theme.text-secondary; font-size: Theme.text-xs; font-weight: 700; vertical-alignment: center; horizontal-stretch: 1;
                     }
                     Text {
-                        text: "Page " + root.logbook-page-number + " of " + root.logbook-page-count;
-                        color: Theme.text-secondary; vertical-alignment: center;
+                        text: "PAGE " + root.logbook-page-number + " OF " + root.logbook-page-count;
+                        color: Theme.text-muted; font-size: Theme.text-xs; font-weight: 700; vertical-alignment: center;
                     }
-                    Button { text: "Previous"; enabled: root.logbook-page-offset > 0; clicked => { root.previous-logbook-page(); } }
-                    Button {
-                        text: "Next";
+                    KeyboardAction { width: 72px; compact: true; label: "Previous"; description: "Open previous logbook page"; enabled: root.logbook-page-offset > 0; activated => { root.previous-logbook-page(); } }
+                    KeyboardAction {
+                        width: 54px; compact: true; label: "Next"; description: "Open next logbook page";
                         enabled: root.logbook-page-total > 0 && root.logbook-page-offset + root.logbook-page-limit < root.logbook-page-total;
-                        clicked => { root.next-logbook-page(); }
+                        activated => { root.next-logbook-page(); }
                     }
                 }
             }
 
-            Rectangle {
-                visible: root.pending-delete-id != "";
-                background: Theme.surface; border-width: 1px; border-color: Theme.danger; border-radius: Theme.radius-md;
+            if root.pending-delete-id != "" : Rectangle {
+                background: Theme.danger-surface; border-width: 1px; border-color: Theme.danger; border-radius: Theme.radius-sm;
                 HorizontalBox {
                     padding: Theme.space-md; spacing: Theme.space-md;
+                    Rectangle { width: 3px; background: Theme.danger; }
                     VerticalBox {
-                        spacing: 2px; horizontal-stretch: 1;
-                        Text { text: "Delete QSO?  " + root.pending-delete-label; color: Theme.danger; font-weight: 700; }
-                        Text { text: "This action cannot be undone."; color: Theme.text-secondary; }
+                        spacing: Theme.space-2xs; horizontal-stretch: 1;
+                        Text { text: "DELETE QSO  /  " + root.pending-delete-label; color: Theme.danger; font-size: Theme.text-sm; font-weight: 700; }
+                        Text { text: "Permanent action. The contact and its mode metadata will be removed."; color: Theme.text-secondary; font-size: Theme.text-xs; }
                     }
-                    Button { text: "Cancel"; clicked => { root.pending-delete-id = ""; root.pending-delete-label = ""; } }
-                    Button { text: "Confirm delete"; clicked => { root.delete-qso(root.pending-delete-id); root.pending-delete-id = ""; root.pending-delete-label = ""; } }
+                    KeyboardAction { width: 66px; compact: true; label: "Cancel"; description: "Cancel QSO deletion"; activated => { root.pending-delete-id = ""; root.pending-delete-label = ""; } }
+                    KeyboardAction { width: 104px; compact: true; danger: true; label: "Confirm delete"; description: "Permanently delete QSO with " + root.pending-delete-label; activated => { root.delete-qso(root.pending-delete-id); root.pending-delete-id = ""; root.pending-delete-label = ""; } }
                 }
             }
         }

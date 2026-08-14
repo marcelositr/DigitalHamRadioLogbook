@@ -1,5 +1,5 @@
-import { Button, LineEdit, ListView, ScrollView, VerticalBox, HorizontalBox } from "std-widgets.slint";
-import { Theme, PageTitle, SectionTitle } from "../design-system.slint";
+import { LineEdit, ScrollView, VerticalBox, HorizontalBox } from "std-widgets.slint";
+import { Theme, DataLabel, KeyboardAction, PageTitle, Panel, SectionTitle, Tag } from "../design-system.slint";
 
 export component SettingsPage inherits ScrollView {
     accessible-role: main;
@@ -11,51 +11,172 @@ export component SettingsPage inherits ScrollView {
     callback save-external-links();
     callback save-local-callsign();
 
-            vertical-stretch: 1;
+    vertical-stretch: 1;
+    VerticalBox {
+        padding: Theme.space-md;
+        spacing: Theme.space-md;
+
+        HorizontalBox {
+            spacing: Theme.space-md;
             VerticalBox {
-                padding: 18px; spacing: 16px;
+                spacing: Theme.space-2xs;
                 PageTitle { text: "Settings"; }
-                Rectangle {
-                    background: Theme.surface; border-width: 1px; border-color: Theme.border; border-radius: Theme.radius-md;
+                Text {
+                    text: "STATION IDENTITY / EXTERNAL SERVICES";
+                    color: Theme.text-muted;
+                    font-size: Theme.text-xs;
+                    font-weight: 700;
+                }
+            }
+            Rectangle { horizontal-stretch: 1; }
+            Tag { text: "LOCAL CONFIG"; accent: true; width: 96px; height: 24px; }
+        }
+
+        Panel {
+            raised: true;
+            height: 210px;
+            vertical-stretch: 0;
+            VerticalBox {
+                padding: Theme.space-md;
+                spacing: Theme.space-md;
+
+                HorizontalBox {
+                    spacing: Theme.space-sm;
+                    Rectangle { width: 4px; background: Theme.success; border-radius: Theme.radius-xs; }
                     VerticalBox {
-                        padding: Theme.space-lg; spacing: Theme.space-sm;
+                        spacing: Theme.space-2xs;
                         SectionTitle { text: "LOCAL STATION"; }
-                        Text { text: "Identify this station in the application header. The callsign is stored in the local XDG configuration directory."; color: Theme.text-secondary; }
-                        HorizontalBox {
-                            spacing: 8px;
-                            LineEdit { accessible-label: "Local station callsign"; text <=> root.local-callsign-text; placeholder-text: "Local callsign"; }
-                            Button { text: "Save station"; primary: true; clicked => { root.save-local-callsign(); } }
-                            Rectangle { horizontal-stretch: 1; }
-                        }
-                    }
-                }
-                Rectangle {
-                    background: Theme.surface; border-width: 1px; border-color: Theme.border; border-radius: Theme.radius-md;
-                    VerticalBox {
-                        padding: Theme.space-lg; spacing: Theme.space-sm;
-                        SectionTitle { text: "EXTERNAL LOOKUP LINKS"; }
                         Text {
-                            text: "Opening a lookup sends the selected callsign or grid locator to the configured external website.";
-                            color: Theme.warning;
-                        }
-                        VerticalBox {
-                            spacing: Theme.space-xs;
-                            Text { text: "Callsign URL template — requires {callsign}"; }
-                            LineEdit { accessible-label: "Callsign lookup URL template"; accessible-description: "Must contain the callsign placeholder"; text <=> root.callsign-url-text; horizontal-stretch: 1; }
-                        }
-                        VerticalBox {
-                            spacing: Theme.space-xs;
-                            Text { text: "Grid URL template — requires {grid}"; }
-                            LineEdit { accessible-label: "Grid lookup URL template"; accessible-description: "Must contain the grid placeholder"; text <=> root.grid-url-text; horizontal-stretch: 1; }
-                        }
-                        HorizontalBox {
-                            spacing: Theme.space-sm;
-                            Rectangle { horizontal-stretch: 1; }
-                            Button { text: "Restore defaults"; clicked => { root.restore-external-link-defaults(); } }
-                            Button { text: "Save links"; primary: true; clicked => { root.save-external-links(); } }
+                            text: "PRIMARY OPERATING IDENTITY";
+                            color: Theme.success;
+                            font-size: Theme.text-xs;
+                            font-weight: 700;
                         }
                     }
+                    Rectangle { horizontal-stretch: 1; }
+                    Tag { text: "ON THIS DEVICE"; width: 112px; height: 22px; }
                 }
-                Text { text: "Data remains local. External websites open only after an explicit click."; color: Theme.success; }
+
+                Rectangle { height: 1px; background: Theme.divider; }
+
+                Text {
+                    text: "Identify this station in the application header. The callsign is stored in the local XDG configuration directory.";
+                    color: Theme.text-secondary;
+                    font-size: Theme.text-sm;
+                }
+
+                HorizontalBox {
+                    height: 50px;
+                    vertical-stretch: 0;
+                    spacing: Theme.space-sm;
+                    VerticalBox {
+                        spacing: Theme.space-xs;
+                        horizontal-stretch: 1;
+                        DataLabel { text: "STATION CALLSIGN"; }
+                        LineEdit {
+                            accessible-label: "Local station callsign";
+                            text <=> root.local-callsign-text;
+                            placeholder-text: "Local callsign";
+                        }
+                    }
+                    KeyboardAction {
+                        width: 116px;
+                        label: "Save station";
+                        description: "Save local station callsign";
+                        primary: true;
+                        activated => { root.save-local-callsign(); }
+                    }
+                }
             }
         }
+
+        Panel {
+            vertical-stretch: 0;
+            VerticalBox {
+                padding: Theme.space-md;
+                spacing: Theme.space-md;
+
+                HorizontalBox {
+                    spacing: Theme.space-sm;
+                    VerticalBox {
+                        spacing: Theme.space-2xs;
+                        SectionTitle { text: "EXTERNAL LOOKUP LINKS"; }
+                        Text {
+                            text: "OPTIONAL / SECONDARY SERVICES";
+                            color: Theme.text-muted;
+                            font-size: Theme.text-xs;
+                            font-weight: 700;
+                        }
+                    }
+                    Rectangle { horizontal-stretch: 1; }
+                    Tag { text: "EXTERNAL"; width: 76px; height: 22px; }
+                }
+
+                Rectangle { height: 1px; background: Theme.divider; }
+
+                HorizontalBox {
+                    spacing: Theme.space-sm;
+                    Rectangle { width: 3px; background: Theme.warning; }
+                    Text {
+                        text: "Opening a lookup sends the selected callsign or grid locator to the configured external website.";
+                        color: Theme.warning;
+                        font-size: Theme.text-xs;
+                        vertical-alignment: center;
+                    }
+                }
+
+                VerticalBox {
+                    spacing: Theme.space-xs;
+                    DataLabel { text: "Callsign URL template — requires {callsign}"; }
+                    LineEdit {
+                        accessible-label: "Callsign lookup URL template";
+                        accessible-description: "Must contain the callsign placeholder";
+                        text <=> root.callsign-url-text;
+                        horizontal-stretch: 1;
+                    }
+                }
+
+                VerticalBox {
+                    spacing: Theme.space-xs;
+                    DataLabel { text: "Grid URL template — requires {grid}"; }
+                    LineEdit {
+                        accessible-label: "Grid lookup URL template";
+                        accessible-description: "Must contain the grid placeholder";
+                        text <=> root.grid-url-text;
+                        horizontal-stretch: 1;
+                    }
+                }
+
+                HorizontalBox {
+                    spacing: Theme.space-sm;
+                    Rectangle { horizontal-stretch: 1; }
+                    KeyboardAction {
+                        width: 118px;
+                        compact: true;
+                        label: "Restore defaults";
+                        description: "Restore default external lookup URL templates";
+                        activated => { root.restore-external-link-defaults(); }
+                    }
+                    KeyboardAction {
+                        width: 92px;
+                        compact: true;
+                        label: "Save links";
+                        description: "Save external lookup URL templates";
+                        activated => { root.save-external-links(); }
+                    }
+                }
+            }
+        }
+
+        HorizontalBox {
+            spacing: Theme.space-sm;
+            Rectangle { width: 3px; background: Theme.success; }
+            Text {
+                text: "Data remains local. External websites open only after an explicit click.";
+                color: Theme.text-muted;
+                font-size: Theme.text-xs;
+                vertical-alignment: center;
+            }
+        }
+    }
+}

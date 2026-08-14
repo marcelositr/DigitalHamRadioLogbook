@@ -1,6 +1,6 @@
 # Progresso de implementação
 
-Última atualização: 2026-08-13
+Última atualização: 2026-08-14
 
 Este arquivo é o checkpoint persistente do projeto. Ao retomar o trabalho, ler `SPEC.md` e este arquivo antes de modificar código.
 
@@ -389,6 +389,141 @@ Este arquivo é o checkpoint persistente do projeto. Ao retomar o trabalho, ler 
 - [x] Publicar a GitHub Release não-draft, não-prerelease e marcada como Latest, com tarball e checksum.
 - [x] Baixar os assets publicados e confirmar SHA-256 e igualdade byte a byte com os artefatos testados.
 
+## Marco 26 — Redesign visual piloto do Logbook (CONCLUÍDO)
+
+### Etapa 1 — Design system técnico (CONCLUÍDA)
+
+- [x] Ler integralmente `SPEC.md`, `PROGRESS.md`, `README.md`, design system, Logbook, shell e modelo `QsoRow`.
+- [x] Definir linguagem própria de instrumento técnico desktop, sem tratar Nord como design.
+- [x] Centralizar três níveis de profundidade, estrutura, texto, accent e estados operacionais.
+- [x] Definir escalas compactas de tipografia, espaçamento e raios técnicos.
+- [x] Preservar as APIs dos componentes consumidos pelas páginas existentes.
+- [x] Refinar foco, navegação, estação local, modos, vazio e status sem alterar comportamento.
+- [x] Adicionar somente primitivas necessárias ao piloto: `Panel`, `Divider`, `Tag`, `FilterChip`, `DataLabel` e `TechnicalValue`.
+- [x] Não alterar Rust, banco, modelo, callbacks, páginas ou funcionalidades.
+- [x] Validar fmt, check, clippy estrito, 73 testes e build locked.
+
+### Etapa 2 — Shell e navegação (CONCLUÍDA)
+
+- [x] Unificar cabeçalho e navegação em uma barra operacional compacta de 66px.
+- [x] Manter as quatro páginas e todos os callbacks da navegação.
+- [x] Preservar `New QSO` como ação primária e a estação local como contexto global.
+- [x] Evitar sidebar para não comprimir páginas fora do escopo piloto.
+- [x] Validar fmt, check, clippy estrito, 73 testes e build locked.
+
+### Etapa 3 — Toolbar, pesquisa e filtros (CONCLUÍDA)
+
+- [x] Criar cabeçalho contextual com total local e contexto `LOCAL / UTC`.
+- [x] Integrar pesquisa própria ao design, preservando busca por Enter.
+- [x] Reorganizar Search, Clear e Filters com hierarquia de ação clara.
+- [x] Manter filtros DMR/FT8 recolhíveis e indicar filtros ativos com chip.
+- [x] Preservar critérios, validações e callbacks existentes.
+- [x] Validar fmt, check, clippy estrito, 73 testes e build locked.
+
+### Etapa 4 — Lista operacional de QSOs (CONCLUÍDA)
+
+- [x] Substituir visualmente a tabela de oito colunas por linhas operacionais compactas de dois níveis.
+- [x] Priorizar timestamp, callsign, modo, frequência e banda.
+- [x] Agrupar rota, detalhes técnicos, grid e ações no nível secundário.
+- [x] Manter callsign/grid clicáveis e acessíveis por teclado.
+- [x] Preservar integralmente edição, exclusão e callbacks externos.
+- [x] Validar fmt, check, clippy estrito, 73 testes e build locked.
+
+### Etapa 5 — Estados e interações (CONCLUÍDA)
+
+- [x] Refinar estado vazio e ausência de resultados na nova linguagem visual.
+- [x] Refinar paginação com intervalo, total e página atual legíveis.
+- [x] Tornar Previous/Next consistentes com as ações customizadas e acessíveis.
+- [x] Converter confirmação de exclusão em bloco condicional sem espaço reservado.
+- [x] Aplicar hierarquia destrutiva discreta com Cancel e Confirm delete claros.
+- [x] Validar fmt, check, clippy estrito, 73 testes e build locked.
+
+### Etapa 6 — QA e homologação (CONCLUÍDA)
+
+- [x] Atualizar o checklist visual específico do piloto.
+- [x] Executar validação técnica final completa: fmt, check, clippy estrito, 73 testes e build locked.
+- [x] Executar startup X11 com HOME/XDG isolados; aplicação permaneceu ativa até o timeout esperado, sem crash.
+- [x] Corrigir o recorte da faixa secundária dos QSOs identificado no primeiro print: linha ajustada à altura natural das duas faixas e callsign compactado; fmt, check, clippy, 73 testes e build passaram novamente.
+- [x] Homologar visualmente o Logbook no i3 em `1050×680`.
+- [x] Confirmar compatibilidade visual mínima das páginas não redesenhadas.
+
 ## Próxima ação exata
 
-Versão `v0.2.0` publicada e verificada em https://github.com/marcelositr/DigitalHamRadioLogbook/releases/tag/v0.2.0. `main` e a tag permanecem no commit de release `e918765`; continuar novos trabalhos exclusivamente em `develop`.
+Abrir o aplicativo para homologação visual das quatro páginas em `1050×680` usando os checklists dos Marcos 26 e 27 em `docs/VISUAL-QA.md`.
+
+## Marco 27 — Propagação da identidade visual (CONCLUÍDO)
+
+### Etapa 1 — Auditoria das páginas (CONCLUÍDA)
+
+- [x] Revisar integralmente Editor, Tools e Settings contra o novo design system.
+- [x] Confirmar que a propagação pode permanecer restrita aos três arquivos Slint.
+- [x] Mapear todos os bindings, callbacks, estados condicionais e requisitos de teclado.
+
+### Etapa 2 — New/Edit QSO (CONCLUÍDA)
+
+- [x] Criar cabeçalho operacional com contexto New/Edit, modo e UTC.
+- [x] Reorganizar campos comuns em painéis técnicos compactos.
+- [x] Diferenciar seções condicionais DMR e FT8 sem alterar campos ou regras.
+- [x] Refinar Notes, confirmação de descarte e rodapé fixo.
+- [x] Preservar Enter, Escape, Tab, bindings e callbacks.
+
+### Etapa 3 — Tools (CONCLUÍDA)
+
+- [x] Tornar ADIF o fluxo operacional principal e backup uma operação secundária clara.
+- [x] Reorganizar caminhos, seletores e ações sem alterar os diálogos existentes.
+- [x] Tornar preview ADIF escaneável para totais, modos, bandas, UTC, duplicados e inválidos.
+- [x] Preservar preview, cancelamento, confirmação, exportação e backup.
+
+### Etapa 4 — Settings (CONCLUÍDA)
+
+- [x] Destacar a estação local como identidade operacional.
+- [x] Manter links externos como configuração secundária.
+- [x] Refinar aviso de privacidade/offline sem alterar templates ou validações.
+- [x] Preservar salvar estação, restaurar padrões e salvar links.
+
+### Etapa 5 — Integração e validação técnica (CONCLUÍDA)
+
+- [x] Manter a mesma linguagem de superfícies, tipografia, labels e ações nas quatro páginas.
+- [x] Remover domínio visual de botões std sem remover LineEdit dos formulários.
+- [x] Confirmar todos os callbacks visuais conectados.
+- [x] Validar fmt, check, clippy estrito, 73 testes e build locked.
+- [x] Confirmar diagnósticos sem erros ou warnings.
+
+### Etapa 6 — QA visual e fechamento (CONCLUÍDA)
+
+- [x] Registrar checklist visual específico do Marco 27.
+- [x] Executar startup X11 com HOME/XDG isolados; aplicação permaneceu ativa até o timeout esperado, sem crash.
+- [x] Revisar prints das quatro páginas e identificar expansão vertical inconsistente das ações e sobreposição em Local Station.
+- [x] Padronizar ações em 33px, compactas em 27px e links em 20px, impedindo expansão automática.
+- [x] Padronizar margens e padding dos painéis em 11px e corrigir a linha de edição do indicativo local.
+- [x] Medir o segundo print de Settings e fixar `Local Station` em 210px para conter campo, borda e padding inferior integralmente.
+- [x] Auditar preventivamente todas as alturas rígidas e expansões restantes em Logbook, Editor, Tools e Settings; nenhuma outra sobreposição equivalente foi encontrada.
+- [x] Revalidar fmt, check, clippy estrito, 73 testes, build e startup X11 após a harmonização dimensional.
+- [x] Homologar as quatro páginas no i3 em `1050×680`.
+- [x] Confirmar campos genéricos, DMR e FT8, incluindo rolagem completa.
+- [x] Confirmar Tools e Settings com caminhos e templates longos.
+
+## Marco 28 — Publicação da versão v0.2.1 (EM ANDAMENTO)
+
+- [x] Confirmar `develop` como branch de trabalho e `main` como branch principal do repositório.
+- [x] Confirmar autenticação do GitHub CLI e acesso SSH ao remote.
+- [x] Atualizar a versão do pacote para `0.2.1` em `Cargo.toml` e `Cargo.lock`.
+- [x] Atualizar o README para documentar a nova identidade visual técnica.
+- [x] Criar `docs/RELEASE-NOTES-v0.2.1.md`.
+- [x] Registrar homologação final em `docs/VISUAL-QA.md`.
+- [x] Executar validação release completa e startup X11 isolado.
+- [x] Gerar e verificar tarball Linux e SHA-256.
+- [x] Confirmar conteúdo mínimo, permissões e ausência de bibliotecas compartilhadas não resolvidas.
+- [x] Testar instalação, atualização, execução e desinstalação dupla em HOME/XDG isolados.
+- [x] Confirmar preservação de banco e configuração por SHA-256.
+- [ ] Commitar e publicar a preparação em `develop`.
+- [ ] Confirmar CI verde em `develop`.
+- [ ] Integrar e publicar em `main`.
+- [ ] Confirmar CI verde em `main`.
+- [ ] Criar e publicar tag anotada `v0.2.1`.
+- [ ] Criar GitHub Release final com tarball e checksum.
+- [ ] Baixar e verificar os assets publicados.
+
+## Próxima ação exata
+
+Concluir documentação e executar toda a validação release antes do primeiro commit da versão `v0.2.1`.

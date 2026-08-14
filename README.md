@@ -8,7 +8,7 @@ Aplicativo desktop local e offline para registrar contatos de radioamador realiz
 
 O MVP funcional inclui:
 
-- interface Slint organizada em páginas internas e adequada à janela de `1050×680`;
+- interface Slint desktop-first com identidade técnica própria, alta legibilidade e operação confortável em `1050×680`;
 - banco SQLite local com migrations versionadas;
 - listagem, pesquisa, criação, edição e exclusão confirmada de QSOs;
 - campos comuns e metadados específicos de DMR e FT8;
@@ -97,22 +97,23 @@ Também é possível fechar o aplicativo e copiar `logbook.sqlite3` manualmente.
 - `ui/main.slint`: contrato público e shell global da janela;
 - `ui/pages/`: páginas independentes de Logbook, editor, Tools e Settings;
 - `ui/models/`: tipos Slint compartilhados entre páginas;
-- `ui/design-system.slint`: tema Nord e componentes visuais reutilizáveis.
+- `ui/design-system.slint`: tokens e componentes reutilizáveis da identidade visual técnica.
 
 A interface não executa SQL e a camada de banco não depende de Slint.
 
-## Tema visual
+## Identidade visual
 
-A interface utiliza o [Nord Theme](https://www.nordtheme.com/docs/colors-and-palettes) em modo escuro:
+A interface usa uma linguagem própria inspirada em instrumentos de rádio e software técnico de telecomunicações. A paleta escura mantém influência do Nord, mas hierarquia, densidade e componentes são específicos do Digital Ham Radio Logbook:
 
-- **Polar Night** para fundos, painéis, cartões e controles;
-- **Snow Storm** para texto principal e secundário;
-- **Frost** para navegação, seleção, hover e ações em destaque;
-- **Aurora** para estados destrutivos, avisos e confirmações.
+- três níveis controlados de profundidade para fundo e superfícies;
+- accent ciano moderado e estados semânticos de baixo brilho;
+- tipografia compacta para leitura prolongada e dados técnicos;
+- foco visível, ações consistentes e dimensões adequadas ao uso por teclado;
+- raios pequenos, divisores discretos e bordas usadas com moderação.
 
-As superfícies principais têm cores explícitas para preservar contraste em diferentes temas de desktop e gerenciadores de janela. Os tokens de cor, espaçamento e raio ficam centralizados em `ui/design-system.slint`, junto aos componentes tipográficos reutilizáveis.
+O Logbook prioriza a lista operacional em duas linhas por QSO, com callsign, horário, modo e frequência em primeiro plano e rota, grid e ações no nível secundário. Editor, Tools e Settings compartilham a mesma grade, cabeçalhos técnicos, painéis compactos e hierarquia de ações.
 
-O acabamento visual inclui cabeçalho com identificação da estação, navegação consistente, tabela com linhas alternadas e destaque semântico, estado vazio informativo, formulários agrupados por seção e cartões padronizados em Tools e Settings. Componentes estáveis como badge da estação, badge de modo, estado vazio e barra de status também ficam centralizados no design system.
+Cores, espaçamentos, dimensões e componentes reutilizáveis ficam centralizados em `ui/design-system.slint`. A interface foi homologada no i3 em `1050×680`, sem exigir fullscreen.
 
 Após mudanças de interface, use o checklist persistente em `docs/VISUAL-QA.md` para validar a janela padrão de `1050×680`, conteúdo longo, estados vazios, filtros, mensagens e navegação por teclado.
 
