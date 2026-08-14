@@ -163,6 +163,29 @@ Baseline analyzed:
 - Durable mutation followed by presentation refresh failure remains a presentation-layer risk.
 - Resource limits for very large ADIF/text inputs remain undefined; no arbitrary limits were introduced without product policy.
 
+## Final verification
+
+- `cargo fmt --check`: passed.
+- `cargo check --locked`: passed.
+- `cargo clippy --locked --all-targets --all-features -- -D warnings`: passed.
+- `cargo test --locked`: 97 tests passed.
+- `cargo build --locked`: passed.
+- Migration matrix: schemas 0–5 passed individually.
+- X11 startup: application version 0.2.2 remained active until the expected timeout.
+- Linux release build: passed with no unresolved shared libraries.
+- Tarball SHA-256: `f5170dff43fcbf7c5ecf0693cbdd998653d90909c0ab3c4cd87a6af4bd216fae`.
+- Isolated install and update: passed.
+- Installed binary startup: passed.
+- Double uninstall: passed.
+- Seed database/configuration preservation: hashes unchanged.
+
+## Release gate
+
+- No known Critical bug remains.
+- No known High data-integrity bug from this analysis remains.
+- Remaining risks are documented above and do not silently corrupt or overwrite existing application data in the tested flows.
+- Manual functional regression remains required before publication.
+
 ## Deferred ideas
 
 None. Feature ideas discovered during hardening must be recorded separately and not implemented in this cycle.

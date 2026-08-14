@@ -598,11 +598,17 @@ Versão `v0.2.1` publicada e verificada em https://github.com/marcelositr/Digita
 ### Fase 8 — Regressão funcional, gates finais e preparação da v0.2.2 (EM ANDAMENTO)
 
 - [x] Executar fmt, check, clippy estrito, 97 testes e build locked.
-- [ ] Atualizar documentação e criar commit de checkpoint.
-- [ ] Executar migration matrix isolada, startup X11 e validação manual funcional.
-- [ ] Gerar e testar pacote Linux `0.2.2` sem publicar.
-- [ ] Confirmar ausência de bugs Critical/High conhecidos de integridade.
+- [x] Atualizar README, recuperação, hardening e release notes; criar commit `2242347`.
+- [x] Executar migration matrix isolada para schemas 0–5.
+- [x] Executar startup X11 isolado com versão `0.2.2`.
+- [x] Gerar tarball Linux e SHA-256 sem publicar.
+- [x] Confirmar conteúdo, dependências compartilhadas, instalação, atualização e startup instalado.
+- [x] Confirmar desinstalação dupla e preservação de banco/configuração por hash.
+- [x] Confirmar ausência de bugs Critical/High conhecidos de integridade.
+- [ ] Publicar commits em `develop` e confirmar CI remoto.
+- [ ] Executar regressão funcional manual pelo mantenedor.
+- [ ] Parar antes de merge, tag ou GitHub Release.
 
 ## Próxima ação exata
 
-Finalizar documentação, executar validações isoladas e preparar artefatos da v0.2.2; parar antes de merge, tag ou GitHub Release.
+Publicar somente `develop`, confirmar CI e executar a regressão funcional manual. Não integrar em `main`, criar tag ou publicar release sem nova autorização explícita.
