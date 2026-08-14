@@ -137,6 +137,7 @@ impl QsoRepository {
         let result = (|| -> std::result::Result<(), Box<dyn Error>> {
             let backup = Connection::open(destination)?;
             verify_connection_integrity(&backup)?;
+            migrations::validate_current_schema(&backup)?;
             drop(backup);
             let file = std::fs::OpenOptions::new().read(true).open(destination)?;
             file.sync_all()?;
@@ -266,7 +267,14 @@ impl QsoRepository {
         now_utc: i64,
     ) -> std::result::Result<AdifImportReport, Box<dyn Error>> {
         let transaction = self.connection.unchecked_transaction()?;
+        let mut identities = existing_qso_identities(&transaction)?;
+        let mut imported = 0;
+        let mut duplicates_skipped = plan.preview.duplicates;
         for imported_qso in &plan.qsos {
+            if !identities.insert(QsoIdentity::from(&imported_qso.qso)) {
+                duplicates_skipped += 1;
+                continue;
+            }
             let qso_id = insert_qso(&transaction, &imported_qso.qso, now_utc)?;
             match &imported_qso.mode_metadata {
                 ImportedModeMetadata::Dmr(metadata) => {
@@ -278,11 +286,12 @@ impl QsoRepository {
                 ImportedModeMetadata::Generic => {}
             }
             insert_adif_extra_fields(&transaction, qso_id, &imported_qso.extra_fields)?;
+            imported += 1;
         }
         transaction.commit()?;
         Ok(AdifImportReport {
-            imported: plan.preview.new_qsos,
-            duplicates_skipped: plan.preview.duplicates,
+            imported,
+            duplicates_skipped,
         })
     }
 
@@ -1096,6 +1105,96 @@ mod tests {
     }
 
     #[test]
+    fn backup_rejects_and_removes_an_incomplete_application_schema() {
+        let repository = QsoRepository::in_memory().unwrap();
+        repository
+            .connection
+            .execute("DROP TABLE adif_extra_fields", [])
+            .unwrap();
+        let directory = temporary_database_path("backup-incomplete");
+        std::fs::create_dir_all(&directory).unwrap();
+        let destination = directory.join("backup.sqlite3");
+
+        let error = repository.backup_to(&destination).unwrap_err().to_string();
+        assert!(error.contains("missing table adif_extra_fields"));
+        assert!(!destination.exists());
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
+    fn backup_rejects_and_removes_a_future_schema_snapshot() {
+        let repository = QsoRepository::in_memory().unwrap();
+        repository
+            .connection
+            .execute(
+                "INSERT INTO schema_migrations(version, applied_at_utc) VALUES (999, 0)",
+                [],
+            )
+            .unwrap();
+        let directory = temporary_database_path("backup-future");
+        std::fs::create_dir_all(&directory).unwrap();
+        let destination = directory.join("backup.sqlite3");
+
+        let error = repository.backup_to(&destination).unwrap_err().to_string();
+        assert!(error.contains("newer than supported"));
+        assert!(!destination.exists());
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
+    fn backup_restores_generic_dmr_ft8_and_adif_extra_data() {
+        let repository = QsoRepository::in_memory().unwrap();
+        let document = parse(
+            "<CALL:6>PU2GEN<QSO_DATE:8>20231114<TIME_ON:6>221320<FREQ:7>145.500<MODE:3>M17<EOR>\
+             <CALL:6>PU2DMR<QSO_DATE:8>20231114<TIME_ON:6>221321<FREQ:7>438.500<MODE:3>DMR\
+             <APP_DHRL_CALL_TYPE:5>group<APP_DHRL_ACCESS_TYPE:7>simplex<APP_DHRL_TALKGROUP:3>724<EOR>\
+             <CALL:6>PY2FT8<QSO_DATE:8>20231114<TIME_ON:6>221322<FREQ:6>14.074<MODE:3>FT8\
+             <SNR:3>-18<APP_VENDOR_FIELD:5:S>value<EOR>",
+        )
+        .unwrap();
+        repository.import_adif(&document, 1_700_000_100).unwrap();
+        let directory = temporary_database_path("backup-restore");
+        std::fs::create_dir_all(&directory).unwrap();
+        let backup = directory.join("backup.sqlite3");
+        let restored = directory.join("restored.sqlite3");
+
+        repository.backup_to(&backup).unwrap();
+        std::fs::copy(&backup, &restored).unwrap();
+        let restored_repository = QsoRepository::open(&restored).unwrap();
+        let qsos = restored_repository.list().unwrap();
+        assert_eq!(qsos.len(), 3);
+        let dmr_id = qsos.iter().find(|qso| qso.mode == "DMR").unwrap().id;
+        let ft8_id = qsos.iter().find(|qso| qso.mode == "FT8").unwrap().id;
+        assert_eq!(
+            restored_repository
+                .get_dmr_metadata(dmr_id)
+                .unwrap()
+                .unwrap()
+                .talkgroup,
+            Some(724)
+        );
+        assert_eq!(
+            restored_repository
+                .get_ft8_metadata(ft8_id)
+                .unwrap()
+                .unwrap()
+                .snr_received_db,
+            Some(-18)
+        );
+        assert_eq!(
+            restored_repository.get_adif_extra_fields(ft8_id).unwrap(),
+            vec![AdifField {
+                name: "APP_VENDOR_FIELD".into(),
+                value: "value".into(),
+                data_type: Some("S".into()),
+            }]
+        );
+        restored_repository.verify_integrity().unwrap();
+        drop(restored_repository);
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
     fn imports_adif_document_atomically_and_preserves_unknown_fields() {
         let repository = QsoRepository::in_memory().unwrap();
         let document = parse(
@@ -1171,6 +1270,30 @@ mod tests {
             }
         );
         assert_eq!(repository.list().unwrap().len(), 2);
+    }
+
+    #[test]
+    fn confirmation_skips_duplicates_created_after_adif_preview() {
+        let repository = QsoRepository::in_memory().unwrap();
+        let document = parse(
+            "<CALL:6>PY2ABC<QSO_DATE:8>20231114<TIME_ON:6>221320<FREQ:6>14.074<MODE:3>FT8<EOR>",
+        )
+        .unwrap();
+        let plan = repository.prepare_adif_import(&document).unwrap();
+        assert_eq!(plan.preview().new_qsos, 1);
+
+        let same_qso = NewQso::new("PY2ABC", 1_700_000_000, 14_074_000, "FT8").unwrap();
+        repository.insert(&same_qso, 1_700_000_050).unwrap();
+        let report = repository.import_adif_plan(plan, 1_700_000_100).unwrap();
+
+        assert_eq!(
+            report,
+            AdifImportReport {
+                imported: 0,
+                duplicates_skipped: 1,
+            }
+        );
+        assert_eq!(repository.list().unwrap().len(), 1);
     }
 
     #[test]
@@ -1407,6 +1530,41 @@ mod tests {
     #[test]
     fn reports_integrity_for_a_healthy_database() {
         let repository = QsoRepository::in_memory().unwrap();
+        repository.verify_integrity().unwrap();
+    }
+
+    #[test]
+    fn repository_delete_cascades_dmr_routes_and_ft8_metadata() {
+        let repository = QsoRepository::in_memory().unwrap();
+        let dmr_qso = NewQso::new("PU2DMR", 1_700_000_000, 438_500_000, "DMR").unwrap();
+        let dmr = DmrMetadata::from_input(DmrMetadataInput {
+            call_type: "group".into(),
+            access_type: "simplex".into(),
+            ..Default::default()
+        })
+        .unwrap();
+        let dmr_id = repository
+            .insert_dmr(&dmr_qso, &dmr, 1_700_000_001)
+            .unwrap();
+        let ft8_qso = NewQso::new("PY2FT8", 1_700_000_002, 14_074_000, "FT8").unwrap();
+        let ft8 = Ft8Metadata::from_input(Ft8MetadataInput::default()).unwrap();
+        let ft8_id = repository
+            .insert_ft8(&ft8_qso, &ft8, 1_700_000_003)
+            .unwrap();
+
+        assert!(repository.delete(dmr_id).unwrap());
+        assert!(repository.delete(ft8_id).unwrap());
+        assert_eq!(repository.get_dmr_metadata(dmr_id).unwrap(), None);
+        assert_eq!(repository.get_ft8_metadata(ft8_id).unwrap(), None);
+        let dmr_routes: i64 = repository
+            .connection
+            .query_row(
+                "SELECT COUNT(*) FROM digital_routes WHERE qso_id = ?1",
+                [dmr_id],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(dmr_routes, 0);
         repository.verify_integrity().unwrap();
     }
 

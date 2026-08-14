@@ -1,4 +1,4 @@
-use rusqlite::{Connection, Error, Result, Transaction};
+use rusqlite::{Connection, Error, Result};
 
 const CURRENT_SCHEMA_VERSION: i64 = 5;
 
@@ -190,7 +190,12 @@ fn reject_future_schema(connection: &Connection) -> Result<()> {
     Ok(())
 }
 
-fn validate_schema(transaction: &Transaction<'_>) -> Result<()> {
+pub(super) fn validate_current_schema(connection: &Connection) -> Result<()> {
+    reject_future_schema(connection)?;
+    validate_schema(connection)
+}
+
+fn validate_schema(connection: &Connection) -> Result<()> {
     for table in [
         "schema_migrations",
         "qsos",
@@ -199,7 +204,7 @@ fn validate_schema(transaction: &Transaction<'_>) -> Result<()> {
         "ft8_metadata",
         "adif_extra_fields",
     ] {
-        let exists: bool = transaction.query_row(
+        let exists: bool = connection.query_row(
             "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?1)",
             [table],
             |row| row.get(0),
@@ -228,7 +233,7 @@ fn validate_schema(transaction: &Transaction<'_>) -> Result<()> {
         "idx_digital_routes_repeater_nocase",
         "idx_digital_routes_hotspot_nocase",
     ] {
-        let exists: bool = transaction.query_row(
+        let exists: bool = connection.query_row(
             "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = ?1)",
             [index],
             |row| row.get(0),
