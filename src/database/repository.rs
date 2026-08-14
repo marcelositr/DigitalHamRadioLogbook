@@ -1330,17 +1330,78 @@ mod tests {
     }
 
     #[test]
+    fn opens_and_initializes_a_missing_database_file() {
+        let path = temporary_database_path("missing");
+        assert!(!path.exists());
+
+        let repository = QsoRepository::open(&path).unwrap();
+        repository.verify_integrity().unwrap();
+        drop(repository);
+
+        assert!(path.is_file());
+        let reopened = QsoRepository::open(&path).unwrap();
+        reopened.verify_integrity().unwrap();
+        drop(reopened);
+        std::fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn opens_and_initializes_an_existing_zero_byte_database_file() {
+        let path = temporary_database_path("zero-byte");
+        std::fs::write(&path, []).unwrap();
+
+        let repository = QsoRepository::open(&path).unwrap();
+        repository.verify_integrity().unwrap();
+        drop(repository);
+
+        assert!(std::fs::metadata(&path).unwrap().len() > 0);
+        std::fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn rejects_a_truncated_sqlite_database_without_changing_its_bytes() {
+        let path = temporary_database_path("truncated");
+        {
+            let repository = QsoRepository::open(&path).unwrap();
+            for index in 0..200 {
+                let qso = NewQso::new(
+                    format!("PU2{index:04}"),
+                    1_700_000_000 + index,
+                    438_500_000,
+                    "DMR",
+                )
+                .unwrap();
+                repository.insert(&qso, 1_700_000_000 + index).unwrap();
+            }
+        }
+        let mut corrupted = std::fs::read(&path).unwrap();
+        corrupted.truncate(corrupted.len() / 2);
+        std::fs::write(&path, &corrupted).unwrap();
+
+        assert!(QsoRepository::open(&path).is_err());
+        assert_eq!(std::fs::read(&path).unwrap(), corrupted);
+        std::fs::remove_file(path).unwrap();
+    }
+
+    #[test]
     fn rejects_a_non_sqlite_database_without_replacing_it() {
-        let suffix = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
-        let path = std::env::temp_dir().join(format!("dhrl-corrupt-test-{suffix}.sqlite3"));
+        let path = temporary_database_path("not-sqlite");
         std::fs::write(&path, b"not a sqlite database").unwrap();
 
         assert!(QsoRepository::open(&path).is_err());
         assert_eq!(std::fs::read(&path).unwrap(), b"not a sqlite database");
         std::fs::remove_file(path).unwrap();
+    }
+
+    fn temporary_database_path(label: &str) -> std::path::PathBuf {
+        let suffix = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        std::env::temp_dir().join(format!(
+            "dhrl-{label}-{}-{suffix}.sqlite3",
+            std::process::id()
+        ))
     }
 
     #[test]

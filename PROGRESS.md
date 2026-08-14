@@ -547,11 +547,21 @@ Versão `v0.2.1` publicada e verificada em https://github.com/marcelositr/Digita
 - [x] Confirmar filtros do modo anterior vazios após a troca.
 - [x] Confirmar que os testes existentes de rollback DMR/FT8 continuam passando.
 - [x] Executar fmt, check, clippy estrito, 76 testes e build locked.
+- [x] Criar commit lógico `bd49d62` (`Harden mode transition metadata`).
+
+### Fase 3 — Abertura do banco, schema, migrations e corrupção (EM ANDAMENTO)
+
+- [x] Testar criação e reabertura de banco inexistente em arquivo temporário.
+- [x] Testar inicialização segura de banco existente com zero bytes.
+- [x] Testar SQLite real truncado e confirmar preservação byte a byte após recusa.
+- [x] Confirmar recusa de arquivo não-SQLite e schema futuro pelos testes existentes.
+- [x] Reproduzir aceitação indevida de índices DMR/FT8 ausentes em schema v5.
+- [x] Exigir todos os índices publicados pelas migrations 1–5 na validação final.
+- [x] Revalidar migration matrix local dos schemas 0–5.
+- [x] Executar fmt, check, clippy estrito, 80 testes e build locked.
 - [ ] Criar commit lógico da unidade.
 
 ### Próximas fases
-
-- [ ] Fase 3 — Abertura do banco, schema, migrations e corrupção.
 - [ ] Fase 4 — Backup e restauração controlada.
 - [ ] Fase 5 — Parser, importação e exportação ADIF.
 - [ ] Fase 6 — Configuração, XDG e encerramento.

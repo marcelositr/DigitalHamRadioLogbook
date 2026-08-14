@@ -211,6 +211,12 @@ fn validate_schema(transaction: &Transaction<'_>) -> Result<()> {
         }
     }
     for index in [
+        "idx_qsos_callsign",
+        "idx_qsos_datetime_start",
+        "idx_qsos_mode",
+        "idx_dmr_metadata_remote_id",
+        "idx_dmr_metadata_talkgroup",
+        "idx_ft8_metadata_snr_received",
         "idx_qsos_datetime_start_id_desc",
         "idx_qsos_mode_datetime_start_id_desc",
         "idx_qsos_callsign_nocase",
@@ -442,6 +448,43 @@ mod tests {
 
         let error = run(&mut connection).unwrap_err().to_string();
         assert!(error.contains("newer than supported"));
+    }
+
+    #[test]
+    fn rejects_a_current_schema_with_missing_published_indexes() {
+        for index in [
+            "idx_qsos_callsign",
+            "idx_qsos_datetime_start",
+            "idx_qsos_mode",
+            "idx_dmr_metadata_remote_id",
+            "idx_dmr_metadata_talkgroup",
+            "idx_ft8_metadata_snr_received",
+        ] {
+            let mut connection = Connection::open_in_memory().unwrap();
+            run(&mut connection).unwrap();
+            connection
+                .execute_batch(&format!("DROP INDEX {index}"))
+                .unwrap();
+
+            match run(&mut connection) {
+                Ok(()) => {
+                    let exists: bool = connection
+                        .query_row(
+                            "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = ?1)",
+                            [index],
+                            |row| row.get(0),
+                        )
+                        .unwrap();
+                    assert!(
+                        exists,
+                        "schema was accepted while index {index} remained missing"
+                    );
+                }
+                Err(error) => assert!(error
+                    .to_string()
+                    .contains(&format!("missing index {index}"))),
+            }
+        }
     }
 
     #[test]

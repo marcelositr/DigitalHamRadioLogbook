@@ -51,7 +51,25 @@ Baseline analyzed:
   - `changing_specialized_mode_to_generic_removes_all_mode_metadata`
 - Rollback verification: existing DMR/FT8 update-failure tests remain green and confirm that failed replacement restores the previous QSO and metadata.
 
+### M-001 — Current schema accepted missing specialized indexes
+
+- Severity: Medium
+- Cause: final schema validation listed only indexes introduced in migration 5; published DMR/FT8 indexes from migrations 2–3 were omitted.
+- Impact: a database marked as schema 5 could open while missing expected query indexes, silently degrading specialized searches and violating the declared schema contract.
+- Correction: validation now requires every published index from migrations 1–5. Initial indexes may still be repaired idempotently by the initial schema; specialized missing indexes cause safe refusal.
+- Regression test: `rejects_a_current_schema_with_missing_published_indexes`.
+
 ## Tested cases
+
+### Database opening and schema
+
+- [x] Missing database file is created, migrated, integrity-checked and reopenable.
+- [x] Existing zero-byte file is initialized as a valid current database.
+- [x] Non-SQLite text file is refused without replacement.
+- [x] Truncated real SQLite file is refused without changing its bytes.
+- [x] Future schema is refused.
+- [x] Missing tables and every published index are detected or safely repaired where idempotent.
+- [x] Schemas 0–5 migrate to schema 5 with representative data preserved.
 
 ### Mode transitions
 
@@ -62,8 +80,8 @@ Baseline analyzed:
 
 ## Remaining risks
 
-- Full schema validation and backup restorability.
-- Real SQLite corruption/truncation fixtures.
+- Full table/column/constraint-definition validation and backup restorability.
+- Additional SQLite corruption forms beyond controlled truncation.
 - Stale ADIF preview confirmation.
 - Duplicate known ADIF fields.
 - Configuration/XDG adverse environments.
