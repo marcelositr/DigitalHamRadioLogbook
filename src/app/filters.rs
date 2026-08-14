@@ -140,12 +140,7 @@ pub(crate) fn connect_ft8_filter_handlers(
                 start_utc: parse_optional_utc_datetime(ui.get_ft8_filter_start_text().as_str())?,
                 end_utc: parse_optional_utc_datetime(ui.get_ft8_filter_end_text().as_str())?,
             };
-            if matches!(
-                (filter.minimum_snr_received_db, filter.maximum_snr_received_db),
-                (Some(minimum), Some(maximum)) if minimum > maximum
-            ) {
-                return Err("Minimum SNR cannot exceed maximum SNR".into());
-            }
+            validate_ft8_filter_ranges(&filter)?;
             {
                 let mut state = filter_state.borrow_mut();
                 state.query = LogbookQuery::Ft8(filter);
@@ -216,6 +211,22 @@ fn parse_optional_snr(input: &str) -> Result<Option<i16>, Box<dyn Error>> {
     Ok(Some(snr))
 }
 
+fn validate_ft8_filter_ranges(filter: &Ft8Filter) -> Result<(), Box<dyn Error>> {
+    if matches!(
+        (filter.minimum_snr_received_db, filter.maximum_snr_received_db),
+        (Some(minimum), Some(maximum)) if minimum > maximum
+    ) {
+        return Err("Minimum SNR cannot exceed maximum SNR".into());
+    }
+    if matches!(
+        (filter.start_utc, filter.end_utc),
+        (Some(start), Some(end)) if start > end
+    ) {
+        return Err("Start UTC cannot be after end UTC".into());
+    }
+    Ok(())
+}
+
 fn parse_optional_utc_datetime(input: &str) -> Result<Option<i64>, Box<dyn Error>> {
     if input.trim().is_empty() {
         Ok(None)
@@ -242,5 +253,11 @@ mod tests {
         assert_eq!(parse_optional_snr("-18").unwrap(), Some(-18));
         assert!(parse_optional_snr("-60").is_err());
         assert_eq!(parse_optional_utc_datetime("").unwrap(), None);
+        assert!(validate_ft8_filter_ranges(&Ft8Filter {
+            start_utc: Some(2),
+            end_utc: Some(1),
+            ..Default::default()
+        })
+        .is_err());
     }
 }

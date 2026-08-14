@@ -315,6 +315,58 @@ mod tests {
     }
 
     #[test]
+    fn invalid_and_truncated_configuration_is_rejected_without_modification() {
+        let suffix = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let directory = std::env::temp_dir().join(format!("dhrl-invalid-config-{suffix}"));
+        fs::create_dir_all(&directory).unwrap();
+        let path = directory.join("config.toml");
+
+        for contents in ["[station", "[station]\ncallsign = 42"] {
+            fs::write(&path, contents).unwrap();
+            assert!(load(&path).is_err());
+            assert_eq!(fs::read_to_string(&path).unwrap(), contents);
+        }
+        fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn saved_configuration_uses_private_permissions() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let suffix = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let directory = std::env::temp_dir().join(format!("dhrl-config-mode-{suffix}"));
+        let path = directory.join("config.toml");
+        save(&path, &AppConfig::default()).unwrap();
+
+        let mode = fs::metadata(&path).unwrap().permissions().mode() & 0o777;
+        assert_eq!(mode, 0o600);
+        fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
+    fn saves_configuration_in_a_unicode_path_with_spaces() {
+        let suffix = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let directory = std::env::temp_dir().join(format!("Configuração Rádio 日本 {suffix}"));
+        let path = directory.join("config.toml");
+        let mut config = AppConfig::default();
+        config.set_callsign("PY2ABC").unwrap();
+
+        save(&path, &config).unwrap();
+        assert_eq!(load(&path).unwrap(), config);
+        fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
     fn missing_configuration_uses_defaults() {
         let path = std::env::temp_dir().join("dhrl-nonexistent-config-test.toml");
         let _ = fs::remove_file(&path);

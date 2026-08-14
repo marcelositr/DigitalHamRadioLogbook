@@ -20,6 +20,9 @@ pub(crate) fn format_utc_datetime(timestamp: i64) -> Result<String, Box<dyn Erro
 
 pub(crate) fn parse_mhz_to_hz(input: &str) -> Result<i64, Box<dyn Error>> {
     let normalized = input.trim().replace(',', ".");
+    if normalized.starts_with('-') {
+        return Err("Frequency must be greater than zero".into());
+    }
     let mut parts = normalized.split('.');
     let whole = parts.next().ok_or("Frequency is required")?;
     let fraction = parts.next().unwrap_or("");
@@ -84,6 +87,8 @@ mod tests {
         assert!(parse_mhz_to_hz("").is_err());
         assert!(parse_mhz_to_hz("145.1234567").is_err());
         assert!(parse_mhz_to_hz("145.5.1").is_err());
+        assert!(parse_mhz_to_hz("-0.5").is_err());
+        assert!(parse_mhz_to_hz("-145.5").is_err());
     }
 
     #[test]
