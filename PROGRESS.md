@@ -503,7 +503,7 @@ Abrir o aplicativo para homologação visual das quatro páginas em `1050×680` 
 - [x] Confirmar campos genéricos, DMR e FT8, incluindo rolagem completa.
 - [x] Confirmar Tools e Settings com caminhos e templates longos.
 
-## Marco 28 — Publicação da versão v0.2.1 (EM ANDAMENTO)
+## Marco 28 — Publicação da versão v0.2.1 (CONCLUÍDO)
 
 - [x] Confirmar `develop` como branch de trabalho e `main` como branch principal do repositório.
 - [x] Confirmar autenticação do GitHub CLI e acesso SSH ao remote.
@@ -518,12 +518,13 @@ Abrir o aplicativo para homologação visual das quatro páginas em `1050×680` 
 - [x] Confirmar preservação de banco e configuração por SHA-256.
 - [x] Commitar e publicar a preparação em `develop` no commit `f0884c3`.
 - [x] Confirmar sete jobs verdes em `develop` ([execução](https://github.com/marcelositr/DigitalHamRadioLogbook/actions/runs/31845011500)).
-- [ ] Integrar e publicar em `main`.
-- [ ] Confirmar CI verde em `main`.
-- [ ] Criar e publicar tag anotada `v0.2.1`.
-- [ ] Criar GitHub Release final com tarball e checksum.
-- [ ] Baixar e verificar os assets publicados.
+- [x] Integrar `develop` em `main` por fast-forward no commit `26b6669` e publicar.
+- [x] Confirmar sete jobs verdes em `main` ([execução](https://github.com/marcelositr/DigitalHamRadioLogbook/actions/runs/31845281406)).
+- [x] Criar e publicar a tag anotada `v0.2.1` no commit `26b6669`.
+- [x] Criar GitHub Release final, não-draft e não-prerelease, com tarball e checksum.
+- [x] Baixar os assets publicados e confirmar SHA-256 e igualdade byte a byte.
+- [x] Confirmar release pública em https://github.com/marcelositr/DigitalHamRadioLogbook/releases/tag/v0.2.1.
 
 ## Próxima ação exata
 
-Concluir documentação e executar toda a validação release antes do primeiro commit da versão `v0.2.1`.
+Versão `v0.2.1` publicada e verificada em https://github.com/marcelositr/DigitalHamRadioLogbook/releases/tag/v0.2.1. `main` e a tag permanecem no commit `26b6669`; continuar novos trabalhos exclusivamente em `develop`.
