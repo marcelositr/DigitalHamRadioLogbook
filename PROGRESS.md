@@ -539,7 +539,7 @@ Versão `v0.2.1` publicada e verificada em https://github.com/marcelositr/Digita
 - [x] Classificar lacunas por severidade e registrar o inventário em `docs/HARDENING-v0.2.2.md`.
 - [x] Definir `0.2.2` como versão alvo em `Cargo.toml` e `Cargo.lock`.
 
-### Fase 2 — Integridade de modo e transações (EM ANDAMENTO)
+### Fase 2 — Integridade de modo e transações (CONCLUÍDA)
 
 - [x] Reproduzir por testes a permanência indevida de metadados ao trocar DMR, FT8 e modo genérico.
 - [x] Confirmar os três testes vermelhos antes da correção.
@@ -549,7 +549,7 @@ Versão `v0.2.1` publicada e verificada em https://github.com/marcelositr/Digita
 - [x] Executar fmt, check, clippy estrito, 76 testes e build locked.
 - [x] Criar commit lógico `bd49d62` (`Harden mode transition metadata`).
 
-### Fase 3 — Abertura do banco, schema, migrations e corrupção (EM ANDAMENTO)
+### Fase 3 — Abertura do banco, schema, migrations e corrupção (CONCLUÍDA)
 
 - [x] Testar criação e reabertura de banco inexistente em arquivo temporário.
 - [x] Testar inicialização segura de banco existente com zero bytes.
@@ -559,15 +559,50 @@ Versão `v0.2.1` publicada e verificada em https://github.com/marcelositr/Digita
 - [x] Exigir todos os índices publicados pelas migrations 1–5 na validação final.
 - [x] Revalidar migration matrix local dos schemas 0–5.
 - [x] Executar fmt, check, clippy estrito, 80 testes e build locked.
-- [ ] Criar commit lógico da unidade.
+- [x] Criar commit lógico `c89077d` (`Test database opening and schema integrity`).
 
-### Próximas fases
-- [ ] Fase 4 — Backup e restauração controlada.
-- [ ] Fase 5 — Parser, importação e exportação ADIF.
-- [ ] Fase 6 — Configuração, XDG e encerramento.
-- [ ] Fase 7 — CRUD, pesquisa, filtros, logging, panics e limites.
-- [ ] Fase 8 — Regressão funcional, gates finais e preparação da v0.2.2.
+### Fase 4 — Backup e restauração controlada (CONCLUÍDA)
+
+- [x] Validar snapshots contra integridade, foreign keys, versão, tabelas e índices da aplicação.
+- [x] Rejeitar e remover backup incerto com schema incompleto ou futuro.
+- [x] Executar restauração controlada em diretório temporário.
+- [x] Confirmar preservação de QSO genérico, DMR, FT8 e campo ADIF desconhecido.
+- [x] Criar commit `ed7ffa1` (`Harden backup and ADIF transactions`).
+
+### Fase 5 — Parser, importação e exportação ADIF (CONCLUÍDA)
+
+- [x] Revalidar duplicados dentro da transação de confirmação do preview.
+- [x] Rejeitar campos conhecidos repetidos sem bloquear repetição de campos desconhecidos.
+- [x] Cobrir vazio, espaços, header-only, truncamentos, comprimentos e boundaries UTF-8.
+- [x] Cobrir destino existente, parent ausente, cleanup e permissões privadas `0600`.
+- [x] Criar commit `9f7c5e1` (`Harden ADIF parsing and file writes`).
+
+### Fase 6 — Configuração, XDG e encerramento (CONCLUÍDA)
+
+- [x] Preservar TOML inválido/truncado e retornar erro controlado.
+- [x] Confirmar escrita atômica, Unicode/espaços e permissões `0600`.
+- [x] Ignorar XDG relativo e exigir fallback HOME absoluto.
+- [x] Cobrir XDG ausente e arquivo no lugar do diretório de dados.
+- [x] Manter fluxo de encerramento existente e documentar risco pós-rename sem refatoração ampla.
+- [x] Criar commit `18ca4ae` (`Harden configuration paths and input validation`).
+
+### Fase 7 — CRUD, pesquisa, filtros, logging, panics e limites (CONCLUÍDA)
+
+- [x] Rejeitar frequência explicitamente negativa, inclusive `-0.5`.
+- [x] Rejeitar intervalo UTC FT8 invertido.
+- [x] Testar cascata DMR/rota e FT8 pela API pública de exclusão.
+- [x] Auditar `panic!`, `unwrap()` e `expect()`; nenhum uso recuperável sobre entrada externa permaneceu no runtime auditado.
+- [x] Não introduzir limites arbitrários de tamanho sem política de produto.
+- [x] Registrar riscos residuais de refresh pós-mutation, corrida de rename e recursos no documento de hardening.
+
+### Fase 8 — Regressão funcional, gates finais e preparação da v0.2.2 (EM ANDAMENTO)
+
+- [x] Executar fmt, check, clippy estrito, 97 testes e build locked.
+- [ ] Atualizar documentação e criar commit de checkpoint.
+- [ ] Executar migration matrix isolada, startup X11 e validação manual funcional.
+- [ ] Gerar e testar pacote Linux `0.2.2` sem publicar.
+- [ ] Confirmar ausência de bugs Critical/High conhecidos de integridade.
 
 ## Próxima ação exata
 
-Validar integralmente e commitar a correção de integridade na troca de modo; depois iniciar os testes file-based de abertura do banco e corrupção sem modificar dados reais.
+Finalizar documentação, executar validações isoladas e preparar artefatos da v0.2.2; parar antes de merge, tag ou GitHub Release.
