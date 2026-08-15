@@ -28,6 +28,13 @@ export component QsoEditorPage inherits VerticalBox {
     in-out property <string> ft8-snr-received-text;
     in-out property <string> ft8-snr-sent-text;
     in-out property <string> ft8-source-software-text;
+    in-out property <string> dstar-reflector-text;
+    in-out property <string> dstar-module-text;
+    in-out property <string> dstar-mycall-text;
+    in-out property <string> dstar-urcall-text;
+    in-out property <string> dstar-rpt1-text;
+    in-out property <string> dstar-rpt2-text;
+    in-out property <string> dstar-notes-text;
     in-out property <string> grid-text;
     in-out property <int> mode-kind;
     in-out property <string> mode-text;
@@ -218,6 +225,34 @@ export component QsoEditorPage inherits VerticalBox {
                         VerticalBox { spacing: Theme.space-xs; DataLabel { text: "SOURCE SOFTWARE"; } LineEdit { text <=> root.ft8-source-software-text; } }
                         VerticalBox { spacing: Theme.space-xs; DataLabel { text: "PROTOCOL"; } LineEdit { text <=> root.ft8-protocol-text; } }
                         VerticalBox { spacing: Theme.space-xs; DataLabel { text: "FINAL MESSAGE"; } LineEdit { text <=> root.ft8-final-message-text; } }
+                    }
+                }
+            }
+
+            if root.mode-kind == 3 : Panel {
+                raised: true;
+                VerticalBox {
+                    padding: Theme.space-md;
+                    spacing: Theme.space-sm;
+                    HorizontalBox {
+                        spacing: Theme.space-sm;
+                        SectionTitle { text: "D-STAR DETAILS"; horizontal-stretch: 1; }
+                        Tag { width: 64px; height: 22px; text: "D-STAR"; accent: true; }
+                        DataLabel { text: "DIGITAL VOICE ROUTING"; }
+                    }
+                    Rectangle { height: 1px; background: Theme.divider; }
+                    HorizontalBox {
+                        spacing: Theme.space-sm;
+                        VerticalBox { spacing: Theme.space-xs; DataLabel { text: "REFLECTOR"; } LineEdit { text <=> root.dstar-reflector-text; placeholder-text: "REF001 C"; } }
+                        VerticalBox { spacing: Theme.space-xs; DataLabel { text: "MODULE"; } LineEdit { text <=> root.dstar-module-text; placeholder-text: "A–Z or 0–9"; } }
+                        VerticalBox { spacing: Theme.space-xs; DataLabel { text: "MYCALL"; } LineEdit { text <=> root.dstar-mycall-text; } }
+                        VerticalBox { spacing: Theme.space-xs; DataLabel { text: "URCALL"; } LineEdit { text <=> root.dstar-urcall-text; placeholder-text: "CQCQCQ"; } }
+                    }
+                    HorizontalBox {
+                        spacing: Theme.space-sm;
+                        VerticalBox { spacing: Theme.space-xs; DataLabel { text: "RPT1"; } LineEdit { text <=> root.dstar-rpt1-text; } }
+                        VerticalBox { spacing: Theme.space-xs; DataLabel { text: "RPT2"; } LineEdit { text <=> root.dstar-rpt2-text; } }
+                        VerticalBox { spacing: Theme.space-xs; horizontal-stretch: 2; DataLabel { text: "D-STAR NOTES"; } LineEdit { text <=> root.dstar-notes-text; } }
                     }
                 }
             }

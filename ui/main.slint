@@ -14,7 +14,7 @@ export component MainWindow inherits Window {
     background: Theme.background;
 
     in-out property <int> active-page: 0; // 0 logbook, 1 form, 2 tools, 3 settings
-    in-out property <int> active-filter: 0; // 0 all, 1 DMR, 2 FT8
+    in-out property <int> active-filter: 0; // 0 all, 1 DMR, 2 FT8, 3 D-STAR
     in-out property <bool> filters-expanded: false;
     in-out property <bool> filters-applied: false;
     in-out property <[QsoRow]> qsos;
@@ -32,7 +32,7 @@ export component MainWindow inherits Window {
     in-out property <string> callsign-text;
     in-out property <string> datetime-text;
     in-out property <string> mode-text;
-    in-out property <int> mode-kind: 0; // 0 generic, 1 DMR, 2 FT8
+    in-out property <int> mode-kind: 0; // 0 generic, 1 DMR, 2 FT8, 3 D-STAR
     in-out property <string> frequency-text;
     in-out property <string> band-text;
     in-out property <string> rst-sent-text;
@@ -59,6 +59,13 @@ export component MainWindow inherits Window {
     in-out property <string> ft8-source-software-text;
     in-out property <string> ft8-protocol-text: "FT8";
     in-out property <string> ft8-final-message-text;
+    in-out property <string> dstar-reflector-text;
+    in-out property <string> dstar-module-text;
+    in-out property <string> dstar-mycall-text;
+    in-out property <string> dstar-urcall-text;
+    in-out property <string> dstar-rpt1-text;
+    in-out property <string> dstar-rpt2-text;
+    in-out property <string> dstar-notes-text;
     in-out property <string> search-text;
     in-out property <string> dmr-filter-id-text;
     in-out property <string> dmr-filter-talkgroup-text;
@@ -73,6 +80,9 @@ export component MainWindow inherits Window {
     in-out property <string> ft8-filter-max-snr-text;
     in-out property <string> ft8-filter-start-text;
     in-out property <string> ft8-filter-end-text;
+    in-out property <string> dstar-filter-reflector-text;
+    in-out property <string> dstar-filter-module-text;
+    in-out property <string> dstar-filter-rpt1-text;
     in-out property <string> adif-path-text;
     in-out property <string> backup-path-text;
     in-out property <string> pending-delete-id;
@@ -96,6 +106,7 @@ export component MainWindow inherits Window {
     callback previous-logbook-page(); callback next-logbook-page();
     callback filter-dmr(); callback clear-dmr-filter();
     callback filter-ft8(); callback clear-ft8-filter();
+    callback filter-dstar(); callback clear-dstar-filter();
     callback save-local-callsign(); callback save-external-links(); callback restore-external-link-defaults();
     callback open-callsign-lookup(string); callback open-grid-lookup(string);
     callback preview-adif(); callback confirm-adif-import(); callback cancel-adif-import(); callback invalidate-adif-preview(); callback export-adif();
@@ -196,6 +207,16 @@ export component MainWindow inherits Window {
             dmr-repeater-text <=> root.dmr-repeater-text;
             dmr-talkgroup-text <=> root.dmr-talkgroup-text;
             dmr-timeslot-text <=> root.dmr-timeslot-text;
+            dstar-reflector-text <=> root.dstar-reflector-text;
+            dstar-module-text <=> root.dstar-module-text;
+            dstar-mycall-text <=> root.dstar-mycall-text;
+            dstar-urcall-text <=> root.dstar-urcall-text;
+            dstar-rpt1-text <=> root.dstar-rpt1-text;
+            dstar-rpt2-text <=> root.dstar-rpt2-text;
+            dstar-notes-text <=> root.dstar-notes-text;
+            dstar-filter-reflector-text <=> root.dstar-filter-reflector-text;
+            dstar-filter-module-text <=> root.dstar-filter-module-text;
+            dstar-filter-rpt1-text <=> root.dstar-filter-rpt1-text;
             editing-id <=> root.editing-id;
             filters-applied <=> root.filters-applied;
             filters-expanded <=> root.filters-expanded;
@@ -232,10 +253,12 @@ export component MainWindow inherits Window {
             search-text <=> root.search-text;
             clear-dmr-filter => { root.clear-dmr-filter(); }
             clear-ft8-filter => { root.clear-ft8-filter(); }
+            clear-dstar-filter => { root.clear-dstar-filter(); }
             delete-qso(value) => { root.delete-qso(value); }
             editor-opened => { root.editor-opened(); }
             filter-dmr => { root.filter-dmr(); }
             filter-ft8 => { root.filter-ft8(); }
+            filter-dstar => { root.filter-dstar(); }
             mode-input-changed(value) => { root.mode-input-changed(value); }
             previous-logbook-page => { root.previous-logbook-page(); }
             next-logbook-page => { root.next-logbook-page(); }
@@ -261,6 +284,13 @@ export component MainWindow inherits Window {
             dmr-repeater-text <=> root.dmr-repeater-text;
             dmr-talkgroup-text <=> root.dmr-talkgroup-text;
             dmr-timeslot-text <=> root.dmr-timeslot-text;
+            dstar-reflector-text <=> root.dstar-reflector-text;
+            dstar-module-text <=> root.dstar-module-text;
+            dstar-mycall-text <=> root.dstar-mycall-text;
+            dstar-urcall-text <=> root.dstar-urcall-text;
+            dstar-rpt1-text <=> root.dstar-rpt1-text;
+            dstar-rpt2-text <=> root.dstar-rpt2-text;
+            dstar-notes-text <=> root.dstar-notes-text;
             editing-id <=> root.editing-id;
             frequency-text <=> root.frequency-text;
             ft8-audio-frequency-text <=> root.ft8-audio-frequency-text;

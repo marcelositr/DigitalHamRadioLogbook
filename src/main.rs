@@ -17,7 +17,9 @@ use app::backup::connect_backup_handler;
 use app::datetime_frequency::{current_utc_timestamp, format_utc_datetime};
 use app::editor_navigation::{connect_editor_navigation_handlers, editor_snapshot};
 use app::file_dialogs::connect_file_dialog_handlers;
-use app::filters::{connect_dmr_filter_handlers, connect_ft8_filter_handlers};
+use app::filters::{
+    connect_dmr_filter_handlers, connect_dstar_filter_handlers, connect_ft8_filter_handlers,
+};
 use app::paths::{config_path, database_path};
 use app::qso_editor::{connect_mode_handler, connect_save_handler};
 use app::qso_list::{
@@ -49,7 +51,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     );
     ui.set_grid_url_text(app_config.borrow().external_links.grid_url.clone().into());
     ui.set_active_page(app_config.borrow().operational.sanitized_active_page());
-    ui.set_active_filter(app_config.borrow().operational.sanitized_active_filter());
+    let configured_filter = app_config.borrow().operational.active_filter;
+    ui.set_active_filter(if (0..=3).contains(&configured_filter) {
+        configured_filter
+    } else {
+        0
+    });
     ui.set_filters_expanded(app_config.borrow().operational.filters_expanded);
     if app_config.borrow().station.callsign.is_empty() {
         set_status(&ui, "Configure the local station callsign", STATUS_WARNING);
@@ -66,6 +73,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     connect_search_handler(&ui, &repository, &logbook_state);
     connect_dmr_filter_handlers(&ui, &repository, &logbook_state);
     connect_ft8_filter_handlers(&ui, &repository, &logbook_state);
+    connect_dstar_filter_handlers(&ui, &repository, &logbook_state);
     connect_delete_handler(&ui, &repository, &logbook_state);
     connect_pagination_handlers(&ui, &repository, &logbook_state);
     connect_file_dialog_handlers(&ui, &app_config, config_path.clone());

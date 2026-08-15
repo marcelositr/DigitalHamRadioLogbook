@@ -6,6 +6,7 @@ pub(crate) enum LogbookQuery {
     General(String),
     Dmr(DmrFilter),
     Ft8(Ft8Filter),
+    Dstar(DstarFilter),
 }
 
 #[derive(Debug, Clone)]
@@ -184,6 +185,9 @@ fn search_page(
         LogbookQuery::Ft8(filter) => {
             repository.search_ft8_page(filter, offset, DEFAULT_PAGE_SIZE)?
         }
+        LogbookQuery::Dstar(filter) => {
+            repository.search_dstar_page(filter, offset, DEFAULT_PAGE_SIZE)?
+        }
     })
 }
 
@@ -209,11 +213,13 @@ pub(crate) fn refresh_rows(ui: &MainWindow, items: Vec<QsoListItem>) -> Result<(
             let qso = item.qso;
             let dmr = item.dmr;
             let ft8 = item.ft8;
+            let dstar = item.dstar;
             let datetime = format_utc_datetime(qso.datetime_start_utc)?;
             let route_summary = dmr
                 .as_ref()
                 .map(format_dmr_route)
                 .or_else(|| ft8.as_ref().map(format_ft8_summary))
+                .or_else(|| dstar.as_ref().map(format_dstar_summary))
                 .unwrap_or_default();
             Ok(QsoRow {
                 id: SharedString::from(qso.id.to_string()),
@@ -289,6 +295,41 @@ pub(crate) fn refresh_rows(ui: &MainWindow, items: Vec<QsoListItem>) -> Result<(
                     .and_then(|v| v.final_message.clone())
                     .unwrap_or_default()
                     .into(),
+                dstar_reflector: dstar
+                    .as_ref()
+                    .and_then(|v| v.reflector.clone())
+                    .unwrap_or_default()
+                    .into(),
+                dstar_module: dstar
+                    .as_ref()
+                    .and_then(|v| v.module.clone())
+                    .unwrap_or_default()
+                    .into(),
+                dstar_mycall: dstar
+                    .as_ref()
+                    .and_then(|v| v.mycall.clone())
+                    .unwrap_or_default()
+                    .into(),
+                dstar_urcall: dstar
+                    .as_ref()
+                    .and_then(|v| v.urcall.clone())
+                    .unwrap_or_default()
+                    .into(),
+                dstar_rpt1: dstar
+                    .as_ref()
+                    .and_then(|v| v.rpt1.clone())
+                    .unwrap_or_default()
+                    .into(),
+                dstar_rpt2: dstar
+                    .as_ref()
+                    .and_then(|v| v.rpt2.clone())
+                    .unwrap_or_default()
+                    .into(),
+                dstar_notes: dstar
+                    .as_ref()
+                    .map(|v| v.notes.clone())
+                    .unwrap_or_default()
+                    .into(),
             })
         })
         .collect::<Result<Vec<_>, Box<dyn Error>>>()?;
@@ -335,6 +376,20 @@ fn format_dmr_route(metadata: &DmrMetadata) -> String {
     parts.join(" → ")
 }
 
+fn format_dstar_summary(metadata: &DStarMetadata) -> String {
+    let mut parts = Vec::new();
+    if let Some(reflector) = &metadata.reflector {
+        parts.push(reflector.clone());
+    }
+    if let Some(module) = &metadata.module {
+        parts.push(format!("Module {module}"));
+    }
+    if let Some(rpt1) = &metadata.rpt1 {
+        parts.push(format!("RPT1 {rpt1}"));
+    }
+    parts.join(" · ")
+}
+
 fn format_ft8_summary(metadata: &Ft8Metadata) -> String {
     let mut parts = Vec::new();
     if let Some(snr) = metadata.snr_received_db {
@@ -375,5 +430,21 @@ mod tests {
     fn saturates_values_for_slint_ints() {
         assert_eq!(saturating_i32(42), 42);
         assert_eq!(saturating_i32(usize::MAX), i32::MAX);
+    }
+
+    #[test]
+    fn formats_compact_dstar_route_summary() {
+        let metadata = DStarMetadata::from_input(DStarMetadataInput {
+            reflector: "REF001 C".into(),
+            module: "C".into(),
+            rpt1: "PY2XYZ B".into(),
+            ..Default::default()
+        })
+        .unwrap();
+
+        assert_eq!(
+            format_dstar_summary(&metadata),
+            "REF001 C · Module C · RPT1 PY2XYZ B"
+        );
     }
 }

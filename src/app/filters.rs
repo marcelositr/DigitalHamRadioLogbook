@@ -203,6 +203,72 @@ pub(crate) fn connect_ft8_filter_handlers(
     });
 }
 
+pub(crate) fn connect_dstar_filter_handlers(
+    ui: &MainWindow,
+    repository: &Rc<QsoRepository>,
+    state: &SharedLogbookViewState,
+) {
+    let weak_ui = ui.as_weak();
+    let filter_repository = Rc::clone(repository);
+    let filter_state = Rc::clone(state);
+    ui.on_filter_dstar(move || {
+        let Some(ui) = weak_ui.upgrade() else { return };
+        let filter = DstarFilter {
+            reflector: optional_filter_text(ui.get_dstar_filter_reflector_text().as_str()),
+            module: optional_filter_text(ui.get_dstar_filter_module_text().as_str()),
+            rpt1: optional_filter_text(ui.get_dstar_filter_rpt1_text().as_str()),
+        };
+        let previous_state = filter_state.borrow().clone();
+        {
+            let mut state = filter_state.borrow_mut();
+            state.query = LogbookQuery::Dstar(filter);
+            state.offset = 0;
+        }
+        match refresh_qso_list(&ui, &filter_repository, &filter_state) {
+            Ok(()) => {
+                ui.set_filters_applied(true);
+                ui.set_filters_expanded(false);
+                set_status(&ui, "D-STAR filters applied", STATUS_SUCCESS);
+            }
+            Err(error) => {
+                *filter_state.borrow_mut() = previous_state;
+                set_status(
+                    &ui,
+                    format!("Could not filter D-STAR QSOs: {error}"),
+                    STATUS_ERROR,
+                );
+            }
+        }
+    });
+
+    let weak_ui = ui.as_weak();
+    let clear_repository = Rc::clone(repository);
+    let clear_state = Rc::clone(state);
+    ui.on_clear_dstar_filter(move || {
+        let Some(ui) = weak_ui.upgrade() else { return };
+        ui.set_dstar_filter_reflector_text("".into());
+        ui.set_dstar_filter_module_text("".into());
+        ui.set_dstar_filter_rpt1_text("".into());
+        let previous_state = clear_state.borrow().clone();
+        {
+            let mut state = clear_state.borrow_mut();
+            state.query = LogbookQuery::General(ui.get_search_text().to_string());
+            state.offset = 0;
+        }
+        match refresh_qso_list(&ui, &clear_repository, &clear_state) {
+            Ok(()) => {
+                ui.set_filters_applied(false);
+                ui.set_filters_expanded(false);
+                set_status(&ui, "D-STAR filters cleared", STATUS_INFO);
+            }
+            Err(error) => {
+                *clear_state.borrow_mut() = previous_state;
+                set_status(&ui, format!("Could not reload QSOs: {error}"), STATUS_ERROR);
+            }
+        }
+    });
+}
+
 fn clear_ft8_filter_fields(ui: &MainWindow) {
     ui.set_ft8_filter_callsign_text("".into());
     ui.set_ft8_filter_grid_text("".into());

@@ -13,6 +13,7 @@ fn mode_kind(mode: &str) -> i32 {
     match mode.trim().to_ascii_uppercase().as_str() {
         "DMR" => 1,
         "FT8" => 2,
+        "DSTAR" | "D-STAR" => 3,
         _ => 0,
     }
 }
@@ -108,6 +109,21 @@ fn save_form(ui: &MainWindow, repository: &QsoRepository) -> Result<&'static str
         } else if !repository.update_dmr(id.parse()?, &qso, &metadata, now_utc)? {
             return Err("QSO no longer exists".into());
         }
+    } else if qso.mode == "DSTAR" || qso.mode == "D-STAR" {
+        let metadata = DStarMetadata::from_input(DStarMetadataInput {
+            reflector: ui.get_dstar_reflector_text().to_string(),
+            module: ui.get_dstar_module_text().to_string(),
+            mycall: ui.get_dstar_mycall_text().to_string(),
+            urcall: ui.get_dstar_urcall_text().to_string(),
+            rpt1: ui.get_dstar_rpt1_text().to_string(),
+            rpt2: ui.get_dstar_rpt2_text().to_string(),
+            notes: ui.get_dstar_notes_text().to_string(),
+        })?;
+        if id.is_empty() {
+            repository.insert_dstar(&qso, &metadata, now_utc)?;
+        } else if !repository.update_dstar(id.parse()?, &qso, &metadata, now_utc)? {
+            return Err("QSO no longer exists".into());
+        }
     } else if qso.mode == "FT8" {
         let metadata = Ft8Metadata::from_input(Ft8MetadataInput {
             snr_sent_db: ui.get_ft8_snr_sent_text().to_string(),
@@ -167,6 +183,13 @@ pub(crate) fn clear_editor(ui: &MainWindow) -> Result<(), Box<dyn Error>> {
     ui.set_ft8_source_software_text("".into());
     ui.set_ft8_protocol_text("FT8".into());
     ui.set_ft8_final_message_text("".into());
+    ui.set_dstar_reflector_text("".into());
+    ui.set_dstar_module_text("".into());
+    ui.set_dstar_mycall_text("".into());
+    ui.set_dstar_urcall_text("".into());
+    ui.set_dstar_rpt1_text("".into());
+    ui.set_dstar_rpt2_text("".into());
+    ui.set_dstar_notes_text("".into());
     Ok(())
 }
 
@@ -181,6 +204,9 @@ mod tests {
         }
         for value in ["FT8", "ft8", "Ft8", " FT8 "] {
             assert_eq!(mode_kind(value), 2);
+        }
+        for value in ["DSTAR", "dstar", "D-STAR", " d-star "] {
+            assert_eq!(mode_kind(value), 3);
         }
         for value in ["M17", "", "FT-8"] {
             assert_eq!(mode_kind(value), 0);
