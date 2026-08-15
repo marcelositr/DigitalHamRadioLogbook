@@ -31,6 +31,9 @@ pub fn record_to_domain(record: &AdifRecord) -> Result<ImportedQso, AdifConversi
     let time = required(record, "TIME_ON")?;
     let frequency_hz = parse_frequency_hz(required(record, "FREQ")?)?;
     let datetime_start_utc = parse_datetime(date, time)?;
+    let notes = aliased_value(record, "COMMENT", "NOTES")?
+        .unwrap_or_default()
+        .to_owned();
 
     let qso = NewQso::new(callsign, datetime_start_utc, frequency_hz, mode)
         .map_err(|error| AdifConversionError::new(error.to_string()))?
@@ -41,10 +44,7 @@ pub fn record_to_domain(record: &AdifRecord) -> Result<ImportedQso, AdifConversi
             grid_locator: value(record, "GRIDSQUARE").unwrap_or_default().to_owned(),
             name: value(record, "NAME").unwrap_or_default().to_owned(),
             qth: value(record, "QTH").unwrap_or_default().to_owned(),
-            notes: value(record, "COMMENT")
-                .or_else(|| value(record, "NOTES"))
-                .unwrap_or_default()
-                .to_owned(),
+            notes,
         })
         .map_err(|error| AdifConversionError::new(error.to_string()))?;
 
@@ -110,14 +110,12 @@ fn convert_dmr(record: &AdifRecord) -> Result<DmrMetadata, AdifConversionError> 
     DmrMetadata::from_input(DmrMetadataInput {
         remote_dmr_id: string_value(record, "APP_DHRL_REMOTE_DMR_ID"),
         local_dmr_id: string_value(record, "APP_DHRL_LOCAL_DMR_ID"),
-        talkgroup: value(record, "APP_DHRL_TALKGROUP")
-            .or_else(|| value(record, "MY_SIG_INFO"))
+        talkgroup: aliased_value(record, "APP_DHRL_TALKGROUP", "MY_SIG_INFO")?
             .unwrap_or_default()
             .to_owned(),
         timeslot: string_value(record, "APP_DHRL_TIMESLOT"),
         color_code: string_value(record, "APP_DHRL_COLOR_CODE"),
-        network: value(record, "APP_DHRL_NETWORK")
-            .or_else(|| value(record, "SIG"))
+        network: aliased_value(record, "APP_DHRL_NETWORK", "SIG")?
             .unwrap_or_default()
             .to_owned(),
         call_type: value(record, "APP_DHRL_CALL_TYPE")
@@ -128,6 +126,8 @@ fn convert_dmr(record: &AdifRecord) -> Result<DmrMetadata, AdifConversionError> 
             .to_owned(),
         repeater_callsign: string_value(record, "APP_DHRL_REPEATER"),
         hotspot: string_value(record, "APP_DHRL_HOTSPOT"),
+        rx_frequency_hz: optional_decimal_hz(record, "APP_DHRL_RX_FREQUENCY_HZ")?,
+        tx_frequency_hz: optional_decimal_hz(record, "APP_DHRL_TX_FREQUENCY_HZ")?,
         notes: string_value(record, "APP_DHRL_DMR_NOTES"),
         ..Default::default()
     })
@@ -137,8 +137,7 @@ fn convert_dmr(record: &AdifRecord) -> Result<DmrMetadata, AdifConversionError> 
 fn convert_ft8(record: &AdifRecord) -> Result<Ft8Metadata, AdifConversionError> {
     Ft8Metadata::from_input(Ft8MetadataInput {
         snr_sent_db: string_value(record, "APP_DHRL_SNR_SENT"),
-        snr_received_db: value(record, "SNR")
-            .or_else(|| value(record, "APP_DHRL_SNR_RECEIVED"))
+        snr_received_db: aliased_value(record, "SNR", "APP_DHRL_SNR_RECEIVED")?
             .unwrap_or_default()
             .to_owned(),
         power_watts: string_value(record, "TX_PWR"),
@@ -165,6 +164,8 @@ fn append_dmr(fields: &mut Vec<AdifField>, metadata: &DmrMetadata) {
         metadata.repeater_callsign.as_deref(),
     );
     push_optional(fields, "APP_DHRL_HOTSPOT", metadata.hotspot.as_deref());
+    push_number(fields, "APP_DHRL_RX_FREQUENCY_HZ", metadata.rx_frequency_hz);
+    push_number(fields, "APP_DHRL_TX_FREQUENCY_HZ", metadata.tx_frequency_hz);
     if !metadata.notes.is_empty() {
         fields.push(field("APP_DHRL_DMR_NOTES", &metadata.notes));
     }
@@ -240,6 +241,8 @@ fn known_fields(mode: &str) -> HashSet<&'static str> {
             "APP_DHRL_ACCESS_TYPE",
             "APP_DHRL_REPEATER",
             "APP_DHRL_HOTSPOT",
+            "APP_DHRL_RX_FREQUENCY_HZ",
+            "APP_DHRL_TX_FREQUENCY_HZ",
             "APP_DHRL_DMR_NOTES",
         ]);
     } else if mode == "FT8" {
@@ -271,6 +274,42 @@ fn value<'a>(record: &'a AdifRecord, name: &str) -> Option<&'a str> {
 
 fn string_value(record: &AdifRecord, name: &str) -> String {
     value(record, name).unwrap_or_default().to_owned()
+}
+
+fn aliased_value<'a>(
+    record: &'a AdifRecord,
+    primary: &str,
+    alias: &str,
+) -> Result<Option<&'a str>, AdifConversionError> {
+    match (value(record, primary), value(record, alias)) {
+        (Some(_), Some(_)) => Err(AdifConversionError::new(format!(
+            "conflicting ADIF fields {primary} and {alias}"
+        ))),
+        (primary_value, alias_value) => Ok(primary_value.or(alias_value)),
+    }
+}
+
+fn optional_decimal_hz(
+    record: &AdifRecord,
+    name: &str,
+) -> Result<Option<i64>, AdifConversionError> {
+    let Some(value) = value(record, name) else {
+        return Ok(None);
+    };
+    if !value.bytes().all(|byte| byte.is_ascii_digit()) {
+        return Err(AdifConversionError::new(format!(
+            "{name} must be a positive decimal integer in Hz"
+        )));
+    }
+    let frequency = value.parse::<i64>().map_err(|_| {
+        AdifConversionError::new(format!("{name} must be a positive decimal integer in Hz"))
+    })?;
+    if frequency <= 0 {
+        return Err(AdifConversionError::new(format!(
+            "{name} must be a positive decimal integer in Hz"
+        )));
+    }
+    Ok(Some(frequency))
 }
 
 fn parse_datetime(date: &str, time: &str) -> Result<i64, AdifConversionError> {
@@ -435,6 +474,69 @@ mod tests {
         .unwrap();
         let imported = record_to_domain(&repeated_unknown.records[0]).unwrap();
         assert_eq!(imported.extra_fields.len(), 2);
+    }
+
+    #[test]
+    fn rejects_simultaneous_alias_fields() {
+        for fields in [
+            "<COMMENT:3>one<NOTES:3>two",
+            "<APP_DHRL_TALKGROUP:3>724<MY_SIG_INFO:3>725",
+            "<APP_DHRL_NETWORK:12>BrandMeister<SIG:4>DMR+",
+        ] {
+            let input = format!(
+                "<CALL:6>PU2XYZ<QSO_DATE:8>20231114<TIME_ON:4>2213<FREQ:7>438.500\
+                 <MODE:3>DMR{fields}<EOR>"
+            );
+            let document = parse(&input).unwrap();
+
+            assert!(record_to_domain(&document.records[0]).is_err());
+        }
+
+        let document = parse(
+            "<CALL:6>PY2ABC<QSO_DATE:8>20231114<TIME_ON:6>221320<FREQ:6>14.074\
+             <MODE:3>FT8<SNR:3>-18<APP_DHRL_SNR_RECEIVED:3>-17<EOR>",
+        )
+        .unwrap();
+        assert!(record_to_domain(&document.records[0]).is_err());
+    }
+
+    #[test]
+    fn round_trips_dmr_rx_and_tx_frequencies_with_stable_field_names() {
+        let record = parse(
+            "<CALL:6>PU2XYZ<QSO_DATE:8>20231114<TIME_ON:4>2213<FREQ:7>438.500\
+             <MODE:3>DMR<APP_DHRL_RX_FREQUENCY_HZ:9>438500125\
+             <APP_DHRL_TX_FREQUENCY_HZ:9>430900625<EOR>",
+        )
+        .unwrap()
+        .records
+        .remove(0);
+
+        let imported = record_to_domain(&record).unwrap();
+        let ImportedModeMetadata::Dmr(metadata) = &imported.mode_metadata else {
+            panic!("expected DMR metadata");
+        };
+        assert_eq!(metadata.rx_frequency_hz, Some(438_500_125));
+        assert_eq!(metadata.tx_frequency_hz, Some(430_900_625));
+
+        let exported = domain_to_record(&imported).unwrap();
+        assert_eq!(exported.get("APP_DHRL_RX_FREQUENCY_HZ"), Some("438500125"));
+        assert_eq!(exported.get("APP_DHRL_TX_FREQUENCY_HZ"), Some("430900625"));
+        let reimported = record_to_domain(&exported).unwrap();
+        assert_eq!(reimported, imported);
+    }
+
+    #[test]
+    fn rejects_invalid_dmr_frequency_hz_fields() {
+        for value in ["0", "-1", "438500000.5", "not-a-number"] {
+            let input = format!(
+                "<CALL:6>PU2XYZ<QSO_DATE:8>20231114<TIME_ON:4>2213<FREQ:7>438.500\
+                 <MODE:3>DMR<APP_DHRL_RX_FREQUENCY_HZ:{}>{value}<EOR>",
+                value.len()
+            );
+            let document = parse(&input).unwrap();
+
+            assert!(record_to_domain(&document.records[0]).is_err());
+        }
     }
 
     #[test]
