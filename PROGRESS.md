@@ -1,6 +1,6 @@
 # Progresso de implementação
 
-Última atualização: 2026-08-14
+Última atualização: 2026-08-15
 
 Este arquivo é o checkpoint persistente do projeto. Ao retomar o trabalho, ler `SPEC.md` e este arquivo antes de modificar código.
 
@@ -666,7 +666,7 @@ Versão `v0.2.1` publicada e verificada em https://github.com/marcelositr/Digita
 - [x] Parar antes de `main`, tag e GitHub Release.
 - [x] Integrar em `main`, publicar tag/release `v0.3.0` e confirmar oito jobs de CI após autorização.
 
-## Marco 31 — Interoperabilidade ADIF v0.4.0 (EM ANDAMENTO)
+## Marco 31 — Interoperabilidade ADIF v0.4.0 (CONCLUÍDO)
 
 ### Fase 1 — Auditoria e inventário (CONCLUÍDA)
 
@@ -695,7 +695,7 @@ Versão `v0.2.1` publicada e verificada em https://github.com/marcelositr/Digita
 - [x] Usar as 24 fixtures como seeds.
 - [x] Executar 60 segundos, 3.618.168 entradas e zero crashes conhecidos.
 
-### Fase 5 — Documentação e gates (EM ANDAMENTO)
+### Fase 5 — Documentação e gates (CONCLUÍDA)
 
 - [x] Documentar interoperabilidade e extensões privadas.
 - [x] Atualizar versão fonte para `0.4.0` e changelog.
@@ -704,8 +704,26 @@ Versão `v0.2.1` publicada e verificada em https://github.com/marcelositr/Digita
 - [x] Executar regressão manual final de DMR, FT8, unknown/APP fields, Unicode, CRLF e arquivo quebrado.
 - [x] Publicar `develop` e confirmar oito jobs de CI.
 - [x] Preparar artefato final normalizado (`8bd5d126deabab13e333ae16e37a5e60da5bd39a8ccefbee78bbde2f3232f5b1`).
-- [ ] Parar antes de `main`, tag e GitHub Release.
+- [x] Parar antes de `main`, tag e GitHub Release.
+- [x] Concluir posteriormente a publicação de `v0.4.0` como release final.
+
+## Marco 32 — Suporte D-STAR e preparação v0.5.0 (CONCLUÍDO, NÃO PUBLICADO)
+
+- [x] Confirmar baseline inicial de 113 testes ativos + 1 ignored.
+- [x] Adicionar modelo `DStarMetadata`: reflector, module, MYCALL, URCALL, RPT1, RPT2 e notes.
+- [x] Adicionar schema 6 com tabela `dstar_metadata`, cascade e índices para reflector, module e RPT1.
+- [x] Cobrir migrations determinísticas dos schemas 0–6.
+- [x] Adicionar CRUD, materialização e filtros por reflector, module e RPT1 no repository/query.
+- [x] Adicionar editor, listagem e filtros D-STAR específicos na UI.
+- [x] Exportar ADIF canônico `MODE=DIGITALVOICE` + `SUBMODE=DSTAR` e importar também o histórico `MODE=DSTAR`.
+- [x] Definir `APP_DHRL_DSTAR_*`, usando `STATION_CALLSIGN` para MYCALL e aceitando `APP_DHRL_DSTAR_MYCALL` como alias de importação.
+- [x] Manter `digital_routes` específico de DMR e não introduzir traits/plugins.
+- [x] Fatorar somente a limpeza de metadata incompatível já existente para incluir D-STAR.
+- [x] Confirmar suíte final atual: 133 testes ativos + 1 ignored.
+- [x] Registrar stress release de 10k: first 1.039 ms; final 10.522 ms; DSTAR 2.599 ms; backup 35.099 ms; export-domain 111.243 ms; serialize 16.221 ms.
+- [x] Registrar stress release de 100k: first 7.530 ms; final 113.225 ms; DSTAR 9.444 ms; backup 363.867 ms; export 1132.022 ms; serialize 148.753 ms.
+- [x] Atualizar versão fonte e documentação para `0.5.0` sem publicar.
 
 ## Próxima ação exata
 
-Solicitar autorização explícita para integrar em `main`, criar tag `v0.4.0` e publicar a GitHub Release. Não iniciar `0.5.0`.
+Revisar e autorizar separadamente qualquer preparação de artefato, integração, tag ou publicação de `v0.5.0`; nenhuma publicação foi realizada neste marco.

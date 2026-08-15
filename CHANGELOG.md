@@ -4,7 +4,26 @@ Este projeto segue [Semantic Versioning](https://semver.org/). As release notes 
 
 ## [Unreleased]
 
-## [0.4.0] - Em desenvolvimento
+## [0.5.0] - Não publicada
+
+### Added
+
+- suporte específico e limitado a D-STAR no domínio, SQLite, repository, queries, ADIF e UI;
+- modelo D-STAR com reflector, module, MYCALL, URCALL, RPT1, RPT2 e observações;
+- migration para schema 6 e filtros por reflector, module e RPT1;
+- extensões ADIF privadas `APP_DHRL_DSTAR_*`, com `STATION_CALLSIGN` como representação canônica de MYCALL.
+
+### Changed
+
+- exportação D-STAR usa `MODE=DIGITALVOICE` + `SUBMODE=DSTAR`; importação continua aceitando o histórico `MODE=DSTAR`;
+- limpeza transacional de metadata incompatível foi fatorada a partir do comportamento já existente para acomodar D-STAR, sem introduzir traits ou plugins.
+
+### Compatibility
+
+- `digital_routes` permanece específico de DMR;
+- suporte D-STAR cobre somente o subconjunto documentado, sem promessa de interoperabilidade total.
+
+## [0.4.0] - 2026-08-15
 
 ### Added
 
@@ -22,6 +41,8 @@ Este projeto segue [Semantic Versioning](https://semver.org/). As release notes 
 
 - conflitos entre aliases ADIF agora são recusados em vez de descartar um valor;
 - frequências RX/TX DMR passam a sobreviver round-trip ADIF.
+
+A versão 0.4.0 foi concluída e publicada como release final.
 
 ## [0.3.0] - 2026-08-15
 
