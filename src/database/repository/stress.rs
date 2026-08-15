@@ -5,7 +5,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use rusqlite::params;
 
-use super::{DmrFilter, Ft8Filter, QsoRepository};
+use super::{DmrFilter, DstarFilter, Ft8Filter, QsoRepository};
 
 #[test]
 #[ignore = "manual deterministic large-volume benchmark"]
@@ -51,7 +51,7 @@ fn run_benchmark(
     let dmr_id = measure(|| {
         repository.search_dmr_page(
             &DmrFilter {
-                dmr_id: Some(1_000_042),
+                dmr_id: Some(1_000_040),
                 ..Default::default()
             },
             0,
@@ -81,7 +81,7 @@ fn run_benchmark(
     let dmr_repeater = measure(|| {
         repository.search_dmr_page(
             &DmrFilter {
-                repeater: Some("RPT002".into()),
+                repeater: Some("RPT000".into()),
                 ..Default::default()
             },
             0,
@@ -99,10 +99,22 @@ fn run_benchmark(
         )
     })?;
 
+    let dstar_route = measure(|| {
+        repository.search_dstar_page(
+            &DstarFilter {
+                reflector: Some("REF003".into()),
+                module: Some("A".into()),
+                rpt1: Some("RPT003 B".into()),
+            },
+            0,
+            100,
+        )
+    })?;
+
     let ft8_callsign = measure(|| {
         repository.search_ft8_page(
             &Ft8Filter {
-                callsign: Some("PY00043".into()),
+                callsign: Some("PY00041".into()),
                 ..Default::default()
             },
             0,
@@ -179,6 +191,7 @@ fn run_benchmark(
     print_metric("dmr_network", dmr_network.0);
     print_metric("dmr_repeater", dmr_repeater.0);
     print_metric("dmr_timeslot", dmr_timeslot.0);
+    print_metric("dstar_reflector_module_rpt1", dstar_route.0);
     print_metric("ft8_callsign", ft8_callsign.0);
     print_metric("ft8_grid", ft8_grid.0);
     print_metric("ft8_band", ft8_band.0);
@@ -264,12 +277,18 @@ fn seed_database(repository: &QsoRepository, count: usize) -> rusqlite::Result<(
                 audio_frequency_hz, source_software, protocol, final_message
              ) VALUES (?1, ?2, ?3, ?4, ?5, 'WSJT-X', 'FT8', 'RR73')",
         )?;
+        let mut dstar_statement = transaction.prepare_cached(
+            "INSERT INTO dstar_metadata(
+                qso_id, reflector, module, mycall, urcall, rpt1, rpt2, notes
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+        )?;
 
         for index in 0..count {
-            let mode = match index % 3 {
+            let mode = match index % 4 {
                 0 => "DMR",
                 1 => "FT8",
-                _ => "M17",
+                2 => "SSB",
+                _ => "DSTAR",
             };
             let band = match index % 4 {
                 0 => "70cm",
@@ -326,6 +345,17 @@ fn seed_database(repository: &QsoRepository, count: usize) -> rusqlite::Result<(
                     -20 + ((index * 7) % 41) as i64,
                     5 + index % 95,
                     300 + index % 2_700,
+                ])?;
+            } else if mode == "DSTAR" {
+                dstar_statement.execute(params![
+                    qso_id,
+                    format!("REF{:03} {}", index % 5, ['A', 'B', 'C'][index % 3]),
+                    ['A', 'B', 'C'][index % 3].to_string(),
+                    format!("PY{:05} G", index % 10_000),
+                    if index % 2 == 0 { "CQCQCQ" } else { "REFLINK" },
+                    format!("RPT{:03} B", index % 20),
+                    format!("RPT{:03} G", (index + 1) % 20),
+                    format!("D-STAR stress {index}"),
                 ])?;
             }
         }
