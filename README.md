@@ -11,8 +11,8 @@ O MVP funcional inclui:
 - interface Slint desktop-first com identidade técnica própria, alta legibilidade e operação confortável em `1050×680`;
 - banco SQLite local com migrations versionadas;
 - listagem, pesquisa, criação, edição e exclusão confirmada de QSOs;
-- campos comuns e metadados específicos de DMR e FT8;
-- filtros gerais, DMR e FT8;
+- campos comuns e metadados específicos de DMR, FT8 e D-STAR;
+- filtros gerais, DMR, FT8 e D-STAR;
 - importação ADIF transacional e exportação publicada por arquivo temporário seguro;
 - preservação de campos ADIF desconhecidos;
 - configuração local da estação;
@@ -65,7 +65,7 @@ cargo test --locked
 cargo build --locked
 ```
 
-O workflow `.github/workflows/ci.yml` executa esses controles em `main`, `develop`, pull requests e manualmente. Jobs adicionais testam em paralelo a migração dos schemas 0–5 e o contrato do pacote Linux, incluindo instalação e desinstalação em XDG isolado.
+O workflow `.github/workflows/ci.yml` executa esses controles em `main`, `develop`, pull requests e manualmente. Jobs adicionais testam em paralelo a migração dos schemas 0–6 e o contrato do pacote Linux, incluindo instalação e desinstalação em XDG isolado.
 
 Testes pesados são ignorados por padrão. Consulte `docs/PERFORMANCE-v0.3.0.md` para gerar datasets determinísticos de 1 mil a 1 milhão de QSOs e reproduzir as medições. A organização interna da persistência está resumida em `docs/ARCHITECTURE.md`.
 
@@ -128,7 +128,9 @@ O menu superior separa as tarefas para manter todos os controles acessíveis mes
 - **Tools**: importação/exportação ADIF e backup;
 - **Settings**: configuração do callsign da estação local.
 
-O Logbook consulta até 100 QSOs por página diretamente no SQLite e mostra a faixa atual, o total e os controles **Previous/Next**. Busca e filtros DMR/FT8 preservam seus critérios ao navegar entre páginas. Metadados DMR e FT8 são carregados junto dos QSOs, evitando consultas adicionais por linha.
+O Logbook consulta até 100 QSOs por página diretamente no SQLite e mostra a faixa atual, o total e os controles **Previous/Next**. Busca e filtros DMR/FT8/D-STAR preservam seus critérios ao navegar entre páginas. Metadados DMR, FT8 e D-STAR são carregados junto dos QSOs, evitando consultas adicionais por linha.
+
+Para D-STAR, o editor modela `reflector`, `module`, `mycall`, `urcall`, `rpt1`, `rpt2` e `notes`; a listagem pode ser filtrada por reflector, module e RPT1. A interoperabilidade ADIF usa a forma canônica `MODE=DIGITALVOICE` + `SUBMODE=DSTAR` na exportação e também aceita o histórico `MODE=DSTAR` na importação. Esse é o subconjunto D-STAR suportado pelo aplicativo, não uma promessa de suporte integral ao protocolo ou a todos os dialetos ADIF.
 
 Ao editar um registro pela tabela, o mesmo formulário é aberto preenchido. As ações de salvar e cancelar permanecem fixas no rodapé enquanto os campos podem ser rolados.
 
@@ -177,7 +179,7 @@ Desenvolvido por [Marcelo Trindade](https://github.com/marcelositr) e distribuí
 
 ## Limitações conhecidas
 
-- a configuração atual da estação local contém apenas o callsign;
+- a configuração atual da estação local contém apenas o callsign; o `MYCALL` D-STAR pode ser informado por QSO;
 - o backup exige que o diretório de destino já exista;
 - o backup recusa sobrescrever arquivo existente;
 

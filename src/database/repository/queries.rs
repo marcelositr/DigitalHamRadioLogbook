@@ -1,10 +1,10 @@
 use rusqlite::{params, Result};
 
-use crate::domain::{DmrMetadata, Ft8Metadata, Qso};
+use crate::domain::{DStarMetadata, DmrMetadata, Ft8Metadata, Qso};
 
 use super::{
-    map_qso, parse_stored_access_type, parse_stored_call_type, DmrFilter, Ft8Filter, QsoListItem,
-    QsoPage, QsoRepository,
+    map_qso, parse_stored_access_type, parse_stored_call_type, DmrFilter, DstarFilter, Ft8Filter,
+    QsoListItem, QsoPage, QsoRepository,
 };
 
 impl QsoRepository {
@@ -112,6 +112,48 @@ impl QsoRepository {
         })
     }
 
+    pub fn search_dstar_page(
+        &self,
+        filter: &DstarFilter,
+        offset: usize,
+        limit: usize,
+    ) -> Result<QsoPage> {
+        let reflector = trimmed_pattern(filter.reflector.as_deref());
+        let module = trimmed_pattern(filter.module.as_deref());
+        let rpt1 = trimmed_pattern(filter.rpt1.as_deref());
+        let total: i64 = self.connection.query_row(
+            "SELECT COUNT(*) FROM qsos q
+             JOIN dstar_metadata ds ON ds.qso_id = q.id
+             WHERE (?1 IS NULL OR ds.reflector LIKE ?1 COLLATE NOCASE)
+               AND (?2 IS NULL OR ds.module LIKE ?2 COLLATE NOCASE)
+               AND (?3 IS NULL OR ds.rpt1 LIKE ?3 COLLATE NOCASE)",
+            params![reflector, module, rpt1],
+            |row| row.get(0),
+        )?;
+        let (offset, limit, sql_offset, sql_limit) = normalize_page(offset, limit);
+        let mut statement = self.connection.prepare(&format!(
+            "{LIST_ITEM_SELECT}
+             WHERE ds.qso_id IS NOT NULL
+               AND (?1 IS NULL OR ds.reflector LIKE ?1 COLLATE NOCASE)
+               AND (?2 IS NULL OR ds.module LIKE ?2 COLLATE NOCASE)
+               AND (?3 IS NULL OR ds.rpt1 LIKE ?3 COLLATE NOCASE)
+             ORDER BY q.datetime_start_utc DESC, q.id DESC
+             LIMIT ?4 OFFSET ?5"
+        ))?;
+        let items = statement
+            .query_map(
+                params![reflector, module, rpt1, sql_limit, sql_offset],
+                map_qso_list_item,
+            )?
+            .collect::<Result<Vec<_>>>()?;
+        Ok(QsoPage {
+            items,
+            total: count_to_usize(total),
+            offset,
+            limit,
+        })
+    }
+
     pub fn search_ft8_page(
         &self,
         filter: &Ft8Filter,
@@ -178,6 +220,26 @@ impl QsoRepository {
             offset,
             limit,
         })
+    }
+
+    pub fn search_dstar(&self, filter: &DstarFilter) -> Result<Vec<Qso>> {
+        let reflector = trimmed_pattern(filter.reflector.as_deref());
+        let module = trimmed_pattern(filter.module.as_deref());
+        let rpt1 = trimmed_pattern(filter.rpt1.as_deref());
+        let mut statement = self.connection.prepare(
+            "SELECT q.id, q.callsign, q.datetime_start_utc, q.datetime_end_utc,
+                    q.frequency_hz, q.band, q.mode, q.submode, q.rst_sent,
+                    q.rst_received, q.grid_locator, q.name, q.qth, q.notes,
+                    q.created_at_utc, q.updated_at_utc
+             FROM qsos q
+             JOIN dstar_metadata ds ON ds.qso_id = q.id
+             WHERE (?1 IS NULL OR ds.reflector LIKE ?1 COLLATE NOCASE)
+               AND (?2 IS NULL OR ds.module LIKE ?2 COLLATE NOCASE)
+               AND (?3 IS NULL OR ds.rpt1 LIKE ?3 COLLATE NOCASE)
+             ORDER BY q.datetime_start_utc DESC, q.id DESC",
+        )?;
+        let rows = statement.query_map(params![reflector, module, rpt1], map_qso)?;
+        rows.collect()
     }
 
     pub fn search_ft8(&self, filter: &Ft8Filter) -> Result<Vec<Qso>> {
@@ -330,11 +392,14 @@ const LIST_ITEM_SELECT: &str = "
            r.repeater_callsign, r.hotspot, d.rx_frequency_hz,
            d.tx_frequency_hz, d.notes,
            f.qso_id, f.snr_sent_db, f.snr_received_db, f.power_watts,
-           f.audio_frequency_hz, f.source_software, f.protocol, f.final_message
+           f.audio_frequency_hz, f.source_software, f.protocol, f.final_message,
+           ds.qso_id, ds.reflector, ds.module, ds.mycall, ds.urcall,
+           ds.rpt1, ds.rpt2, ds.notes
     FROM qsos q
     LEFT JOIN dmr_metadata d ON d.qso_id = q.id
     LEFT JOIN digital_routes r ON r.qso_id = q.id
-    LEFT JOIN ft8_metadata f ON f.qso_id = q.id";
+    LEFT JOIN ft8_metadata f ON f.qso_id = q.id
+    LEFT JOIN dstar_metadata ds ON ds.qso_id = q.id";
 
 fn map_qso_list_item(row: &rusqlite::Row<'_>) -> Result<QsoListItem> {
     let dmr = if row.get::<_, Option<i64>>(16)?.is_some() {
@@ -371,9 +436,117 @@ fn map_qso_list_item(row: &rusqlite::Row<'_>) -> Result<QsoListItem> {
     } else {
         None
     };
+    let dstar = if row.get::<_, Option<i64>>(38)?.is_some() {
+        Some(DStarMetadata {
+            reflector: row.get(39)?,
+            module: row.get(40)?,
+            mycall: row.get(41)?,
+            urcall: row.get(42)?,
+            rpt1: row.get(43)?,
+            rpt2: row.get(44)?,
+            notes: row.get(45)?,
+        })
+    } else {
+        None
+    };
     Ok(QsoListItem {
         qso: map_qso(row)?,
         dmr,
+        dstar,
         ft8,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::NewQso;
+
+    fn metadata(reflector: &str, module: &str, rpt1: &str) -> DStarMetadata {
+        DStarMetadata {
+            reflector: Some(reflector.into()),
+            module: Some(module.into()),
+            mycall: Some("PY2LOCAL G".into()),
+            urcall: Some("CQCQCQ".into()),
+            rpt1: Some(rpt1.into()),
+            rpt2: Some("PY2RPT G".into()),
+            notes: "D-STAR test".into(),
+        }
+    }
+
+    #[test]
+    fn list_items_hydrates_dstar_metadata_without_affecting_generic_qsos() {
+        let repository = QsoRepository::in_memory().unwrap();
+        let dstar_qso = NewQso::new("PY2DSTAR", 1_700_000_001, 145_670_000, "DSTAR").unwrap();
+        let expected = metadata("REF001 C", "C", "PY2RPT B");
+        repository
+            .insert_dstar(&dstar_qso, &expected, 1_700_000_010)
+            .unwrap();
+        let generic = NewQso::new("PY2FM", 1_700_000_000, 145_500_000, "FM").unwrap();
+        repository.insert(&generic, 1_700_000_010).unwrap();
+
+        let items = repository.list_items().unwrap();
+
+        assert_eq!(items.len(), 2);
+        assert_eq!(items[0].qso.callsign, "PY2DSTAR");
+        assert_eq!(items[0].dstar.as_ref(), Some(&expected));
+        assert!(items[0].dmr.is_none());
+        assert!(items[0].ft8.is_none());
+        assert_eq!(items[1].qso.callsign, "PY2FM");
+        assert!(items[1].dstar.is_none());
+    }
+
+    #[test]
+    fn searches_dstar_with_combined_filters_and_preserves_ordering() {
+        let repository = QsoRepository::in_memory().unwrap();
+        for (callsign, datetime, reflector, module, rpt1) in [
+            ("PY2OLD", 1_700_000_000, "REF001 C", "C", "PY2RPT B"),
+            ("PY2NEW", 1_700_000_002, "REF001 C", "C", "PY2RPT B"),
+            ("PY2OTHER", 1_700_000_003, "REF002 A", "A", "PY2ALT C"),
+        ] {
+            let qso = NewQso::new(callsign, datetime, 145_670_000, "DSTAR").unwrap();
+            repository
+                .insert_dstar(&qso, &metadata(reflector, module, rpt1), datetime + 10)
+                .unwrap();
+        }
+        let filter = DstarFilter {
+            reflector: Some(" ref001 ".into()),
+            module: Some(" c ".into()),
+            rpt1: Some(" py2rpt ".into()),
+        };
+
+        let qsos = repository.search_dstar(&filter).unwrap();
+
+        assert_eq!(
+            qsos.iter()
+                .map(|qso| qso.callsign.as_str())
+                .collect::<Vec<_>>(),
+            ["PY2NEW", "PY2OLD"]
+        );
+    }
+
+    #[test]
+    fn paginates_dstar_results_and_returns_joined_metadata() {
+        let repository = QsoRepository::in_memory().unwrap();
+        for (callsign, datetime) in [("PY2ONE", 1_700_000_001), ("PY2TWO", 1_700_000_002)] {
+            let qso = NewQso::new(callsign, datetime, 145_670_000, "DSTAR").unwrap();
+            repository
+                .insert_dstar(&qso, &metadata("REF001 C", "C", "PY2RPT B"), datetime + 10)
+                .unwrap();
+        }
+
+        let page = repository
+            .search_dstar_page(&DstarFilter::default(), 1, 1)
+            .unwrap();
+
+        assert_eq!(page.total, 2);
+        assert_eq!(page.offset, 1);
+        assert_eq!(page.limit, 1);
+        assert_eq!(page.items.len(), 1);
+        assert_eq!(page.items[0].qso.callsign, "PY2ONE");
+        assert_eq!(
+            page.items[0].dstar.as_ref().unwrap().reflector.as_deref(),
+            Some("REF001 C")
+        );
+    }
 }

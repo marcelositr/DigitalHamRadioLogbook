@@ -10,6 +10,7 @@ O projeto suporta os campos necessários ao aplicativo e preserva campos desconh
 | Header | sim | header canônico |
 | DMR suportado | sim | sim |
 | FT8 suportado | sim | sim |
+| D-STAR suportado | `MODE=DSTAR` histórico ou `DIGITALVOICE` + `DSTAR` | `DIGITALVOICE` + `DSTAR` canônico |
 | Campos desconhecidos | preserva | preserva |
 | Tipos de campos desconhecidos | preserva | preserva |
 | Unicode UTF-8 | sim | sim |
@@ -37,6 +38,17 @@ Opcionais modelados:
 - `COMMENT`, com `NOTES` como alias de importação.
 
 Callsign, modo e grid são normalizados para uppercase. Valores comuns passam pelas validações do domínio. Frequência é convertida sem ponto flutuante e preserva resolução de 1 Hz.
+
+## D-STAR
+
+O modo de domínio é `DSTAR`. Na importação são aceitas duas formas:
+
+- canônica: `MODE=DIGITALVOICE` e `SUBMODE=DSTAR`;
+- histórica: `MODE=DSTAR`.
+
+A exportação sempre usa a forma canônica `DIGITALVOICE` + `DSTAR`. O subconjunto modelado contém reflector, module, MYCALL, URCALL, RPT1, RPT2 e notes. `STATION_CALLSIGN` é o campo ADIF canônico usado para MYCALL; `APP_DHRL_DSTAR_MYCALL` permanece aceito como alias de importação. Se ambos aparecerem com valores diferentes, o registro é recusado em vez de perder informação silenciosamente. Os demais valores D-STAR usam as extensões descritas em `docs/ADIF-EXTENSIONS.md`.
+
+Esse mapeamento não representa suporte total a D-STAR, a todos os equipamentos ou a todos os campos/dialetos ADIF relacionados.
 
 ## Parser
 
@@ -101,7 +113,7 @@ O target aceita bytes arbitrários, envia somente UTF-8 válido ao parser e não
 - o documento é carregado integralmente em memória;
 - tipos explícitos de campos conhecidos são canonicalizados, não preservados;
 - ordem relativa entre unknown fields é preservada, mas sua posição entre campos conhecidos não;
-- `TIME_OFF`, `QSO_DATE_OFF` e `SUBMODE` ainda são preservados como campos desconhecidos, não integrados às colunas de domínio;
+- `TIME_OFF` e `QSO_DATE_OFF` ainda são preservados como campos desconhecidos, não integrados às colunas de domínio; `SUBMODE=DSTAR` é reconhecido no mapeamento D-STAR;
 - ADIF é intercâmbio; backup SQLite continua sendo o mecanismo de recuperação integral recomendado.
 
 Extensões privadas estão especificadas em `docs/ADIF-EXTENSIONS.md`.

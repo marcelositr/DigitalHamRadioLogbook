@@ -10,8 +10,8 @@ use crate::adif::{
 use crate::domain::{NewQso, Qso};
 
 use super::{
-    insert_dmr_metadata, insert_ft8_metadata, insert_qso, AdifImportPlan, AdifImportPreview,
-    AdifImportReport, QsoIdentity, QsoRepository,
+    insert_dmr_metadata, insert_dstar_metadata, insert_ft8_metadata, insert_qso, AdifImportPlan,
+    AdifImportPreview, AdifImportReport, QsoIdentity, QsoRepository,
 };
 
 impl QsoRepository {
@@ -23,6 +23,8 @@ impl QsoRepository {
             let qso_id = item.qso.id;
             let mode_metadata = if let Some(metadata) = item.dmr {
                 ImportedModeMetadata::Dmr(metadata)
+            } else if let Some(metadata) = item.dstar {
+                ImportedModeMetadata::Dstar(metadata)
             } else if let Some(metadata) = item.ft8 {
                 ImportedModeMetadata::Ft8(metadata)
             } else {
@@ -149,6 +151,9 @@ impl QsoRepository {
                 ImportedModeMetadata::Dmr(metadata) => {
                     insert_dmr_metadata(&transaction, qso_id, metadata)?;
                 }
+                ImportedModeMetadata::Dstar(metadata) => {
+                    insert_dstar_metadata(&transaction, qso_id, metadata)?;
+                }
                 ImportedModeMetadata::Ft8(metadata) => {
                     insert_ft8_metadata(&transaction, qso_id, metadata)?;
                 }
@@ -270,4 +275,70 @@ fn insert_adif_extra_fields(
         )?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::adif::parse;
+
+    #[test]
+    fn imports_exports_and_reimports_dstar_with_sqlite_metadata_and_unknowns() {
+        let repository = QsoRepository::in_memory().unwrap();
+        let document = parse(include_str!(
+            "../../../tests/fixtures/adif/valid/dstar-full.adi"
+        ))
+        .unwrap();
+
+        let report = repository.import_adif(&document, 1_700_000_100).unwrap();
+        assert_eq!(report.imported, 1);
+        let qso = repository.list().unwrap().remove(0);
+        assert_eq!(qso.mode, "DSTAR");
+        let metadata = repository.get_dstar_metadata(qso.id).unwrap().unwrap();
+        assert_eq!(metadata.reflector.as_deref(), Some("REF001 C"));
+        assert_eq!(metadata.mycall.as_deref(), Some("PY2ABC G"));
+        assert_eq!(
+            repository.get_adif_extra_fields(qso.id).unwrap(),
+            vec![AdifField {
+                name: "APP_VENDOR_DSTAR".into(),
+                value: "opaque".into(),
+                data_type: Some("S".into()),
+            }]
+        );
+
+        let exported = repository.export_adif().unwrap();
+        let record = &exported.records[0];
+        assert_eq!(record.get("MODE"), Some("DIGITALVOICE"));
+        assert_eq!(record.get("SUBMODE"), Some("DSTAR"));
+        assert_eq!(record.get("PROP_MODE"), Some("RPT"));
+        assert_eq!(record.get("APP_VENDOR_DSTAR"), Some("opaque"));
+
+        let restored = QsoRepository::in_memory().unwrap();
+        restored.import_adif(&exported, 1_700_000_200).unwrap();
+        let restored_qso = restored.list().unwrap().remove(0);
+        assert_eq!(
+            restored.get_dstar_metadata(restored_qso.id).unwrap(),
+            Some(metadata)
+        );
+        assert_eq!(
+            restored.get_adif_extra_fields(restored_qso.id).unwrap(),
+            repository.get_adif_extra_fields(qso.id).unwrap()
+        );
+    }
+
+    #[test]
+    fn deduplicates_historical_and_canonical_dstar_as_one_domain_mode() {
+        let repository = QsoRepository::in_memory().unwrap();
+        let document = parse(
+            "<CALL:6>PY2DST<QSO_DATE:8>20260815<TIME_ON:6>120000<FREQ:7>145.670<MODE:5>DSTAR<EOR>\
+             <CALL:6>PY2DST<QSO_DATE:8>20260815<TIME_ON:6>120000<FREQ:7>145.670\
+             <MODE:12>DIGITALVOICE<SUBMODE:5>DSTAR<EOR>",
+        )
+        .unwrap();
+
+        let report = repository.import_adif(&document, 1_700_000_100).unwrap();
+        assert_eq!(report.imported, 1);
+        assert_eq!(report.duplicates_skipped, 1);
+        assert_eq!(repository.list().unwrap().len(), 1);
+    }
 }

@@ -10,7 +10,9 @@ use std::path::Path;
 use rusqlite::{params, Connection, OptionalExtension, Result, Transaction};
 
 use crate::adif::ImportedQso;
-use crate::domain::{DmrAccessType, DmrCallType, DmrMetadata, Ft8Metadata, NewQso, Qso};
+use crate::domain::{
+    DStarMetadata, DmrAccessType, DmrCallType, DmrMetadata, Ft8Metadata, NewQso, Qso,
+};
 
 use super::migrations;
 use backup::{set_private_file_permissions, verify_connection_integrity};
@@ -23,6 +25,13 @@ pub struct DmrFilter {
     pub repeater: Option<String>,
     pub hotspot: Option<String>,
     pub timeslot: Option<u8>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct DstarFilter {
+    pub reflector: Option<String>,
+    pub module: Option<String>,
+    pub rpt1: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -91,6 +100,7 @@ pub const DEFAULT_PAGE_SIZE: usize = 100;
 pub struct QsoListItem {
     pub qso: Qso,
     pub dmr: Option<DmrMetadata>,
+    pub dstar: Option<DStarMetadata>,
     pub ft8: Option<Ft8Metadata>,
 }
 
@@ -145,6 +155,49 @@ impl QsoRepository {
         insert_ft8_metadata(&transaction, qso_id, metadata)?;
         transaction.commit()?;
         Ok(qso_id)
+    }
+
+    pub fn insert_dstar(
+        &self,
+        qso: &NewQso,
+        metadata: &DStarMetadata,
+        now_utc: i64,
+    ) -> Result<i64> {
+        let transaction = self.connection.unchecked_transaction()?;
+        let qso_id = insert_qso(&transaction, qso, now_utc)?;
+        insert_dstar_metadata(&transaction, qso_id, metadata)?;
+        transaction.commit()?;
+        Ok(qso_id)
+    }
+
+    pub fn update_dstar(
+        &self,
+        qso_id: i64,
+        qso: &NewQso,
+        metadata: &DStarMetadata,
+        now_utc: i64,
+    ) -> Result<bool> {
+        let transaction = self.connection.unchecked_transaction()?;
+        let changed = update_qso(&transaction, qso_id, qso, now_utc)?;
+        if !changed {
+            transaction.rollback()?;
+            return Ok(false);
+        }
+        delete_mode_metadata(&transaction, qso_id)?;
+        insert_dstar_metadata(&transaction, qso_id, metadata)?;
+        transaction.commit()?;
+        Ok(true)
+    }
+
+    pub fn get_dstar_metadata(&self, qso_id: i64) -> Result<Option<DStarMetadata>> {
+        self.connection
+            .query_row(
+                "SELECT reflector, module, mycall, urcall, rpt1, rpt2, notes
+                 FROM dstar_metadata WHERE qso_id = ?1",
+                params![qso_id],
+                map_dstar_metadata,
+            )
+            .optional()
     }
 
     pub fn update_ft8(
@@ -285,6 +338,41 @@ fn insert_qso(connection: &Connection, qso: &NewQso, now_utc: i64) -> Result<i64
     Ok(connection.last_insert_rowid())
 }
 
+fn insert_dstar_metadata(
+    transaction: &Transaction<'_>,
+    qso_id: i64,
+    metadata: &DStarMetadata,
+) -> Result<()> {
+    transaction.execute(
+        "INSERT INTO dstar_metadata (
+            qso_id, reflector, module, mycall, urcall, rpt1, rpt2, notes
+         ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+        params![
+            qso_id,
+            metadata.reflector,
+            metadata.module,
+            metadata.mycall,
+            metadata.urcall,
+            metadata.rpt1,
+            metadata.rpt2,
+            metadata.notes
+        ],
+    )?;
+    Ok(())
+}
+
+fn map_dstar_metadata(row: &rusqlite::Row<'_>) -> Result<DStarMetadata> {
+    Ok(DStarMetadata {
+        reflector: row.get(0)?,
+        module: row.get(1)?,
+        mycall: row.get(2)?,
+        urcall: row.get(3)?,
+        rpt1: row.get(4)?,
+        rpt2: row.get(5)?,
+        notes: row.get(6)?,
+    })
+}
+
 fn insert_ft8_metadata(
     transaction: &Transaction<'_>,
     qso_id: i64,
@@ -332,6 +420,10 @@ fn delete_mode_metadata(transaction: &Transaction<'_>, qso_id: i64) -> Result<()
     )?;
     transaction.execute(
         "DELETE FROM ft8_metadata WHERE qso_id = ?1",
+        params![qso_id],
+    )?;
+    transaction.execute(
+        "DELETE FROM dstar_metadata WHERE qso_id = ?1",
         params![qso_id],
     )?;
     Ok(())
@@ -431,7 +523,7 @@ fn map_qso(row: &rusqlite::Row<'_>) -> Result<Qso> {
 mod tests {
     use super::*;
     use crate::adif::{export, parse, AdifField};
-    use crate::domain::{CommonQsoFields, DmrMetadataInput, Ft8MetadataInput};
+    use crate::domain::{CommonQsoFields, DStarMetadataInput, DmrMetadataInput, Ft8MetadataInput};
 
     #[test]
     fn creates_consistent_backup_without_overwriting() {
@@ -527,14 +619,19 @@ mod tests {
     }
 
     #[test]
-    fn backup_restores_generic_dmr_ft8_and_adif_extra_data() {
+    fn backup_restores_generic_dmr_ft8_dstar_and_adif_extra_data() {
         let repository = QsoRepository::in_memory().unwrap();
         let document = parse(
             "<CALL:6>PU2GEN<QSO_DATE:8>20231114<TIME_ON:6>221320<FREQ:7>145.500<MODE:3>M17<EOR>\
              <CALL:6>PU2DMR<QSO_DATE:8>20231114<TIME_ON:6>221321<FREQ:7>438.500<MODE:3>DMR\
              <APP_DHRL_CALL_TYPE:5>group<APP_DHRL_ACCESS_TYPE:7>simplex<APP_DHRL_TALKGROUP:3>724<EOR>\
              <CALL:6>PY2FT8<QSO_DATE:8>20231114<TIME_ON:6>221322<FREQ:6>14.074<MODE:3>FT8\
-             <SNR:3>-18<APP_VENDOR_FIELD:5:S>value<EOR>",
+             <SNR:3>-18<APP_VENDOR_FIELD:5:S>value<EOR>\
+             <CALL:6>PY2DST<QSO_DATE:8>20231114<TIME_ON:6>221323<FREQ:7>145.670\
+             <MODE:12>DIGITALVOICE<SUBMODE:5>DSTAR<APP_DHRL_DSTAR_REFLECTOR:8>REF001 C\
+             <APP_DHRL_DSTAR_MODULE:1>C<STATION_CALLSIGN:8>PY2OWN G\
+             <APP_DHRL_DSTAR_URCALL:6>CQCQCQ<APP_DHRL_DSTAR_RPT1:8>PY2RPT B\
+             <APP_DHRL_DSTAR_RPT2:8>PY2RPT G<APP_DHRL_DSTAR_NOTES:19>Backup D-STAR route<EOR>",
         )
         .unwrap();
         repository.import_adif(&document, 1_700_000_100).unwrap();
@@ -547,9 +644,10 @@ mod tests {
         std::fs::copy(&backup, &restored).unwrap();
         let restored_repository = QsoRepository::open(&restored).unwrap();
         let qsos = restored_repository.list().unwrap();
-        assert_eq!(qsos.len(), 3);
+        assert_eq!(qsos.len(), 4);
         let dmr_id = qsos.iter().find(|qso| qso.mode == "DMR").unwrap().id;
         let ft8_id = qsos.iter().find(|qso| qso.mode == "FT8").unwrap().id;
+        let dstar_id = qsos.iter().find(|qso| qso.mode == "DSTAR").unwrap().id;
         assert_eq!(
             restored_repository
                 .get_dmr_metadata(dmr_id)
@@ -565,6 +663,18 @@ mod tests {
                 .unwrap()
                 .snr_received_db,
             Some(-18)
+        );
+        assert_eq!(
+            restored_repository.get_dstar_metadata(dstar_id).unwrap(),
+            Some(DStarMetadata {
+                reflector: Some("REF001 C".into()),
+                module: Some("C".into()),
+                mycall: Some("PY2OWN G".into()),
+                urcall: Some("CQCQCQ".into()),
+                rpt1: Some("PY2RPT B".into()),
+                rpt2: Some("PY2RPT G".into()),
+                notes: "Backup D-STAR route".into(),
+            })
         );
         assert_eq!(
             restored_repository.get_adif_extra_fields(ft8_id).unwrap(),
@@ -1378,6 +1488,188 @@ mod tests {
             .insert_dmr(&qso, &invalid_metadata, 1_700_000_001)
             .is_err());
         assert!(repository.list().unwrap().is_empty());
+    }
+
+    #[test]
+    fn inserts_reads_updates_and_deletes_dstar_atomically() {
+        let repository = QsoRepository::in_memory().unwrap();
+        let qso = NewQso::new("PY2ABC", 1_700_000_000, 145_670_000, "DSTAR").unwrap();
+        let metadata = DStarMetadata::from_input(DStarMetadataInput {
+            reflector: "REF001 C".into(),
+            module: "C".into(),
+            mycall: "PY2ABC G".into(),
+            urcall: "CQCQCQ".into(),
+            rpt1: "PY2XYZ B".into(),
+            rpt2: "PY2XYZ G".into(),
+            notes: "First contact".into(),
+        })
+        .unwrap();
+        let qso_id = repository
+            .insert_dstar(&qso, &metadata, 1_700_000_001)
+            .unwrap();
+        assert_eq!(
+            repository.get_dstar_metadata(qso_id).unwrap(),
+            Some(metadata)
+        );
+
+        let updated_qso = NewQso::new("PY2XYZ", 1_700_000_010, 438_800_000, "DSTAR").unwrap();
+        let updated_metadata = DStarMetadata::from_input(DStarMetadataInput {
+            reflector: "XLX724 A".into(),
+            module: "A".into(),
+            notes: "Updated".into(),
+            ..Default::default()
+        })
+        .unwrap();
+        assert!(repository
+            .update_dstar(qso_id, &updated_qso, &updated_metadata, 1_700_000_020)
+            .unwrap());
+        assert_eq!(repository.list().unwrap()[0].callsign, "PY2XYZ");
+        assert_eq!(
+            repository.get_dstar_metadata(qso_id).unwrap(),
+            Some(updated_metadata)
+        );
+
+        assert!(repository.delete(qso_id).unwrap());
+        assert_eq!(repository.get_dstar_metadata(qso_id).unwrap(), None);
+        let metadata_count: i64 = repository
+            .connection
+            .query_row("SELECT COUNT(*) FROM dstar_metadata", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(metadata_count, 0);
+    }
+
+    #[test]
+    fn rolls_back_dstar_insert_and_update_failures() {
+        let repository = QsoRepository::in_memory().unwrap();
+        repository
+            .connection
+            .execute_batch(
+                "CREATE TRIGGER reject_dstar_insert
+                 BEFORE INSERT ON dstar_metadata
+                 BEGIN SELECT RAISE(ABORT, 'rejected D-STAR metadata'); END;",
+            )
+            .unwrap();
+        let qso = NewQso::new("PY2ABC", 1_700_000_000, 145_670_000, "DSTAR").unwrap();
+        let metadata = DStarMetadata::from_input(DStarMetadataInput::default()).unwrap();
+        assert!(repository
+            .insert_dstar(&qso, &metadata, 1_700_000_001)
+            .is_err());
+        assert!(repository.list().unwrap().is_empty());
+
+        repository
+            .connection
+            .execute_batch("DROP TRIGGER reject_dstar_insert;")
+            .unwrap();
+        let qso_id = repository
+            .insert_dstar(&qso, &metadata, 1_700_000_001)
+            .unwrap();
+        repository
+            .connection
+            .execute_batch(
+                "CREATE TRIGGER reject_dstar_update
+                 BEFORE INSERT ON dstar_metadata
+                 BEGIN SELECT RAISE(ABORT, 'rejected D-STAR metadata'); END;",
+            )
+            .unwrap();
+        let changed_qso = NewQso::new("PY2XYZ", 1_700_000_010, 438_800_000, "DSTAR").unwrap();
+        assert!(repository
+            .update_dstar(qso_id, &changed_qso, &metadata, 1_700_000_020)
+            .is_err());
+        assert_eq!(repository.list().unwrap()[0].callsign, "PY2ABC");
+        assert_eq!(
+            repository.get_dstar_metadata(qso_id).unwrap(),
+            Some(metadata)
+        );
+    }
+
+    #[test]
+    fn transitions_between_dmr_ft8_and_dstar_without_orphaned_metadata() {
+        let repository = QsoRepository::in_memory().unwrap();
+        let dmr_qso = NewQso::new("PU2DMR", 1_700_000_000, 438_500_000, "DMR").unwrap();
+        let dmr = DmrMetadata::from_input(DmrMetadataInput {
+            call_type: "group".into(),
+            access_type: "simplex".into(),
+            ..Default::default()
+        })
+        .unwrap();
+        let ft8_qso = NewQso::new("PY2FT8", 1_700_000_000, 14_074_000, "FT8").unwrap();
+        let ft8 = Ft8Metadata::from_input(Ft8MetadataInput::default()).unwrap();
+        let dstar_qso = NewQso::new("PY2DST", 1_700_000_000, 145_670_000, "DSTAR").unwrap();
+        let dstar = DStarMetadata::from_input(DStarMetadataInput {
+            reflector: "REF001 C".into(),
+            module: "C".into(),
+            ..Default::default()
+        })
+        .unwrap();
+
+        let dmr_id = repository.insert_dmr(&dmr_qso, &dmr, 1).unwrap();
+        assert!(repository
+            .update_dstar(dmr_id, &dstar_qso, &dstar, 2)
+            .unwrap());
+        assert_eq!(repository.get_dmr_metadata(dmr_id).unwrap(), None);
+        assert_eq!(
+            repository.get_dstar_metadata(dmr_id).unwrap(),
+            Some(dstar.clone())
+        );
+        assert!(repository.update_dmr(dmr_id, &dmr_qso, &dmr, 3).unwrap());
+        assert_eq!(repository.get_dstar_metadata(dmr_id).unwrap(), None);
+        assert_eq!(
+            repository.get_dmr_metadata(dmr_id).unwrap(),
+            Some(dmr.clone())
+        );
+
+        let ft8_id = repository.insert_ft8(&ft8_qso, &ft8, 4).unwrap();
+        assert!(repository
+            .update_dstar(ft8_id, &dstar_qso, &dstar, 5)
+            .unwrap());
+        assert_eq!(repository.get_ft8_metadata(ft8_id).unwrap(), None);
+        assert_eq!(
+            repository.get_dstar_metadata(ft8_id).unwrap(),
+            Some(dstar.clone())
+        );
+        assert!(repository.update_ft8(ft8_id, &ft8_qso, &ft8, 6).unwrap());
+        assert_eq!(repository.get_dstar_metadata(ft8_id).unwrap(), None);
+        assert_eq!(repository.get_ft8_metadata(ft8_id).unwrap(), Some(ft8));
+
+        let orphaned: i64 = repository
+            .connection
+            .query_row(
+                "SELECT COUNT(*) FROM qsos q
+                 WHERE (SELECT COUNT(*) FROM dmr_metadata d WHERE d.qso_id = q.id)
+                     + (SELECT COUNT(*) FROM ft8_metadata f WHERE f.qso_id = q.id)
+                     + (SELECT COUNT(*) FROM dstar_metadata s WHERE s.qso_id = q.id) > 1",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(orphaned, 0);
+    }
+
+    #[test]
+    fn transitions_between_generic_and_dstar_without_orphaned_metadata() {
+        let repository = QsoRepository::in_memory().unwrap();
+        let generic_qso = NewQso::new("PY2GEN", 1_700_000_000, 145_500_000, "M17").unwrap();
+        let qso_id = repository.insert(&generic_qso, 1).unwrap();
+        let dstar_qso = NewQso::new("PY2GEN", 1_700_000_000, 145_670_000, "DSTAR").unwrap();
+        let dstar = DStarMetadata::from_input(DStarMetadataInput::default()).unwrap();
+
+        assert!(repository
+            .update_dstar(qso_id, &dstar_qso, &dstar, 2)
+            .unwrap());
+        assert_eq!(repository.get_dstar_metadata(qso_id).unwrap(), Some(dstar));
+        assert!(repository.update(qso_id, &generic_qso, 3).unwrap());
+        assert_eq!(repository.get_dstar_metadata(qso_id).unwrap(), None);
+        let metadata_count: i64 = repository
+            .connection
+            .query_row(
+                "SELECT (SELECT COUNT(*) FROM dmr_metadata WHERE qso_id = ?1)
+                      + (SELECT COUNT(*) FROM ft8_metadata WHERE qso_id = ?1)
+                      + (SELECT COUNT(*) FROM dstar_metadata WHERE qso_id = ?1)",
+                [qso_id],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(metadata_count, 0);
     }
 
     #[test]

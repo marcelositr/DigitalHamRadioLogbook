@@ -6,6 +6,9 @@ fn valid(name: &str) -> &'static str {
         "header-only" => include_str!("fixtures/adif/valid/header-only.adi"),
         "generic" => include_str!("fixtures/adif/valid/generic.adi"),
         "dmr" => include_str!("fixtures/adif/valid/dmr.adi"),
+        "dstar-minimal" => include_str!("fixtures/adif/valid/dstar-minimal.adi"),
+        "dstar-full" => include_str!("fixtures/adif/valid/dstar-full.adi"),
+        "dstar-private" => include_str!("fixtures/adif/valid/dstar-private.adi"),
         "ft8" => include_str!("fixtures/adif/valid/ft8.adi"),
         "mixed" => include_str!("fixtures/adif/valid/mixed.adi"),
         "unicode" => include_str!("fixtures/adif/valid/unicode.adi"),
@@ -75,6 +78,27 @@ fn distinguishes_generic_dmr_ft8_and_mixed_records() {
         .map(|record| record.get("MODE"))
         .collect();
     assert_eq!(modes, [Some("DMR"), Some("FT8"), Some("MFSK")]);
+}
+
+#[test]
+fn parses_historical_canonical_and_private_dstar_records() {
+    let minimal = parsed("dstar-minimal");
+    assert_eq!(minimal.records[0].get("MODE"), Some("DSTAR"));
+
+    let full = parsed("dstar-full");
+    assert_eq!(full.records[0].get("MODE"), Some("DIGITALVOICE"));
+    assert_eq!(full.records[0].get("SUBMODE"), Some("DSTAR"));
+    assert_eq!(full.records[0].get("APP_VENDOR_DSTAR"), Some("opaque"));
+
+    let private = parsed("dstar-private");
+    assert_eq!(
+        private.records[0].get("APP_DHRL_DSTAR_MYCALL"),
+        Some("PY2OWN G")
+    );
+    assert_eq!(
+        private.records[0].get("APP_DHRL_DSTAR_URCALL"),
+        Some("NOTACALL")
+    );
 }
 
 #[test]

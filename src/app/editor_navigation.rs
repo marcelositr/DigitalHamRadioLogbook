@@ -48,6 +48,13 @@ pub(crate) fn editor_snapshot(ui: &MainWindow) -> EditorSnapshot {
         ui.get_ft8_source_software_text().to_string(),
         ui.get_ft8_protocol_text().to_string(),
         ui.get_ft8_final_message_text().to_string(),
+        ui.get_dstar_reflector_text().to_string(),
+        ui.get_dstar_module_text().to_string(),
+        ui.get_dstar_mycall_text().to_string(),
+        ui.get_dstar_urcall_text().to_string(),
+        ui.get_dstar_rpt1_text().to_string(),
+        ui.get_dstar_rpt2_text().to_string(),
+        ui.get_dstar_notes_text().to_string(),
     ])
 }
 

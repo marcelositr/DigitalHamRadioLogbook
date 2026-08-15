@@ -27,6 +27,19 @@ Aliases históricos/externos aceitos apenas na importação:
 
 Se alias e campo canônico aparecerem simultaneamente, o registro é recusado para não descartar um valor silenciosamente.
 
+## D-STAR
+
+| Campo | Significado | Exemplo |
+|---|---|---|
+| `APP_DHRL_DSTAR_REFLECTOR` | Reflector informado | `REF001 C` |
+| `APP_DHRL_DSTAR_MODULE` | Module informado | `C` |
+| `APP_DHRL_DSTAR_URCALL` | URCALL | `CQCQCQ` |
+| `APP_DHRL_DSTAR_RPT1` | RPT1 | `PY2RPT B` |
+| `APP_DHRL_DSTAR_RPT2` | RPT2 | `PY2RPT G` |
+| `APP_DHRL_DSTAR_NOTES` | Observação específica D-STAR | `Via reflector` |
+
+`STATION_CALLSIGN` é o campo canônico exportado para MYCALL. `APP_DHRL_DSTAR_MYCALL` é aceito somente como alias de importação para compatibilidade. Se os dois campos aparecerem com valores diferentes, o registro é recusado por ambiguidade. A exportação D-STAR usa `MODE=DIGITALVOICE` e `SUBMODE=DSTAR`; o importer também aceita o histórico `MODE=DSTAR`.
+
 ## FT8
 
 | Campo | Significado | Exemplo |
