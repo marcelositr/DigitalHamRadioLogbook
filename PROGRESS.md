@@ -660,8 +660,9 @@ Versão `v0.2.1` publicada e verificada em https://github.com/marcelositr/Digita
 - [x] Executar stress determinístico 1k, 10k, 100k e 1M.
 - [x] Executar validação automatizada de distribuição e upgrade real.
 - [ ] Executar regressão manual pelo mantenedor sem novas funcionalidades.
-- [ ] Preparar artefato final e parar antes da publicação.
+- [x] Preparar artefato final normalizado (`7298e558d9b901cf551ff91fc7964cfdb16bb6f119a38c78440e5c335c4dfd9d`).
+- [ ] Parar antes da publicação e aguardar aprovação manual.
 
 ## Próxima ação exata
 
-Gerar o artefato final, revisar commits e solicitar somente a regressão manual necessária antes de publicar `v0.3.0`. Não iniciar `0.4.0`.
+Executar somente a regressão funcional manual do mantenedor. Depois, publicar `develop`/CI e preparar `v0.3.0` mediante autorização explícita. Não iniciar `0.4.0`.
