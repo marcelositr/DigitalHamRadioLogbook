@@ -702,8 +702,10 @@ Versão `v0.2.1` publicada e verificada em https://github.com/marcelositr/Digita
 - [x] Executar fmt, check, clippy estrito, 113 testes ativos e build locked.
 - [x] Confirmar exportação de 100k em ~1,03 s, sem regressão relevante.
 - [x] Executar regressão manual final de DMR, FT8, unknown/APP fields, Unicode, CRLF e arquivo quebrado.
-- [ ] Publicar `develop`, confirmar CI e preparar artefato final.
+- [x] Publicar `develop` e confirmar oito jobs de CI.
+- [x] Preparar artefato final normalizado (`8bd5d126deabab13e333ae16e37a5e60da5bd39a8ccefbee78bbde2f3232f5b1`).
+- [ ] Parar antes de `main`, tag e GitHub Release.
 
 ## Próxima ação exata
 
-Publicar `develop`, confirmar CI completo e preparar o artefato final. Parar antes de integrar em `main`, criar tag ou GitHub Release. Não iniciar `0.5.0`.
+Solicitar autorização explícita para integrar em `main`, criar tag `v0.4.0` e publicar a GitHub Release. Não iniciar `0.5.0`.
