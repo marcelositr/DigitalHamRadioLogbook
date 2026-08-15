@@ -8,6 +8,16 @@ use super::{
 };
 
 impl QsoRepository {
+    pub(super) fn list_items(&self) -> Result<Vec<QsoListItem>> {
+        let mut statement = self.connection.prepare(&format!(
+            "{LIST_ITEM_SELECT}\n             ORDER BY q.datetime_start_utc DESC, q.id DESC"
+        ))?;
+        let items = statement
+            .query_map([], map_qso_list_item)?
+            .collect::<Result<Vec<_>>>()?;
+        Ok(items)
+    }
+
     pub fn search_page(&self, query: &str, offset: usize, limit: usize) -> Result<QsoPage> {
         let pattern = trimmed_pattern(Some(query));
         let total: i64 = self.connection.query_row(

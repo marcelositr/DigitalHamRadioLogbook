@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{BTreeMap, HashSet};
 use std::error::Error;
 
 use rusqlite::{params, Connection, Result, Transaction};
@@ -16,19 +16,22 @@ use super::{
 
 impl QsoRepository {
     pub fn export_adif(&self) -> std::result::Result<AdifDocument, Box<dyn Error>> {
-        let mut records = Vec::new();
-        for qso in self.list()? {
-            let mode_metadata = if let Some(metadata) = self.get_dmr_metadata(qso.id)? {
+        let items = self.list_items()?;
+        let mut extra_fields = all_adif_extra_fields(&self.connection)?;
+        let mut records = Vec::with_capacity(items.len());
+        for item in items {
+            let qso_id = item.qso.id;
+            let mode_metadata = if let Some(metadata) = item.dmr {
                 ImportedModeMetadata::Dmr(metadata)
-            } else if let Some(metadata) = self.get_ft8_metadata(qso.id)? {
+            } else if let Some(metadata) = item.ft8 {
                 ImportedModeMetadata::Ft8(metadata)
             } else {
                 ImportedModeMetadata::Generic
             };
             let imported = ImportedQso {
-                qso: new_qso_from_stored(&qso),
+                qso: new_qso_from_stored(&item.qso),
                 mode_metadata,
-                extra_fields: self.get_adif_extra_fields(qso.id)?,
+                extra_fields: extra_fields.remove(&qso_id).unwrap_or_default(),
             };
             records.push(domain_to_record(&imported)?);
         }
@@ -185,6 +188,30 @@ impl QsoRepository {
         })?;
         rows.collect()
     }
+}
+
+fn all_adif_extra_fields(connection: &Connection) -> Result<BTreeMap<i64, Vec<AdifField>>> {
+    let mut statement = connection.prepare(
+        "SELECT qso_id, name, value, data_type
+         FROM adif_extra_fields
+         ORDER BY qso_id, field_order",
+    )?;
+    let rows = statement.query_map([], |row| {
+        Ok((
+            row.get::<_, i64>(0)?,
+            AdifField {
+                name: row.get(1)?,
+                value: row.get(2)?,
+                data_type: row.get(3)?,
+            },
+        ))
+    })?;
+    let mut fields = BTreeMap::<i64, Vec<AdifField>>::new();
+    for row in rows {
+        let (qso_id, field) = row?;
+        fields.entry(qso_id).or_default().push(field);
+    }
+    Ok(fields)
 }
 
 fn existing_qso_identities(connection: &Connection) -> Result<HashSet<QsoIdentity>> {
