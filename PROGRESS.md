@@ -662,8 +662,9 @@ Versão `v0.2.1` publicada e verificada em https://github.com/marcelositr/Digita
 - [x] Executar regressão manual pelo mantenedor sem novas funcionalidades.
 - [x] Preparar artefato final normalizado (`7298e558d9b901cf551ff91fc7964cfdb16bb6f119a38c78440e5c335c4dfd9d`).
 - [x] Aguardar e receber aprovação da regressão manual.
-- [ ] Publicar `develop`, confirmar CI e parar antes de `main`, tag e GitHub Release.
+- [x] Publicar `develop` e confirmar os oito jobs de CI, incluindo packaging e schemas 0–5.
+- [x] Parar antes de `main`, tag e GitHub Release.
 
 ## Próxima ação exata
 
-Publicar `develop`, confirmar todos os jobs de CI e solicitar autorização explícita antes de integrar em `main`, criar tag ou GitHub Release. Não iniciar `0.4.0`.
+Solicitar autorização explícita para integrar `develop` em `main`, criar a tag `v0.3.0` e publicar a GitHub Release com tarball/checksum. Não iniciar `0.4.0`.
