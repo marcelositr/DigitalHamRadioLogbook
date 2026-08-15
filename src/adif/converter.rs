@@ -6,7 +6,7 @@ use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 
 use crate::domain::{
     CommonQsoFields, DStarMetadata, DStarMetadataInput, DmrMetadata, DmrMetadataInput, Ft8Metadata,
-    Ft8MetadataInput, NewQso,
+    Ft8MetadataInput, ModeMetadata, NewQso,
 };
 
 use super::{AdifField, AdifRecord};
@@ -14,17 +14,17 @@ use super::{AdifField, AdifRecord};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImportedQso {
     pub qso: NewQso,
-    pub mode_metadata: ImportedModeMetadata,
+    pub mode_metadata: ModeMetadata,
     pub extra_fields: Vec<AdifField>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ImportedModeMetadata {
-    Dmr(DmrMetadata),
-    Dstar(DStarMetadata),
-    Ft8(Ft8Metadata),
-    Generic,
+impl ImportedQso {
+    pub(crate) fn known_field_names(mode: &str) -> HashSet<&'static str> {
+        known_fields(mode)
+    }
 }
+
+pub use crate::domain::ModeMetadata as ImportedModeMetadata;
 
 pub fn record_to_domain(record: &AdifRecord) -> Result<ImportedQso, AdifConversionError> {
     let callsign = required(record, "CALL")?;
@@ -52,10 +52,10 @@ pub fn record_to_domain(record: &AdifRecord) -> Result<ImportedQso, AdifConversi
         .map_err(|error| AdifConversionError::new(error.to_string()))?;
 
     let mode_metadata = match qso.mode.as_str() {
-        "DMR" => ImportedModeMetadata::Dmr(convert_dmr(record)?),
-        "DSTAR" => ImportedModeMetadata::Dstar(convert_dstar(record)?),
-        "FT8" => ImportedModeMetadata::Ft8(convert_ft8(record)?),
-        _ => ImportedModeMetadata::Generic,
+        "DMR" => ModeMetadata::Dmr(convert_dmr(record)?),
+        "DSTAR" => ModeMetadata::Dstar(convert_dstar(record)?),
+        "FT8" => ModeMetadata::Ft8(convert_ft8(record)?),
+        _ => ModeMetadata::Generic,
     };
     let known = known_fields(&qso.mode);
     reject_duplicate_known_fields(record, &known)?;
@@ -74,6 +74,15 @@ pub fn record_to_domain(record: &AdifRecord) -> Result<ImportedQso, AdifConversi
 }
 
 pub fn domain_to_record(imported: &ImportedQso) -> Result<AdifRecord, AdifConversionError> {
+    if !imported
+        .mode_metadata
+        .is_compatible_with(&imported.qso.mode)
+    {
+        return Err(AdifConversionError::new(format!(
+            "mode {} is incompatible with {:?} metadata",
+            imported.qso.mode, imported.mode_metadata
+        )));
+    }
     let datetime = chrono::DateTime::from_timestamp(imported.qso.datetime_start_utc, 0)
         .ok_or_else(|| AdifConversionError::new("QSO timestamp is out of range"))?;
     let mut fields = vec![

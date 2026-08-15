@@ -4,10 +4,9 @@ use std::error::Error;
 use rusqlite::{params, Connection, Result, Transaction};
 
 use crate::adif::{
-    domain_to_record, record_to_domain, AdifDocument, AdifField, AdifRecord, ImportedModeMetadata,
-    ImportedQso,
+    domain_to_record, record_to_domain, AdifDocument, AdifField, AdifRecord, ImportedQso,
 };
-use crate::domain::{NewQso, Qso};
+use crate::domain::{ModeMetadata, NewQso, Qso};
 
 use super::{
     insert_dmr_metadata, insert_dstar_metadata, insert_ft8_metadata, insert_qso, AdifImportPlan,
@@ -21,18 +20,9 @@ impl QsoRepository {
         let mut records = Vec::with_capacity(items.len());
         for item in items {
             let qso_id = item.qso.id;
-            let mode_metadata = if let Some(metadata) = item.dmr {
-                ImportedModeMetadata::Dmr(metadata)
-            } else if let Some(metadata) = item.dstar {
-                ImportedModeMetadata::Dstar(metadata)
-            } else if let Some(metadata) = item.ft8 {
-                ImportedModeMetadata::Ft8(metadata)
-            } else {
-                ImportedModeMetadata::Generic
-            };
             let imported = ImportedQso {
                 qso: new_qso_from_stored(&item.qso),
-                mode_metadata,
+                mode_metadata: item.metadata,
                 extra_fields: extra_fields.remove(&qso_id).unwrap_or_default(),
             };
             records.push(domain_to_record(&imported)?);
@@ -148,16 +138,16 @@ impl QsoRepository {
             }
             let qso_id = insert_qso(&transaction, &imported_qso.qso, now_utc)?;
             match &imported_qso.mode_metadata {
-                ImportedModeMetadata::Dmr(metadata) => {
+                ModeMetadata::Dmr(metadata) => {
                     insert_dmr_metadata(&transaction, qso_id, metadata)?;
                 }
-                ImportedModeMetadata::Dstar(metadata) => {
+                ModeMetadata::Dstar(metadata) => {
                     insert_dstar_metadata(&transaction, qso_id, metadata)?;
                 }
-                ImportedModeMetadata::Ft8(metadata) => {
+                ModeMetadata::Ft8(metadata) => {
                     insert_ft8_metadata(&transaction, qso_id, metadata)?;
                 }
-                ImportedModeMetadata::Generic => {}
+                ModeMetadata::Generic => {}
             }
             insert_adif_extra_fields(&transaction, qso_id, &imported_qso.extra_fields)?;
             imported += 1;
@@ -256,6 +246,21 @@ fn new_qso_from_stored(qso: &Qso) -> NewQso {
     }
 }
 
+pub(super) fn reconcile_adif_extra_fields(
+    transaction: &Transaction<'_>,
+    qso_id: i64,
+    destination_mode: &str,
+) -> Result<()> {
+    for name in ImportedQso::known_field_names(destination_mode) {
+        transaction.execute(
+            "DELETE FROM adif_extra_fields
+             WHERE qso_id = ?1 AND name = ?2 COLLATE NOCASE",
+            params![qso_id, name],
+        )?;
+    }
+    Ok(())
+}
+
 fn insert_adif_extra_fields(
     transaction: &Transaction<'_>,
     qso_id: i64,
@@ -281,6 +286,7 @@ fn insert_adif_extra_fields(
 mod tests {
     use super::*;
     use crate::adif::parse;
+    use crate::domain::{DStarMetadata, DStarMetadataInput};
 
     #[test]
     fn imports_exports_and_reimports_dstar_with_sqlite_metadata_and_unknowns() {
@@ -324,6 +330,94 @@ mod tests {
             restored.get_adif_extra_fields(restored_qso.id).unwrap(),
             repository.get_adif_extra_fields(qso.id).unwrap()
         );
+    }
+
+    #[test]
+    fn editing_imported_qso_reconciles_extras_known_by_destination_mode() {
+        let repository = QsoRepository::in_memory().unwrap();
+        let document = parse(
+            "<CALL:6>PY2DST<QSO_DATE:8>20260815<TIME_ON:6>120000<FREQ:7>145.670\
+             <MODE:2>FM<APP_DHRL_DSTAR_RPT1:8:S>OLD1   B\
+             <APP_VENDOR_FIELD:3:N>one<APP_VENDOR_FIELD:3:S>two<EOR>",
+        )
+        .unwrap();
+        repository.import_adif(&document, 1).unwrap();
+        let imported = repository.list().unwrap().remove(0);
+
+        let dstar_qso = NewQso::new(
+            &imported.callsign,
+            imported.datetime_start_utc,
+            imported.frequency_hz,
+            "DSTAR",
+        )
+        .unwrap();
+        let metadata = DStarMetadata::from_input(DStarMetadataInput {
+            rpt1: "NEW1 B".into(),
+            ..Default::default()
+        })
+        .unwrap();
+        assert!(repository
+            .update_dstar(imported.id, &dstar_qso, &metadata, 2)
+            .unwrap());
+
+        assert_eq!(
+            repository.get_adif_extra_fields(imported.id).unwrap(),
+            vec![
+                AdifField {
+                    name: "APP_VENDOR_FIELD".into(),
+                    value: "one".into(),
+                    data_type: Some("N".into()),
+                },
+                AdifField {
+                    name: "APP_VENDOR_FIELD".into(),
+                    value: "two".into(),
+                    data_type: Some("S".into()),
+                },
+            ]
+        );
+        let exported = repository.export_adif().unwrap();
+        assert_eq!(
+            exported.records[0]
+                .fields
+                .iter()
+                .filter(|field| field.name == "APP_DHRL_DSTAR_RPT1")
+                .count(),
+            1
+        );
+        assert_eq!(
+            exported.records[0].get("APP_DHRL_DSTAR_RPT1"),
+            Some("NEW1 B")
+        );
+
+        let restored = QsoRepository::in_memory().unwrap();
+        restored.import_adif(&exported, 3).unwrap();
+        let restored_qso = restored.list().unwrap().remove(0);
+        assert_eq!(
+            restored
+                .get_dstar_metadata(restored_qso.id)
+                .unwrap()
+                .unwrap()
+                .rpt1
+                .as_deref(),
+            Some("NEW1 B")
+        );
+    }
+
+    #[test]
+    fn export_rejects_multiple_specialized_metadata_rows() {
+        let repository = QsoRepository::in_memory().unwrap();
+        let document = parse(
+            "<CALL:6>PY2FT8<QSO_DATE:8>20231114<TIME_ON:6>221320<FREQ:6>14.074<MODE:3>FT8<EOR>",
+        )
+        .unwrap();
+        repository.import_adif(&document, 1_700_000_100).unwrap();
+        let qso_id = repository.list().unwrap()[0].id;
+        repository
+            .connection
+            .execute("INSERT INTO dstar_metadata(qso_id) VALUES (?1)", [qso_id])
+            .unwrap();
+
+        assert!(repository.export_adif().is_err());
     }
 
     #[test]

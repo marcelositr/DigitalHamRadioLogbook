@@ -1,6 +1,6 @@
 use rusqlite::{params, Result};
 
-use crate::domain::{DStarMetadata, DmrMetadata, Ft8Metadata, Qso};
+use crate::domain::{DStarMetadata, DmrMetadata, Ft8Metadata, ModeMetadata, Qso};
 
 use super::{
     map_qso, parse_stored_access_type, parse_stored_call_type, DmrFilter, DstarFilter, Ft8Filter,
@@ -402,10 +402,19 @@ const LIST_ITEM_SELECT: &str = "
     LEFT JOIN dstar_metadata ds ON ds.qso_id = q.id";
 
 fn map_qso_list_item(row: &rusqlite::Row<'_>) -> Result<QsoListItem> {
-    let dmr = if row.get::<_, Option<i64>>(16)?.is_some() {
+    let qso = map_qso(row)?;
+    let has_dmr = row.get::<_, Option<i64>>(16)?.is_some();
+    let has_ft8 = row.get::<_, Option<i64>>(30)?.is_some();
+    let has_dstar = row.get::<_, Option<i64>>(38)?.is_some();
+    let metadata_count = usize::from(has_dmr) + usize::from(has_ft8) + usize::from(has_dstar);
+    if metadata_count > 1 {
+        return Err(invalid_metadata(&qso, "multiple specialized metadata rows"));
+    }
+
+    let metadata = if has_dmr {
         let call_type: String = row.get(23)?;
         let access_type: String = row.get(24)?;
-        Some(DmrMetadata {
+        ModeMetadata::Dmr(DmrMetadata {
             remote_dmr_id: row.get(17)?,
             local_dmr_id: row.get(18)?,
             talkgroup: row.get(19)?,
@@ -420,11 +429,8 @@ fn map_qso_list_item(row: &rusqlite::Row<'_>) -> Result<QsoListItem> {
             tx_frequency_hz: row.get(28)?,
             notes: row.get(29)?,
         })
-    } else {
-        None
-    };
-    let ft8 = if row.get::<_, Option<i64>>(30)?.is_some() {
-        Some(Ft8Metadata {
+    } else if has_ft8 {
+        ModeMetadata::Ft8(Ft8Metadata {
             snr_sent_db: row.get(31)?,
             snr_received_db: row.get(32)?,
             power_watts: row.get(33)?,
@@ -433,11 +439,8 @@ fn map_qso_list_item(row: &rusqlite::Row<'_>) -> Result<QsoListItem> {
             protocol: row.get(36)?,
             final_message: row.get(37)?,
         })
-    } else {
-        None
-    };
-    let dstar = if row.get::<_, Option<i64>>(38)?.is_some() {
-        Some(DStarMetadata {
+    } else if has_dstar {
+        ModeMetadata::Dstar(DStarMetadata {
             reflector: row.get(39)?,
             module: row.get(40)?,
             mycall: row.get(41)?,
@@ -447,14 +450,24 @@ fn map_qso_list_item(row: &rusqlite::Row<'_>) -> Result<QsoListItem> {
             notes: row.get(45)?,
         })
     } else {
-        None
+        ModeMetadata::Generic
     };
-    Ok(QsoListItem {
-        qso: map_qso(row)?,
-        dmr,
-        dstar,
-        ft8,
-    })
+    if !metadata.is_compatible_with(&qso.mode) {
+        return Err(invalid_metadata(&qso, "mode and metadata are incompatible"));
+    }
+    Ok(QsoListItem { qso, metadata })
+}
+
+fn invalid_metadata(qso: &Qso, reason: &str) -> rusqlite::Error {
+    rusqlite::Error::FromSqlConversionFailure(
+        6,
+        rusqlite::types::Type::Text,
+        std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            format!("QSO {} ({}) has {reason}", qso.id, qso.mode),
+        )
+        .into(),
+    )
 }
 
 #[cfg(test)]
@@ -489,11 +502,36 @@ mod tests {
 
         assert_eq!(items.len(), 2);
         assert_eq!(items[0].qso.callsign, "PY2DSTAR");
-        assert_eq!(items[0].dstar.as_ref(), Some(&expected));
-        assert!(items[0].dmr.is_none());
-        assert!(items[0].ft8.is_none());
+        assert_eq!(items[0].metadata, ModeMetadata::Dstar(expected));
         assert_eq!(items[1].qso.callsign, "PY2FM");
-        assert!(items[1].dstar.is_none());
+        assert_eq!(items[1].metadata, ModeMetadata::Generic);
+    }
+
+    #[test]
+    fn mapper_rejects_missing_mismatched_and_multiple_specialized_metadata() {
+        let repository = QsoRepository::in_memory().unwrap();
+        let missing = NewQso::new("PY2MISS", 1_700_000_001, 14_074_000, "FT8").unwrap();
+        repository.insert(&missing, 1_700_000_010).unwrap();
+        assert!(repository.list_items().is_err());
+
+        repository.delete(repository.list().unwrap()[0].id).unwrap();
+        let generic = NewQso::new("PY2BAD", 1_700_000_002, 145_500_000, "FM").unwrap();
+        let qso_id = repository.insert(&generic, 1_700_000_010).unwrap();
+        repository
+            .connection
+            .execute("INSERT INTO ft8_metadata(qso_id) VALUES (?1)", [qso_id])
+            .unwrap();
+        assert!(repository.list_items().is_err());
+
+        repository
+            .connection
+            .execute("UPDATE qsos SET mode = 'FT8' WHERE id = ?1", [qso_id])
+            .unwrap();
+        repository
+            .connection
+            .execute("INSERT INTO dstar_metadata(qso_id) VALUES (?1)", [qso_id])
+            .unwrap();
+        assert!(repository.list_items().is_err());
     }
 
     #[test]
@@ -544,9 +582,9 @@ mod tests {
         assert_eq!(page.limit, 1);
         assert_eq!(page.items.len(), 1);
         assert_eq!(page.items[0].qso.callsign, "PY2ONE");
-        assert_eq!(
-            page.items[0].dstar.as_ref().unwrap().reflector.as_deref(),
-            Some("REF001 C")
-        );
+        let ModeMetadata::Dstar(metadata) = &page.items[0].metadata else {
+            panic!("expected D-STAR metadata");
+        };
+        assert_eq!(metadata.reflector.as_deref(), Some("REF001 C"));
     }
 }

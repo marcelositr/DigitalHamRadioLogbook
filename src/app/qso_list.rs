@@ -1,5 +1,6 @@
 use super::*;
 use digital_ham_radio_logbook::database::{QsoListItem, QsoPage, DEFAULT_PAGE_SIZE};
+use digital_ham_radio_logbook::domain::ModeMetadata;
 
 #[derive(Debug, Clone)]
 pub(crate) enum LogbookQuery {
@@ -211,9 +212,12 @@ pub(crate) fn refresh_rows(ui: &MainWindow, items: Vec<QsoListItem>) -> Result<(
         .into_iter()
         .map(|item| {
             let qso = item.qso;
-            let dmr = item.dmr;
-            let ft8 = item.ft8;
-            let dstar = item.dstar;
+            let (dmr, ft8, dstar) = match item.metadata {
+                ModeMetadata::Dmr(metadata) => (Some(metadata), None, None),
+                ModeMetadata::Ft8(metadata) => (None, Some(metadata), None),
+                ModeMetadata::Dstar(metadata) => (None, None, Some(metadata)),
+                ModeMetadata::Generic => (None, None, None),
+            };
             let datetime = format_utc_datetime(qso.datetime_start_utc)?;
             let route_summary = dmr
                 .as_ref()

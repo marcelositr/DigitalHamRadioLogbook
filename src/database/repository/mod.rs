@@ -4,6 +4,7 @@ mod queries;
 #[cfg(test)]
 mod stress;
 
+use adif::reconcile_adif_extra_fields;
 use std::collections::BTreeMap;
 use std::path::Path;
 
@@ -11,7 +12,7 @@ use rusqlite::{params, Connection, OptionalExtension, Result, Transaction};
 
 use crate::adif::ImportedQso;
 use crate::domain::{
-    DStarMetadata, DmrAccessType, DmrCallType, DmrMetadata, Ft8Metadata, NewQso, Qso,
+    DStarMetadata, DmrAccessType, DmrCallType, DmrMetadata, Ft8Metadata, ModeMetadata, NewQso, Qso,
 };
 
 use super::migrations;
@@ -99,9 +100,7 @@ pub const DEFAULT_PAGE_SIZE: usize = 100;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct QsoListItem {
     pub qso: Qso,
-    pub dmr: Option<DmrMetadata>,
-    pub dstar: Option<DStarMetadata>,
-    pub ft8: Option<Ft8Metadata>,
+    pub metadata: ModeMetadata,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -142,6 +141,7 @@ impl QsoRepository {
     }
 
     pub fn insert_dmr(&self, qso: &NewQso, metadata: &DmrMetadata, now_utc: i64) -> Result<i64> {
+        require_mode(qso, "DMR")?;
         let transaction = self.connection.unchecked_transaction()?;
         let qso_id = insert_qso(&transaction, qso, now_utc)?;
         insert_dmr_metadata(&transaction, qso_id, metadata)?;
@@ -150,6 +150,7 @@ impl QsoRepository {
     }
 
     pub fn insert_ft8(&self, qso: &NewQso, metadata: &Ft8Metadata, now_utc: i64) -> Result<i64> {
+        require_mode(qso, "FT8")?;
         let transaction = self.connection.unchecked_transaction()?;
         let qso_id = insert_qso(&transaction, qso, now_utc)?;
         insert_ft8_metadata(&transaction, qso_id, metadata)?;
@@ -163,6 +164,7 @@ impl QsoRepository {
         metadata: &DStarMetadata,
         now_utc: i64,
     ) -> Result<i64> {
+        require_mode(qso, "DSTAR")?;
         let transaction = self.connection.unchecked_transaction()?;
         let qso_id = insert_qso(&transaction, qso, now_utc)?;
         insert_dstar_metadata(&transaction, qso_id, metadata)?;
@@ -177,12 +179,14 @@ impl QsoRepository {
         metadata: &DStarMetadata,
         now_utc: i64,
     ) -> Result<bool> {
+        require_mode(qso, "DSTAR")?;
         let transaction = self.connection.unchecked_transaction()?;
         let changed = update_qso(&transaction, qso_id, qso, now_utc)?;
         if !changed {
             transaction.rollback()?;
             return Ok(false);
         }
+        reconcile_adif_extra_fields(&transaction, qso_id, &qso.mode)?;
         delete_mode_metadata(&transaction, qso_id)?;
         insert_dstar_metadata(&transaction, qso_id, metadata)?;
         transaction.commit()?;
@@ -207,12 +211,14 @@ impl QsoRepository {
         metadata: &Ft8Metadata,
         now_utc: i64,
     ) -> Result<bool> {
+        require_mode(qso, "FT8")?;
         let transaction = self.connection.unchecked_transaction()?;
         let changed = update_qso(&transaction, qso_id, qso, now_utc)?;
         if !changed {
             transaction.rollback()?;
             return Ok(false);
         }
+        reconcile_adif_extra_fields(&transaction, qso_id, &qso.mode)?;
         delete_mode_metadata(&transaction, qso_id)?;
         insert_ft8_metadata(&transaction, qso_id, metadata)?;
         transaction.commit()?;
@@ -238,12 +244,14 @@ impl QsoRepository {
         metadata: &DmrMetadata,
         now_utc: i64,
     ) -> Result<bool> {
+        require_mode(qso, "DMR")?;
         let transaction = self.connection.unchecked_transaction()?;
         let changed = update_qso(&transaction, qso_id, qso, now_utc)?;
         if !changed {
             transaction.rollback()?;
             return Ok(false);
         }
+        reconcile_adif_extra_fields(&transaction, qso_id, &qso.mode)?;
         delete_mode_metadata(&transaction, qso_id)?;
         insert_dmr_metadata(&transaction, qso_id, metadata)?;
         transaction.commit()?;
@@ -273,6 +281,7 @@ impl QsoRepository {
             transaction.rollback()?;
             return Ok(false);
         }
+        reconcile_adif_extra_fields(&transaction, id, &qso.mode)?;
         delete_mode_metadata(&transaction, id)?;
         transaction.commit()?;
         Ok(true)
@@ -283,6 +292,17 @@ impl QsoRepository {
             .connection
             .execute("DELETE FROM qsos WHERE id = ?1", params![id])?;
         Ok(changed > 0)
+    }
+}
+
+fn require_mode(qso: &NewQso, expected: &str) -> Result<()> {
+    if qso.mode == expected {
+        Ok(())
+    } else {
+        Err(rusqlite::Error::InvalidParameterName(format!(
+            "specialized {expected} metadata is incompatible with QSO mode {}",
+            qso.mode
+        )))
     }
 }
 
@@ -524,6 +544,29 @@ mod tests {
     use super::*;
     use crate::adif::{export, parse, AdifField};
     use crate::domain::{CommonQsoFields, DStarMetadataInput, DmrMetadataInput, Ft8MetadataInput};
+
+    #[test]
+    fn specialized_writes_reject_mode_mismatch_without_partial_changes() {
+        let repository = QsoRepository::in_memory().unwrap();
+        let ft8_metadata = Ft8Metadata::from_input(Ft8MetadataInput::default()).unwrap();
+        let fm = NewQso::new("PY2BAD", 1_700_000_000, 145_500_000, "FM").unwrap();
+
+        assert!(repository
+            .insert_ft8(&fm, &ft8_metadata, 1_700_000_001)
+            .is_err());
+        assert!(repository.list().unwrap().is_empty());
+
+        let valid = NewQso::new("PY2GOOD", 1_700_000_002, 14_074_000, "FT8").unwrap();
+        let id = repository
+            .insert_ft8(&valid, &ft8_metadata, 1_700_000_003)
+            .unwrap();
+        assert!(repository
+            .update_ft8(id, &fm, &ft8_metadata, 1_700_000_004)
+            .is_err());
+        let stored = repository.list().unwrap().remove(0);
+        assert_eq!(stored.mode, "FT8");
+        assert_eq!(repository.get_ft8_metadata(id).unwrap(), Some(ft8_metadata));
+    }
 
     #[test]
     fn creates_consistent_backup_without_overwriting() {
@@ -1857,10 +1900,8 @@ mod tests {
 
         let all = repository.search_page("", 0, DEFAULT_PAGE_SIZE).unwrap();
         assert_eq!(all.total, 2);
-        assert_eq!(all.items[0].ft8, Some(ft8.clone()));
-        assert!(all.items[0].dmr.is_none());
-        assert_eq!(all.items[1].dmr, Some(dmr.clone()));
-        assert!(all.items[1].ft8.is_none());
+        assert_eq!(all.items[0].metadata, ModeMetadata::Ft8(ft8.clone()));
+        assert_eq!(all.items[1].metadata, ModeMetadata::Dmr(dmr.clone()));
 
         let dmr_page = repository
             .search_dmr_page(
@@ -1873,7 +1914,7 @@ mod tests {
             )
             .unwrap();
         assert_eq!(dmr_page.total, 1);
-        assert_eq!(dmr_page.items[0].dmr, Some(dmr));
+        assert_eq!(dmr_page.items[0].metadata, ModeMetadata::Dmr(dmr));
 
         let ft8_page = repository
             .search_ft8_page(
@@ -1886,7 +1927,7 @@ mod tests {
             )
             .unwrap();
         assert_eq!(ft8_page.total, 1);
-        assert_eq!(ft8_page.items[0].ft8, Some(ft8));
+        assert_eq!(ft8_page.items[0].metadata, ModeMetadata::Ft8(ft8));
     }
 
     #[test]
