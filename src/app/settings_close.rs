@@ -23,7 +23,9 @@ pub(crate) fn connect_station_config_handler(
         match result {
             Ok(()) => set_status(&ui, "Local station saved", STATUS_SUCCESS),
             Err(error) => {
-                logging::error("failed to save local station configuration");
+                logging::error(&format!(
+                    "failed to save local station configuration: {error}"
+                ));
                 set_status(
                     &ui,
                     actionable_error("Could not save station", error.as_ref()),
@@ -58,11 +60,14 @@ pub(crate) fn connect_external_link_handlers(
         })();
         match result {
             Ok(()) => set_status(&ui, "External lookup links saved", STATUS_SUCCESS),
-            Err(error) => set_status(
-                &ui,
-                actionable_error("Could not save lookup links", error.as_ref()),
-                STATUS_ERROR,
-            ),
+            Err(error) => {
+                logging::error(&format!("failed to save external lookup links: {error}"));
+                set_status(
+                    &ui,
+                    actionable_error("Could not save lookup links", error.as_ref()),
+                    STATUS_ERROR,
+                );
+            }
         }
     });
 
@@ -191,6 +196,7 @@ pub(crate) fn connect_close_handlers(
         match save_operational_preferences(&ui, &close_config, &close_path) {
             Ok(()) => CloseRequestResponse::HideWindow,
             Err(error) => {
+                logging::error(&format!("failed to save preferences before exit: {error}"));
                 ui.set_exit_save_failed(true);
                 ui.set_exit_error_text(
                     actionable_error("Could not save preferences", error.as_ref()).into(),
@@ -225,6 +231,7 @@ pub(crate) fn connect_close_handlers(
                 let _ = ui.window().hide();
             }
             Err(error) => {
+                logging::error(&format!("failed to save preferences before exit: {error}"));
                 ui.set_exit_save_failed(true);
                 ui.set_exit_error_text(
                     actionable_error("Could not save preferences", error.as_ref()).into(),
@@ -248,6 +255,7 @@ pub(crate) fn connect_close_handlers(
                 let _ = ui.window().hide();
             }
             Err(error) => {
+                logging::error(&format!("failed to save preferences before exit: {error}"));
                 ui.set_exit_error_text(
                     actionable_error("Could not save preferences", error.as_ref()).into(),
                 );

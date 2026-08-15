@@ -17,7 +17,7 @@ pub(crate) fn connect_backup_handler(ui: &MainWindow, repository: &Rc<QsoReposit
         match result {
             Ok(()) => set_status(&ui, "Database backup created", STATUS_SUCCESS),
             Err(error) => {
-                logging::error("database backup failed");
+                logging::error(&format!("database backup failed: {error}"));
                 set_status(
                     &ui,
                     actionable_error("Could not create backup", error.as_ref()),

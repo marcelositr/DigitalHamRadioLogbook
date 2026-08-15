@@ -26,7 +26,7 @@ At startup the application:
 4. verifies required schema objects;
 5. runs SQLite `quick_check` and `foreign_key_check`.
 
-A backup is reported as successful only after the snapshot passes the same integrity checks and is synchronized to storage. A failed post-creation validation removes the uncertain destination so a safe retry is possible.
+A backup is reported as successful only after the snapshot passes SQLite integrity, foreign-key, supported-version, required-table and required-index checks and is synchronized to storage. A failed post-creation validation removes the uncertain destination so a safe retry is possible.
 
 Configuration and ADIF exports use a temporary file in the destination directory, synchronize it, and then publish it by rename. Existing ADIF/export destinations are never overwritten.
 

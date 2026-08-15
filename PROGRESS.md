@@ -503,7 +503,7 @@ Abrir o aplicativo para homologação visual das quatro páginas em `1050×680` 
 - [x] Confirmar campos genéricos, DMR e FT8, incluindo rolagem completa.
 - [x] Confirmar Tools e Settings com caminhos e templates longos.
 
-## Marco 28 — Publicação da versão v0.2.1 (EM ANDAMENTO)
+## Marco 28 — Publicação da versão v0.2.1 (CONCLUÍDO)
 
 - [x] Confirmar `develop` como branch de trabalho e `main` como branch principal do repositório.
 - [x] Confirmar autenticação do GitHub CLI e acesso SSH ao remote.
@@ -518,12 +518,97 @@ Abrir o aplicativo para homologação visual das quatro páginas em `1050×680` 
 - [x] Confirmar preservação de banco e configuração por SHA-256.
 - [x] Commitar e publicar a preparação em `develop` no commit `f0884c3`.
 - [x] Confirmar sete jobs verdes em `develop` ([execução](https://github.com/marcelositr/DigitalHamRadioLogbook/actions/runs/31845011500)).
-- [ ] Integrar e publicar em `main`.
-- [ ] Confirmar CI verde em `main`.
-- [ ] Criar e publicar tag anotada `v0.2.1`.
-- [ ] Criar GitHub Release final com tarball e checksum.
-- [ ] Baixar e verificar os assets publicados.
+- [x] Integrar `develop` em `main` por fast-forward no commit `26b6669` e publicar.
+- [x] Confirmar sete jobs verdes em `main` ([execução](https://github.com/marcelositr/DigitalHamRadioLogbook/actions/runs/31845281406)).
+- [x] Criar e publicar a tag anotada `v0.2.1` no commit `26b6669`.
+- [x] Criar GitHub Release final, não-draft e não-prerelease, com tarball e checksum.
+- [x] Baixar os assets publicados e confirmar SHA-256 e igualdade byte a byte.
+- [x] Confirmar release pública em https://github.com/marcelositr/DigitalHamRadioLogbook/releases/tag/v0.2.1.
 
 ## Próxima ação exata
 
-Concluir documentação e executar toda a validação release antes do primeiro commit da versão `v0.2.1`.
+Versão `v0.2.1` publicada e verificada em https://github.com/marcelositr/DigitalHamRadioLogbook/releases/tag/v0.2.1. `main` e a tag permanecem no commit `26b6669`; continuar novos trabalhos exclusivamente em `develop`.
+
+## Marco 29 — Hardening e confiabilidade v0.2.2 (EM ANDAMENTO)
+
+### Fase 1 — Auditoria e inventário (CONCLUÍDA)
+
+- [x] Ler integralmente `SPEC.md`, `PROGRESS.md`, `README.md`, CI e documentação de recuperação.
+- [x] Confirmar branch `develop`, versão fonte `0.2.1`, schema SQLite 5 e baseline de 73 testes.
+- [x] Auditar banco, migrations, transações, backup, configuração, XDG, ADIF, domínio, CRUD, filtros, encerramento, logging e panics.
+- [x] Classificar lacunas por severidade e registrar o inventário em `docs/HARDENING-v0.2.2.md`.
+- [x] Definir `0.2.2` como versão alvo em `Cargo.toml` e `Cargo.lock`.
+
+### Fase 2 — Integridade de modo e transações (CONCLUÍDA)
+
+- [x] Reproduzir por testes a permanência indevida de metadados ao trocar DMR, FT8 e modo genérico.
+- [x] Confirmar os três testes vermelhos antes da correção.
+- [x] Remover todos os metadados incompatíveis dentro da mesma transação de update.
+- [x] Confirmar filtros do modo anterior vazios após a troca.
+- [x] Confirmar que os testes existentes de rollback DMR/FT8 continuam passando.
+- [x] Executar fmt, check, clippy estrito, 76 testes e build locked.
+- [x] Criar commit lógico `bd49d62` (`Harden mode transition metadata`).
+
+### Fase 3 — Abertura do banco, schema, migrations e corrupção (CONCLUÍDA)
+
+- [x] Testar criação e reabertura de banco inexistente em arquivo temporário.
+- [x] Testar inicialização segura de banco existente com zero bytes.
+- [x] Testar SQLite real truncado e confirmar preservação byte a byte após recusa.
+- [x] Confirmar recusa de arquivo não-SQLite e schema futuro pelos testes existentes.
+- [x] Reproduzir aceitação indevida de índices DMR/FT8 ausentes em schema v5.
+- [x] Exigir todos os índices publicados pelas migrations 1–5 na validação final.
+- [x] Revalidar migration matrix local dos schemas 0–5.
+- [x] Executar fmt, check, clippy estrito, 80 testes e build locked.
+- [x] Criar commit lógico `c89077d` (`Test database opening and schema integrity`).
+
+### Fase 4 — Backup e restauração controlada (CONCLUÍDA)
+
+- [x] Validar snapshots contra integridade, foreign keys, versão, tabelas e índices da aplicação.
+- [x] Rejeitar e remover backup incerto com schema incompleto ou futuro.
+- [x] Executar restauração controlada em diretório temporário.
+- [x] Confirmar preservação de QSO genérico, DMR, FT8 e campo ADIF desconhecido.
+- [x] Criar commit `ed7ffa1` (`Harden backup and ADIF transactions`).
+
+### Fase 5 — Parser, importação e exportação ADIF (CONCLUÍDA)
+
+- [x] Revalidar duplicados dentro da transação de confirmação do preview.
+- [x] Rejeitar campos conhecidos repetidos sem bloquear repetição de campos desconhecidos.
+- [x] Cobrir vazio, espaços, header-only, truncamentos, comprimentos e boundaries UTF-8.
+- [x] Cobrir destino existente, parent ausente, cleanup e permissões privadas `0600`.
+- [x] Criar commit `9f7c5e1` (`Harden ADIF parsing and file writes`).
+
+### Fase 6 — Configuração, XDG e encerramento (CONCLUÍDA)
+
+- [x] Preservar TOML inválido/truncado e retornar erro controlado.
+- [x] Confirmar escrita atômica, Unicode/espaços e permissões `0600`.
+- [x] Ignorar XDG relativo e exigir fallback HOME absoluto.
+- [x] Cobrir XDG ausente e arquivo no lugar do diretório de dados.
+- [x] Manter fluxo de encerramento existente e documentar risco pós-rename sem refatoração ampla.
+- [x] Criar commit `18ca4ae` (`Harden configuration paths and input validation`).
+
+### Fase 7 — CRUD, pesquisa, filtros, logging, panics e limites (CONCLUÍDA)
+
+- [x] Rejeitar frequência explicitamente negativa, inclusive `-0.5`.
+- [x] Rejeitar intervalo UTC FT8 invertido.
+- [x] Testar cascata DMR/rota e FT8 pela API pública de exclusão.
+- [x] Auditar `panic!`, `unwrap()` e `expect()`; nenhum uso recuperável sobre entrada externa permaneceu no runtime auditado.
+- [x] Não introduzir limites arbitrários de tamanho sem política de produto.
+- [x] Registrar riscos residuais de refresh pós-mutation, corrida de rename e recursos no documento de hardening.
+
+### Fase 8 — Regressão funcional, gates finais e preparação da v0.2.2 (EM ANDAMENTO)
+
+- [x] Executar fmt, check, clippy estrito, 97 testes e build locked.
+- [x] Atualizar README, recuperação, hardening e release notes; criar commit `2242347`.
+- [x] Executar migration matrix isolada para schemas 0–5.
+- [x] Executar startup X11 isolado com versão `0.2.2`.
+- [x] Gerar tarball Linux e SHA-256 sem publicar.
+- [x] Confirmar conteúdo, dependências compartilhadas, instalação, atualização e startup instalado.
+- [x] Confirmar desinstalação dupla e preservação de banco/configuração por hash.
+- [x] Confirmar ausência de bugs Critical/High conhecidos de integridade.
+- [ ] Publicar commits em `develop` e confirmar CI remoto.
+- [ ] Executar regressão funcional manual pelo mantenedor.
+- [ ] Parar antes de merge, tag ou GitHub Release.
+
+## Próxima ação exata
+
+Publicar somente `develop`, confirmar CI e executar a regressão funcional manual. Não integrar em `main`, criar tag ou publicar release sem nova autorização explícita.

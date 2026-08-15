@@ -30,10 +30,35 @@ pub(crate) fn connect_save_handler(
             return;
         };
 
-        let result = save_form(&ui, &repository, &state);
+        let result = save_form(&ui, &repository);
         match result {
             Ok(message) => {
-                set_status(&ui, message, STATUS_SUCCESS);
+                let refresh_result = refresh_qso_list(&ui, &repository, &state);
+                let clear_result = clear_editor(&ui);
+                match (refresh_result, clear_result) {
+                    (Ok(()), Ok(())) => set_status(&ui, message, STATUS_SUCCESS),
+                    (refresh, clear) => {
+                        let details = refresh
+                            .err()
+                            .map(|error| format!("Logbook refresh failed: {error}"))
+                            .or_else(|| {
+                                clear
+                                    .err()
+                                    .map(|error| format!("editor reset failed: {error}"))
+                            })
+                            .unwrap_or_else(|| "presentation update failed".to_owned());
+                        logging::error(&format!(
+                            "QSO committed but presentation update failed: {details}"
+                        ));
+                        set_status(
+                            &ui,
+                            format!(
+                                "{message}, but the display could not be refreshed. The saved data remains safe."
+                            ),
+                            STATUS_WARNING,
+                        );
+                    }
+                }
                 ui.set_active_page(0);
             }
             Err(error) => set_status(&ui, format!("Could not save QSO: {error}"), STATUS_ERROR),
@@ -41,11 +66,7 @@ pub(crate) fn connect_save_handler(
     });
 }
 
-fn save_form(
-    ui: &MainWindow,
-    repository: &QsoRepository,
-    state: &SharedLogbookViewState,
-) -> Result<&'static str, Box<dyn Error>> {
+fn save_form(ui: &MainWindow, repository: &QsoRepository) -> Result<&'static str, Box<dyn Error>> {
     let now_utc = current_utc_timestamp()?;
     let datetime_start_utc = parse_utc_datetime(ui.get_datetime_text().as_str())?;
     let frequency_hz = parse_mhz_to_hz(ui.get_frequency_text().as_str())?;
@@ -108,8 +129,6 @@ fn save_form(
         return Err("QSO no longer exists".into());
     }
 
-    refresh_qso_list(ui, repository, state)?;
-    clear_editor(ui)?;
     Ok(if id.is_empty() {
         "QSO saved"
     } else {

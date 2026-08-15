@@ -69,7 +69,7 @@ O workflow `.github/workflows/ci.yml` executa esses controles em `main`, `develo
 
 ## Localização dos dados
 
-No GNU/Linux, o projeto segue a XDG Base Directory Specification.
+No GNU/Linux, o projeto segue a XDG Base Directory Specification. Valores XDG relativos são ignorados; os fallbacks exigem uma `HOME` absoluta para impedir gravação dependente do diretório de execução.
 
 - banco com `XDG_DATA_HOME`: `$XDG_DATA_HOME/digital-ham-log/logbook.sqlite3`;
 - banco sem `XDG_DATA_HOME`: `~/.local/share/digital-ham-log/logbook.sqlite3`;
@@ -84,7 +84,7 @@ Antes de gravar, a importação apresenta um preview com o total de registros, n
 
 A importação ignora duplicados exatos, inclusive registros repetidos no mesmo arquivo. A identidade é composta por callsign normalizado, data/hora UTC inicial, frequência e modo normalizado. O QSO já existente é preservado sem mesclar ou sobrescrever metadados; a interface informa quantos registros foram importados e quantos duplicados foram ignorados. A criação e edição manual continuam permitindo QSOs com a mesma identidade quando isso for intencional.
 
-A interface permite criar um snapshot consistente para um caminho terminado em `.sqlite3`. O destino não pode existir, evitando sobrescrita acidental. O snapshot é validado antes de ser anunciado como concluído.
+A interface permite criar um snapshot consistente para um caminho terminado em `.sqlite3`. O destino não pode existir, evitando sobrescrita acidental. Antes do sucesso, o snapshot é validado quanto à integridade SQLite, foreign keys e compatibilidade com o schema atual da aplicação.
 
 Também é possível fechar o aplicativo e copiar `logbook.sqlite3` manualmente. O banco contém os QSOs e metadados armazenados pelo aplicativo. Para restauração, corrupção, permissões e schema incompatível, siga `docs/DATA-RECOVERY.md`.
 
@@ -163,7 +163,7 @@ Erros operacionais comuns exibem orientação prática junto do detalhe técnico
 
 ## Integridade e recuperação
 
-A abertura do banco recusa schemas futuros, valida os objetos esperados e executa verificações SQLite de integridade e foreign keys. Backups passam pelas mesmas verificações. A configuração e a exportação ADIF são publicadas por temporário + rename, reduzindo o risco de arquivos parciais.
+A abertura do banco recusa schemas futuros, valida os objetos esperados e executa verificações SQLite de integridade e foreign keys. Backups passam pelas mesmas verificações. A configuração e a exportação ADIF são publicadas por temporário + rename, usam permissões privadas `0600` no Unix e reduzem o risco de arquivos parciais.
 
 O procedimento seguro de restauração está em `docs/DATA-RECOVERY.md`. Nunca substitua o banco enquanto a aplicação estiver aberta.
 
