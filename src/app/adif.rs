@@ -57,7 +57,7 @@ pub(crate) fn connect_adif_handlers(
             Err(error) => {
                 *preview_plan.borrow_mut() = None;
                 ui.set_adif_preview_visible(false);
-                logging::error("ADIF preview failed");
+                logging::error(&format!("ADIF preview failed: {error}"));
                 set_status(
                     &ui,
                     actionable_error("Could not preview ADIF", error.as_ref()),
@@ -99,7 +99,7 @@ pub(crate) fn connect_adif_handlers(
                 STATUS_SUCCESS,
             ),
             Err(error) => {
-                logging::error("ADIF import failed");
+                logging::error(&format!("ADIF import failed: {error}"));
                 set_status(
                     &ui,
                     actionable_error("Could not import ADIF", error.as_ref()),
@@ -151,7 +151,7 @@ pub(crate) fn connect_adif_handlers(
                 STATUS_SUCCESS,
             ),
             Err(error) => {
-                logging::error("ADIF export failed");
+                logging::error(&format!("ADIF export failed: {error}"));
                 set_status(
                     &ui,
                     actionable_error("Could not export ADIF", error.as_ref()),

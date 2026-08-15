@@ -1100,7 +1100,43 @@ mod tests {
         repository.backup_to(&destination).unwrap();
         let backup = QsoRepository::open(&destination).unwrap();
         assert_eq!(backup.list().unwrap().len(), 1);
+        drop(backup);
+        let original = std::fs::read(&destination).unwrap();
         assert!(repository.backup_to(&destination).is_err());
+        assert_eq!(std::fs::read(&destination).unwrap(), original);
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
+    fn backup_rejects_a_missing_destination_directory_without_creating_a_file() {
+        let repository = QsoRepository::in_memory().unwrap();
+        let directory = temporary_database_path("backup-missing-parent");
+        let destination = directory.join("missing").join("backup.sqlite3");
+
+        let error = repository.backup_to(&destination).unwrap_err().to_string();
+
+        assert!(error.contains("directory does not exist"));
+        assert!(!destination.exists());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn backup_uses_private_file_permissions() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let repository = QsoRepository::in_memory().unwrap();
+        let directory = temporary_database_path("backup-permissions");
+        std::fs::create_dir_all(&directory).unwrap();
+        let destination = directory.join("backup.sqlite3");
+
+        repository.backup_to(&destination).unwrap();
+
+        let mode = std::fs::metadata(&destination)
+            .unwrap()
+            .permissions()
+            .mode()
+            & 0o777;
+        assert_eq!(mode, 0o600);
         std::fs::remove_dir_all(directory).unwrap();
     }
 
