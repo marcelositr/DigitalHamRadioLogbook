@@ -65,7 +65,9 @@ cargo test --locked
 cargo build --locked
 ```
 
-O workflow `.github/workflows/ci.yml` executa esses controles em `main`, `develop`, pull requests e manualmente. Um job adicional testa em paralelo a migração de bancos novos e das versões de schema 1–5 para a versão atual, preservando dados representativos e verificando idempotência, `quick_check` e chaves estrangeiras.
+O workflow `.github/workflows/ci.yml` executa esses controles em `main`, `develop`, pull requests e manualmente. Jobs adicionais testam em paralelo a migração dos schemas 0–5 e o contrato do pacote Linux, incluindo instalação e desinstalação em XDG isolado.
+
+Testes pesados são ignorados por padrão. Consulte `docs/PERFORMANCE-v0.3.0.md` para gerar datasets determinísticos de 1 mil a 1 milhão de QSOs e reproduzir as medições. A organização interna da persistência está resumida em `docs/ARCHITECTURE.md`.
 
 ## Localização dos dados
 

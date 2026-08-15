@@ -529,7 +529,7 @@ Abrir o aplicativo para homologação visual das quatro páginas em `1050×680` 
 
 Versão `v0.2.1` publicada e verificada em https://github.com/marcelositr/DigitalHamRadioLogbook/releases/tag/v0.2.1. `main` e a tag permanecem no commit `26b6669`; continuar novos trabalhos exclusivamente em `develop`.
 
-## Marco 29 — Hardening e confiabilidade v0.2.2 (EM ANDAMENTO)
+## Marco 29 — Hardening e confiabilidade v0.2.2 (CONCLUÍDO)
 
 ### Fase 1 — Auditoria e inventário (CONCLUÍDA)
 
@@ -595,9 +595,9 @@ Versão `v0.2.1` publicada e verificada em https://github.com/marcelositr/Digita
 - [x] Não introduzir limites arbitrários de tamanho sem política de produto.
 - [x] Registrar riscos residuais de refresh pós-mutation, corrida de rename e recursos no documento de hardening.
 
-### Fase 8 — Regressão funcional, gates finais e preparação da v0.2.2 (EM ANDAMENTO)
+### Fase 8 — Regressão funcional, gates finais e publicação da v0.2.2 (CONCLUÍDA)
 
-- [x] Executar fmt, check, clippy estrito, 97 testes e build locked.
+- [x] Executar fmt, check, clippy estrito, 99 testes e build locked.
 - [x] Atualizar README, recuperação, hardening e release notes; criar commit `2242347`.
 - [x] Executar migration matrix isolada para schemas 0–5.
 - [x] Executar startup X11 isolado com versão `0.2.2`.
@@ -605,10 +605,63 @@ Versão `v0.2.1` publicada e verificada em https://github.com/marcelositr/Digita
 - [x] Confirmar conteúdo, dependências compartilhadas, instalação, atualização e startup instalado.
 - [x] Confirmar desinstalação dupla e preservação de banco/configuração por hash.
 - [x] Confirmar ausência de bugs Critical/High conhecidos de integridade.
-- [ ] Publicar commits em `develop` e confirmar CI remoto.
-- [ ] Executar regressão funcional manual pelo mantenedor.
-- [ ] Parar antes de merge, tag ou GitHub Release.
+- [x] Publicar commits em `develop` e confirmar CI remoto.
+- [x] Executar regressão funcional manual pelo mantenedor.
+- [x] Integrar em `main`, publicar tag e GitHub Release após autorização explícita.
+- [x] Confirmar CI completo de `main`, incluindo schemas 0–5.
+- [x] Publicar `v0.2.2` em https://github.com/marcelositr/DigitalHamRadioLogbook/releases/tag/v0.2.2.
+
+## Marco 30 — Robustez estrutural v0.3.0 (EM ANDAMENTO)
+
+### Fase 1 — Auditoria e baseline (CONCLUÍDA)
+
+- [x] Ler especificação, progresso, README, hardening, CI, migrations, repository e chamadas da aplicação.
+- [x] Confirmar baseline `v0.2.2`, schema 5 e 99 testes.
+- [x] Mapear responsabilidades e preservar API pública/transações.
+- [x] Identificar N+1 na exportação ADIF e ausência de CI para packaging.
+
+### Fase 2 — Organização do repository (CONCLUÍDA)
+
+- [x] Separar CRUD/agregado, queries, ADIF e backup sem traits ou camadas artificiais.
+- [x] Manter SQL, API pública e chamadas de `src/app`.
+- [x] Revalidar rollback, CRUD, filtros, paginação, ADIF e backup.
+- [x] Documentar fronteiras em `docs/ARCHITECTURE.md`.
+
+### Fase 3 — Volume e performance (CONCLUÍDA)
+
+- [x] Criar gerador determinístico ignorado por padrão.
+- [x] Medir 1k, 10k, 100k e 1M em release.
+- [x] Medir abertura, páginas, buscas, filtros DMR/FT8, backup e ADIF.
+- [x] Remover N+1 da exportação ADIF; reduzir 100k de ~9,26 s para ~1,07 s.
+- [x] Manter OFFSET: ~90 ms na página final de 100k não justifica mudança de contrato.
+- [x] Documentar ambiente, resultados e limite de 1M em `docs/PERFORMANCE-v0.3.0.md`.
+
+### Fase 4 — Migrations e SQLite (CONCLUÍDA)
+
+- [x] Preservar migrations publicadas 1–5 sem alteração.
+- [x] Manter matriz determinística de schemas 0–5 com dados, idempotência, quick check e foreign keys.
+- [x] Registrar planos representativos e decisão de não adicionar índices sem benefício medido.
+- [x] Reexecutar matriz completa dos schemas 0–5 após mudanças finais.
+
+### Fase 5 — Distribuição e release engineering (CONCLUÍDA)
+
+- [x] Tornar tarball normalizado e publicação tarball/checksum resistente a falhas.
+- [x] Criar smoke test POSIX de conteúdo, checksum, instalação, reinstalação e remoção.
+- [x] Preservar banco/configuração em XDG isolado.
+- [x] Adicionar job pequeno de packaging à CI.
+- [x] Normalizar permissões e comprovar tarballs idênticos sob `umask 002` e `077`.
+- [x] Executar pacote real, instalação `v0.2.2`, atualização para `v0.3.0` e desinstalação isoladas.
+- [x] Confirmar schema 5, integridade e preservação por hash de QSO/configuração.
+
+### Fase 6 — Gates finais (EM ANDAMENTO)
+
+- [x] Finalizar changelog, arquitetura, performance e release notes.
+- [x] Executar fmt, check, clippy estrito, 99 testes ativos, build e migration matrix.
+- [x] Executar stress determinístico 1k, 10k, 100k e 1M.
+- [x] Executar validação automatizada de distribuição e upgrade real.
+- [ ] Executar regressão manual pelo mantenedor sem novas funcionalidades.
+- [ ] Preparar artefato final e parar antes da publicação.
 
 ## Próxima ação exata
 
-Publicar somente `develop`, confirmar CI e executar a regressão funcional manual. Não integrar em `main`, criar tag ou publicar release sem nova autorização explícita.
+Gerar o artefato final, revisar commits e solicitar somente a regressão manual necessária antes de publicar `v0.3.0`. Não iniciar `0.4.0`.
