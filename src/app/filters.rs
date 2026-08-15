@@ -27,12 +27,16 @@ pub(crate) fn connect_dmr_filter_handlers(
                 hotspot: optional_filter_text(ui.get_dmr_filter_hotspot_text().as_str()),
                 timeslot: parse_optional_timeslot(ui.get_dmr_filter_timeslot_text().as_str())?,
             };
+            let previous_state = filter_state.borrow().clone();
             {
                 let mut state = filter_state.borrow_mut();
                 state.query = LogbookQuery::Dmr(filter);
                 state.offset = 0;
             }
-            refresh_qso_list(&ui, &filter_repository, &filter_state)?;
+            if let Err(error) = refresh_qso_list(&ui, &filter_repository, &filter_state) {
+                *filter_state.borrow_mut() = previous_state;
+                return Err(error);
+            }
             Ok(())
         })();
         match result {
@@ -57,6 +61,7 @@ pub(crate) fn connect_dmr_filter_handlers(
             return;
         };
         clear_dmr_filter_fields(&ui);
+        let previous_state = clear_state.borrow().clone();
         {
             let mut state = clear_state.borrow_mut();
             state.query = LogbookQuery::General(ui.get_search_text().to_string());
@@ -68,7 +73,10 @@ pub(crate) fn connect_dmr_filter_handlers(
                 ui.set_filters_expanded(false);
                 set_status(&ui, "DMR filters cleared", STATUS_INFO);
             }
-            Err(error) => set_status(&ui, format!("Could not reload QSOs: {error}"), STATUS_ERROR),
+            Err(error) => {
+                *clear_state.borrow_mut() = previous_state;
+                set_status(&ui, format!("Could not reload QSOs: {error}"), STATUS_ERROR);
+            }
         }
     });
 }
@@ -141,12 +149,16 @@ pub(crate) fn connect_ft8_filter_handlers(
                 end_utc: parse_optional_utc_datetime(ui.get_ft8_filter_end_text().as_str())?,
             };
             validate_ft8_filter_ranges(&filter)?;
+            let previous_state = filter_state.borrow().clone();
             {
                 let mut state = filter_state.borrow_mut();
                 state.query = LogbookQuery::Ft8(filter);
                 state.offset = 0;
             }
-            refresh_qso_list(&ui, &filter_repository, &filter_state)?;
+            if let Err(error) = refresh_qso_list(&ui, &filter_repository, &filter_state) {
+                *filter_state.borrow_mut() = previous_state;
+                return Err(error);
+            }
             Ok(())
         })();
         match result {
@@ -171,6 +183,7 @@ pub(crate) fn connect_ft8_filter_handlers(
             return;
         };
         clear_ft8_filter_fields(&ui);
+        let previous_state = clear_state.borrow().clone();
         {
             let mut state = clear_state.borrow_mut();
             state.query = LogbookQuery::General(ui.get_search_text().to_string());
@@ -182,7 +195,10 @@ pub(crate) fn connect_ft8_filter_handlers(
                 ui.set_filters_expanded(false);
                 set_status(&ui, "FT8 filters cleared", STATUS_INFO);
             }
-            Err(error) => set_status(&ui, format!("Could not reload QSOs: {error}"), STATUS_ERROR),
+            Err(error) => {
+                *clear_state.borrow_mut() = previous_state;
+                set_status(&ui, format!("Could not reload QSOs: {error}"), STATUS_ERROR);
+            }
         }
     });
 }

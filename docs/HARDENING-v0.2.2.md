@@ -94,6 +94,14 @@ Baseline analyzed:
 - Correction: only absolute XDG values are accepted; relative values fall back to an absolute HOME, and missing/empty/relative HOME is rejected.
 - Regression tests are in `app::paths::tests`.
 
+### M-004 — Committed mutations could be reported as failed
+
+- Severity: Medium
+- Cause: save/delete handlers combined the durable database mutation and the subsequent presentation refresh in one fallible result.
+- Impact: a refresh failure after commit could display “Could not save/delete”, encouraging a retry even though the database had already changed.
+- Correction: mutation results are now reported independently; a later refresh/reset failure explicitly states that the database change completed and the stored data remains safe. Failed search/filter refreshes restore the previous query state.
+- Regression protection: repository transaction tests continue to cover mutation failures; presentation behavior is validated by strict compilation and manual UI regression because Slint callbacks are not unit-injected in the current architecture.
+
 ### L-001 — Negative fractional frequency was accepted as positive
 
 - Severity: Low
@@ -116,7 +124,9 @@ Baseline analyzed:
 
 ### Backup and restoration
 
-- [x] Valid snapshot creation and overwrite refusal.
+- [x] Valid snapshot creation and byte-for-byte overwrite refusal.
+- [x] Missing destination directory is rejected without creating a file.
+- [x] Backup files use mode `0600` on Unix.
 - [x] Future and incomplete application schemas are rejected and removed.
 - [x] Controlled restore opens successfully and preserves generic, DMR, FT8 and unknown ADIF data.
 - [x] Restored database passes integrity and foreign-key checks.
@@ -160,7 +170,7 @@ Baseline analyzed:
 - Additional SQLite corruption forms beyond controlled truncation.
 - Atomic no-replace publication race for ADIF destinations requires a platform primitive not added in this cycle.
 - Deterministic injection of post-rename directory-sync failures is not available without a larger filesystem abstraction.
-- Durable mutation followed by presentation refresh failure remains a presentation-layer risk.
+
 - Resource limits for very large ADIF/text inputs remain undefined; no arbitrary limits were introduced without product policy.
 
 ## Final verification
@@ -168,7 +178,7 @@ Baseline analyzed:
 - `cargo fmt --check`: passed.
 - `cargo check --locked`: passed.
 - `cargo clippy --locked --all-targets --all-features -- -D warnings`: passed.
-- `cargo test --locked`: 97 tests passed.
+- `cargo test --locked`: 99 tests passed.
 - `cargo build --locked`: passed.
 - Migration matrix: schemas 0–5 passed individually.
 - X11 startup: application version 0.2.2 remained active until the expected timeout.

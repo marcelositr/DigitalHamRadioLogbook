@@ -35,6 +35,7 @@ pub(crate) fn connect_search_handler(
     let state = Rc::clone(state);
     ui.on_search_qso(move |query| {
         let Some(ui) = weak_ui.upgrade() else { return };
+        let previous_state = state.borrow().clone();
         {
             let mut state = state.borrow_mut();
             state.query = LogbookQuery::General(query.to_string());
@@ -42,7 +43,10 @@ pub(crate) fn connect_search_handler(
         }
         match refresh_qso_list(&ui, &repository, &state) {
             Ok(()) => set_status(&ui, "Search completed", STATUS_INFO),
-            Err(error) => set_status(&ui, format!("Could not search QSOs: {error}"), STATUS_ERROR),
+            Err(error) => {
+                *state.borrow_mut() = previous_state;
+                set_status(&ui, format!("Could not search QSOs: {error}"), STATUS_ERROR);
+            }
         }
     });
 }
@@ -105,19 +109,45 @@ pub(crate) fn connect_delete_handler(
     let state = Rc::clone(state);
     ui.on_delete_qso(move |id| {
         let Some(ui) = weak_ui.upgrade() else { return };
-        let result = (|| -> Result<(), Box<dyn Error>> {
-            let id = id.parse::<i64>()?;
-            if !repository.delete(id)? {
-                return Err("QSO no longer exists".into());
+        let id = match id.parse::<i64>() {
+            Ok(id) => id,
+            Err(error) => {
+                set_status(&ui, format!("Could not delete QSO: {error}"), STATUS_ERROR);
+                return;
             }
-            refresh_qso_list(&ui, &repository, &state)?;
-            if ui.get_editing_id() == id.to_string() {
-                clear_editor(&ui)?;
+        };
+        match repository.delete(id) {
+            Ok(true) => {
+                let refresh_result = refresh_qso_list(&ui, &repository, &state);
+                let clear_result = if ui.get_editing_id() == id.to_string() {
+                    clear_editor(&ui)
+                } else {
+                    Ok(())
+                };
+                match (refresh_result, clear_result) {
+                    (Ok(()), Ok(())) => set_status(&ui, "QSO deleted", STATUS_SUCCESS),
+                    (refresh, clear) => {
+                        let details = refresh
+                            .err()
+                            .map(|error| format!("Logbook refresh failed: {error}"))
+                            .or_else(|| {
+                                clear
+                                    .err()
+                                    .map(|error| format!("editor reset failed: {error}"))
+                            })
+                            .unwrap_or_else(|| "presentation update failed".to_owned());
+                        logging::error(&format!(
+                            "QSO deleted but presentation update failed: {details}"
+                        ));
+                        set_status(
+                            &ui,
+                            "QSO deleted, but the display could not be refreshed. The database remains consistent.",
+                            STATUS_WARNING,
+                        );
+                    }
+                }
             }
-            Ok(())
-        })();
-        match result {
-            Ok(()) => set_status(&ui, "QSO deleted", STATUS_SUCCESS),
+            Ok(false) => set_status(&ui, "Could not delete QSO: QSO no longer exists", STATUS_ERROR),
             Err(error) => set_status(&ui, format!("Could not delete QSO: {error}"), STATUS_ERROR),
         }
     });
