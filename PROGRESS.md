@@ -659,10 +659,11 @@ Versão `v0.2.1` publicada e verificada em https://github.com/marcelositr/Digita
 - [x] Executar fmt, check, clippy estrito, 99 testes ativos, build e migration matrix.
 - [x] Executar stress determinístico 1k, 10k, 100k e 1M.
 - [x] Executar validação automatizada de distribuição e upgrade real.
-- [ ] Executar regressão manual pelo mantenedor sem novas funcionalidades.
+- [x] Executar regressão manual pelo mantenedor sem novas funcionalidades.
 - [x] Preparar artefato final normalizado (`7298e558d9b901cf551ff91fc7964cfdb16bb6f119a38c78440e5c335c4dfd9d`).
-- [ ] Parar antes da publicação e aguardar aprovação manual.
+- [x] Aguardar e receber aprovação da regressão manual.
+- [ ] Publicar `develop`, confirmar CI e parar antes de `main`, tag e GitHub Release.
 
 ## Próxima ação exata
 
-Executar somente a regressão funcional manual do mantenedor. Depois, publicar `develop`/CI e preparar `v0.3.0` mediante autorização explícita. Não iniciar `0.4.0`.
+Publicar `develop`, confirmar todos os jobs de CI e solicitar autorização explícita antes de integrar em `main`, criar tag ou GitHub Release. Não iniciar `0.4.0`.
