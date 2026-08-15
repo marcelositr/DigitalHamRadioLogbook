@@ -1,0 +1,22 @@
+[package]
+name = "digital-ham-radio-logbook-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+
+[dependencies.digital-ham-radio-logbook]
+path = ".."
+
+
+[[bin]]
+name = "adif_parser"
+path = "fuzz_targets/adif_parser.rs"
+test = false
+doc = false
+bench = false
