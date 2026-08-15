@@ -5,7 +5,8 @@ use std::fmt::{Display, Formatter};
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 
 use crate::domain::{
-    CommonQsoFields, DmrMetadata, DmrMetadataInput, Ft8Metadata, Ft8MetadataInput, NewQso,
+    CommonQsoFields, DStarMetadata, DStarMetadataInput, DmrMetadata, DmrMetadataInput, Ft8Metadata,
+    Ft8MetadataInput, NewQso,
 };
 
 use super::{AdifField, AdifRecord};
@@ -20,13 +21,15 @@ pub struct ImportedQso {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ImportedModeMetadata {
     Dmr(DmrMetadata),
+    Dstar(DStarMetadata),
     Ft8(Ft8Metadata),
     Generic,
 }
 
 pub fn record_to_domain(record: &AdifRecord) -> Result<ImportedQso, AdifConversionError> {
     let callsign = required(record, "CALL")?;
-    let mode = required(record, "MODE")?;
+    let adif_mode = required(record, "MODE")?;
+    let mode = canonical_domain_mode(record, adif_mode)?;
     let date = required(record, "QSO_DATE")?;
     let time = required(record, "TIME_ON")?;
     let frequency_hz = parse_frequency_hz(required(record, "FREQ")?)?;
@@ -50,6 +53,7 @@ pub fn record_to_domain(record: &AdifRecord) -> Result<ImportedQso, AdifConversi
 
     let mode_metadata = match qso.mode.as_str() {
         "DMR" => ImportedModeMetadata::Dmr(convert_dmr(record)?),
+        "DSTAR" => ImportedModeMetadata::Dstar(convert_dstar(record)?),
         "FT8" => ImportedModeMetadata::Ft8(convert_ft8(record)?),
         _ => ImportedModeMetadata::Generic,
     };
@@ -77,8 +81,18 @@ pub fn domain_to_record(imported: &ImportedQso) -> Result<AdifRecord, AdifConver
         field("QSO_DATE", &datetime.format("%Y%m%d").to_string()),
         field("TIME_ON", &datetime.format("%H%M%S").to_string()),
         field("FREQ", &format_frequency_mhz(imported.qso.frequency_hz)),
-        field("MODE", &imported.qso.mode),
+        field(
+            "MODE",
+            if matches!(imported.mode_metadata, ImportedModeMetadata::Dstar(_)) {
+                "DIGITALVOICE"
+            } else {
+                &imported.qso.mode
+            },
+        ),
     ];
+    if matches!(imported.mode_metadata, ImportedModeMetadata::Dstar(_)) {
+        fields.push(field("SUBMODE", "DSTAR"));
+    }
     push_optional(&mut fields, "BAND", imported.qso.band.as_deref());
     push_optional(&mut fields, "RST_SENT", imported.qso.rst_sent.as_deref());
     push_optional(
@@ -99,6 +113,7 @@ pub fn domain_to_record(imported: &ImportedQso) -> Result<AdifRecord, AdifConver
 
     match &imported.mode_metadata {
         ImportedModeMetadata::Dmr(metadata) => append_dmr(&mut fields, metadata),
+        ImportedModeMetadata::Dstar(metadata) => append_dstar(&mut fields, metadata),
         ImportedModeMetadata::Ft8(metadata) => append_ft8(&mut fields, metadata),
         ImportedModeMetadata::Generic => {}
     }
@@ -129,6 +144,21 @@ fn convert_dmr(record: &AdifRecord) -> Result<DmrMetadata, AdifConversionError> 
         rx_frequency_hz: optional_decimal_hz(record, "APP_DHRL_RX_FREQUENCY_HZ")?,
         tx_frequency_hz: optional_decimal_hz(record, "APP_DHRL_TX_FREQUENCY_HZ")?,
         notes: string_value(record, "APP_DHRL_DMR_NOTES"),
+    })
+    .map_err(|error| AdifConversionError::new(error.to_string()))
+}
+
+fn convert_dstar(record: &AdifRecord) -> Result<DStarMetadata, AdifConversionError> {
+    DStarMetadata::from_input(DStarMetadataInput {
+        reflector: string_value(record, "APP_DHRL_DSTAR_REFLECTOR"),
+        module: string_value(record, "APP_DHRL_DSTAR_MODULE"),
+        mycall: aliased_value_if_equal(record, "APP_DHRL_DSTAR_MYCALL", "STATION_CALLSIGN")?
+            .unwrap_or_default()
+            .to_owned(),
+        urcall: string_value(record, "APP_DHRL_DSTAR_URCALL"),
+        rpt1: string_value(record, "APP_DHRL_DSTAR_RPT1"),
+        rpt2: string_value(record, "APP_DHRL_DSTAR_RPT2"),
+        notes: string_value(record, "APP_DHRL_DSTAR_NOTES"),
     })
     .map_err(|error| AdifConversionError::new(error.to_string()))
 }
@@ -167,6 +197,25 @@ fn append_dmr(fields: &mut Vec<AdifField>, metadata: &DmrMetadata) {
     push_number(fields, "APP_DHRL_TX_FREQUENCY_HZ", metadata.tx_frequency_hz);
     if !metadata.notes.is_empty() {
         fields.push(field("APP_DHRL_DMR_NOTES", &metadata.notes));
+    }
+}
+
+fn append_dstar(fields: &mut Vec<AdifField>, metadata: &DStarMetadata) {
+    push_optional(
+        fields,
+        "APP_DHRL_DSTAR_REFLECTOR",
+        metadata.reflector.as_deref(),
+    );
+    push_optional(fields, "APP_DHRL_DSTAR_MODULE", metadata.module.as_deref());
+    push_optional(fields, "STATION_CALLSIGN", metadata.mycall.as_deref());
+    push_optional(fields, "APP_DHRL_DSTAR_URCALL", metadata.urcall.as_deref());
+    push_optional(fields, "APP_DHRL_DSTAR_RPT1", metadata.rpt1.as_deref());
+    push_optional(fields, "APP_DHRL_DSTAR_RPT2", metadata.rpt2.as_deref());
+    if metadata.reflector.is_some() || metadata.rpt1.is_some() || metadata.rpt2.is_some() {
+        fields.push(field("PROP_MODE", "RPT"));
+    }
+    if !metadata.notes.is_empty() {
+        fields.push(field("APP_DHRL_DSTAR_NOTES", &metadata.notes));
     }
 }
 
@@ -226,7 +275,20 @@ fn known_fields(mode: &str) -> HashSet<&'static str> {
     ]
     .into_iter()
     .collect();
-    if mode == "DMR" {
+    if mode == "DSTAR" {
+        fields.extend([
+            "SUBMODE",
+            "PROP_MODE",
+            "STATION_CALLSIGN",
+            "APP_DHRL_DSTAR_REFLECTOR",
+            "APP_DHRL_DSTAR_MODULE",
+            "APP_DHRL_DSTAR_MYCALL",
+            "APP_DHRL_DSTAR_URCALL",
+            "APP_DHRL_DSTAR_RPT1",
+            "APP_DHRL_DSTAR_RPT2",
+            "APP_DHRL_DSTAR_NOTES",
+        ]);
+    } else if mode == "DMR" {
         fields.extend([
             "APP_DHRL_REMOTE_DMR_ID",
             "APP_DHRL_LOCAL_DMR_ID",
@@ -259,6 +321,20 @@ fn known_fields(mode: &str) -> HashSet<&'static str> {
     fields
 }
 
+fn canonical_domain_mode<'a>(
+    record: &AdifRecord,
+    mode: &'a str,
+) -> Result<&'a str, AdifConversionError> {
+    if mode.eq_ignore_ascii_case("DSTAR")
+        || (mode.eq_ignore_ascii_case("DIGITALVOICE")
+            && value(record, "SUBMODE").is_some_and(|value| value.eq_ignore_ascii_case("DSTAR")))
+    {
+        Ok("DSTAR")
+    } else {
+        Ok(mode)
+    }
+}
+
 fn required<'a>(record: &'a AdifRecord, name: &str) -> Result<&'a str, AdifConversionError> {
     value(record, name)
         .ok_or_else(|| AdifConversionError::new(format!("missing ADIF field {name}")))
@@ -284,6 +360,23 @@ fn aliased_value<'a>(
         (Some(_), Some(_)) => Err(AdifConversionError::new(format!(
             "conflicting ADIF fields {primary} and {alias}"
         ))),
+        (primary_value, alias_value) => Ok(primary_value.or(alias_value)),
+    }
+}
+
+fn aliased_value_if_equal<'a>(
+    record: &'a AdifRecord,
+    primary: &str,
+    alias: &str,
+) -> Result<Option<&'a str>, AdifConversionError> {
+    match (value(record, primary), value(record, alias)) {
+        (Some(primary_value), Some(alias_value))
+            if !primary_value.eq_ignore_ascii_case(alias_value) =>
+        {
+            Err(AdifConversionError::new(format!(
+                "conflicting ADIF fields {primary} and {alias}"
+            )))
+        }
         (primary_value, alias_value) => Ok(primary_value.or(alias_value)),
     }
 }
@@ -536,6 +629,85 @@ mod tests {
 
             assert!(record_to_domain(&document.records[0]).is_err());
         }
+    }
+
+    #[test]
+    fn imports_both_dstar_mode_forms_and_never_derives_call_from_urcall() {
+        let historical = parse(include_str!(
+            "../../tests/fixtures/adif/valid/dstar-minimal.adi"
+        ))
+        .unwrap();
+        let canonical = parse(include_str!(
+            "../../tests/fixtures/adif/valid/dstar-private.adi"
+        ))
+        .unwrap();
+
+        let historical = record_to_domain(&historical.records[0]).unwrap();
+        assert_eq!(historical.qso.mode, "DSTAR");
+        assert!(matches!(
+            historical.mode_metadata,
+            ImportedModeMetadata::Dstar(_)
+        ));
+
+        let canonical = record_to_domain(&canonical.records[0]).unwrap();
+        assert_eq!(canonical.qso.callsign, "PY2QSO");
+        let ImportedModeMetadata::Dstar(metadata) = canonical.mode_metadata else {
+            panic!("expected D-STAR metadata");
+        };
+        assert_eq!(metadata.mycall.as_deref(), Some("PY2OWN G"));
+        assert_eq!(metadata.urcall.as_deref(), Some("NOTACALL"));
+    }
+
+    #[test]
+    fn exports_canonical_dstar_and_round_trips_unknown_fields() {
+        let document = parse(include_str!(
+            "../../tests/fixtures/adif/valid/dstar-full.adi"
+        ))
+        .unwrap();
+        let imported = record_to_domain(&document.records[0]).unwrap();
+        assert_eq!(imported.extra_fields.len(), 1);
+
+        let exported = domain_to_record(&imported).unwrap();
+        assert_eq!(exported.get("MODE"), Some("DIGITALVOICE"));
+        assert_eq!(exported.get("SUBMODE"), Some("DSTAR"));
+        assert_eq!(exported.get("PROP_MODE"), Some("RPT"));
+        assert_eq!(exported.get("STATION_CALLSIGN"), Some("PY2ABC G"));
+        assert_eq!(exported.get("APP_DHRL_DSTAR_MYCALL"), None);
+        assert_eq!(exported.get("APP_VENDOR_DSTAR"), Some("opaque"));
+        assert_eq!(record_to_domain(&exported).unwrap(), imported);
+    }
+
+    #[test]
+    fn handles_dstar_mycall_alias_and_known_field_duplicates_explicitly() {
+        let equal_aliases = parse(
+            "<CALL:6>PY2QSO<QSO_DATE:8>20260815<TIME_ON:6>120200<FREQ:7>145.670\
+             <MODE:5>DSTAR<STATION_CALLSIGN:8>PY2OWN G\
+             <APP_DHRL_DSTAR_MYCALL:8>py2own g<EOR>",
+        )
+        .unwrap();
+        assert!(record_to_domain(&equal_aliases.records[0]).is_ok());
+
+        let conflicting_aliases = parse(
+            "<CALL:6>PY2QSO<QSO_DATE:8>20260815<TIME_ON:6>120200<FREQ:7>145.670\
+             <MODE:5>DSTAR<STATION_CALLSIGN:8>PY2OWN G\
+             <APP_DHRL_DSTAR_MYCALL:8>PY2ALT G<EOR>",
+        )
+        .unwrap();
+        let error = record_to_domain(&conflicting_aliases.records[0])
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("conflicting ADIF fields"));
+
+        let duplicate = parse(
+            "<CALL:6>PY2QSO<QSO_DATE:8>20260815<TIME_ON:6>120200<FREQ:7>145.670\
+             <MODE:5>DSTAR<APP_DHRL_DSTAR_RPT1:8>PY2RPT B\
+             <APP_DHRL_DSTAR_RPT1:8>PY2RPT G<EOR>",
+        )
+        .unwrap();
+        assert!(record_to_domain(&duplicate.records[0])
+            .unwrap_err()
+            .to_string()
+            .contains("duplicate ADIF field APP_DHRL_DSTAR_RPT1"));
     }
 
     #[test]
