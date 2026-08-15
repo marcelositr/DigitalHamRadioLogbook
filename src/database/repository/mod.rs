@@ -786,39 +786,125 @@ mod tests {
     }
 
     #[test]
-    fn exports_database_to_parseable_adif_with_metadata_and_extras() {
-        let repository = QsoRepository::in_memory().unwrap();
+    fn round_trips_complete_adif_semantics_through_two_sqlite_repositories() {
         let input = parse(
-            "<CALL:6>PY2ABC<QSO_DATE:8>20231114<TIME_ON:6>221320<FREQ:6>14.074\
-             <MODE:3>FT8<SNR:3>-18<APP_VENDOR_FIELD:5:S>value<EOR>\
-             <CALL:6>PU2XYZ<QSO_DATE:8>20231114<TIME_ON:6>221321<FREQ:7>438.500\
-             <MODE:3>DMR<APP_DHRL_TALKGROUP:3>724<APP_DHRL_CALL_TYPE:5>group\
-             <APP_DHRL_ACCESS_TYPE:7>simplex<EOR>",
+            "<CALL:6>PU2GEN<QSO_DATE:8>20231114<TIME_ON:6>221320<FREQ:7>145.500\
+             <MODE:3>M17<RST_SENT:3>599<RST_RCVD:3>579<GRIDSQUARE:6>GG66AA\
+             <NAME:5>José<QTH:10>São Paulo<COMMENT:11>ação 🚀\
+             <APP_ZETA:9:S>café ☕<APP_ALPHA:2:N>42<EOR>\
+             <CALL:6>PU2DMR<QSO_DATE:8>20231114<TIME_ON:6>221321<FREQ:7>438.500\
+             <MODE:3>DMR<APP_DHRL_REMOTE_DMR_ID:7>7241234\
+             <APP_DHRL_LOCAL_DMR_ID:7>7245678<APP_DHRL_TALKGROUP:3>724\
+             <APP_DHRL_TIMESLOT:1>2<APP_DHRL_COLOR_CODE:1>1\
+             <APP_DHRL_NETWORK:12>BrandMeister<APP_DHRL_CALL_TYPE:5>group\
+             <APP_DHRL_ACCESS_TYPE:8>repeater<APP_DHRL_REPEATER:6>PY2ABC\
+             <APP_DHRL_RX_FREQUENCY_HZ:9>438500125\
+             <APP_DHRL_TX_FREQUENCY_HZ:9>430900625\
+             <APP_DHRL_DMR_NOTES:12>áudio claro<EOR>\
+             <CALL:6>PY2FT8<QSO_DATE:8>20231114<TIME_ON:6>221322<FREQ:6>14.074\
+             <MODE:3>FT8<APP_DHRL_SNR_SENT:3>-10<SNR:3>-18<TX_PWR:2>25\
+             <APP_DHRL_AUDIO_FREQUENCY:4>1500<APP_DHRL_SOURCE_SOFTWARE:6>WSJT-X\
+             <APP_DHRL_PROTOCOL:3>FT8<APP_DHRL_FINAL_MESSAGE:4>RR73<EOR>",
         )
         .unwrap();
-        repository.import_adif(&input, 1_700_000_100).unwrap();
-
-        let document = repository.export_adif().unwrap();
+        let first = QsoRepository::in_memory().unwrap();
         assert_eq!(
-            document.header.as_ref().unwrap().get("PROGRAMID"),
+            first.import_adif(&input, 1_700_000_100).unwrap(),
+            AdifImportReport {
+                imported: 3,
+                duplicates_skipped: 0,
+            }
+        );
+
+        let exported = first.export_adif().unwrap();
+        assert_eq!(
+            exported.header.as_ref().unwrap().get("PROGRAMID"),
             Some("Digital Ham Radio Logbook")
         );
-        let encoded = export(&document);
-        let reparsed = parse(&encoded).unwrap();
-        assert_eq!(reparsed.records.len(), 2);
-        let ft8 = reparsed
-            .records
-            .iter()
-            .find(|record| record.get("MODE") == Some("FT8"))
-            .unwrap();
-        assert_eq!(ft8.get("SNR"), Some("-18"));
-        assert_eq!(ft8.get("APP_VENDOR_FIELD"), Some("value"));
-        let dmr = reparsed
-            .records
-            .iter()
-            .find(|record| record.get("MODE") == Some("DMR"))
-            .unwrap();
-        assert_eq!(dmr.get("APP_DHRL_TALKGROUP"), Some("724"));
+        assert_eq!(
+            exported.header.as_ref().unwrap().get("PROGRAMVERSION"),
+            Some(env!("CARGO_PKG_VERSION"))
+        );
+        let reparsed = parse(&export(&exported)).unwrap();
+        let second = QsoRepository::in_memory().unwrap();
+        assert_eq!(
+            second.import_adif(&reparsed, 1_700_000_200).unwrap(),
+            AdifImportReport {
+                imported: 3,
+                duplicates_skipped: 0,
+            }
+        );
+
+        let qsos = second.list().unwrap();
+        assert_eq!(qsos.len(), 3);
+        let generic = qsos.iter().find(|qso| qso.callsign == "PU2GEN").unwrap();
+        assert_eq!(generic.mode, "M17");
+        assert_eq!(generic.rst_sent.as_deref(), Some("599"));
+        assert_eq!(generic.rst_received.as_deref(), Some("579"));
+        assert_eq!(generic.grid_locator.as_deref(), Some("GG66AA"));
+        assert_eq!(generic.name.as_deref(), Some("José"));
+        assert_eq!(generic.qth.as_deref(), Some("São Paulo"));
+        assert_eq!(generic.notes, "ação 🚀");
+        assert_eq!(
+            second.get_adif_extra_fields(generic.id).unwrap(),
+            vec![
+                AdifField {
+                    name: "APP_ZETA".into(),
+                    value: "café ☕".into(),
+                    data_type: Some("S".into()),
+                },
+                AdifField {
+                    name: "APP_ALPHA".into(),
+                    value: "42".into(),
+                    data_type: Some("N".into()),
+                },
+            ]
+        );
+
+        let dmr = qsos.iter().find(|qso| qso.callsign == "PU2DMR").unwrap();
+        assert_eq!(
+            second.get_dmr_metadata(dmr.id).unwrap().unwrap(),
+            DmrMetadata {
+                remote_dmr_id: Some(7_241_234),
+                local_dmr_id: Some(7_245_678),
+                talkgroup: Some(724),
+                timeslot: Some(2),
+                color_code: Some(1),
+                network: Some("BrandMeister".into()),
+                call_type: DmrCallType::Group,
+                access_type: DmrAccessType::Repeater,
+                repeater_callsign: Some("PY2ABC".into()),
+                hotspot: None,
+                rx_frequency_hz: Some(438_500_125),
+                tx_frequency_hz: Some(430_900_625),
+                notes: "áudio claro".into(),
+            }
+        );
+
+        let ft8 = qsos.iter().find(|qso| qso.callsign == "PY2FT8").unwrap();
+        assert_eq!(
+            second.get_ft8_metadata(ft8.id).unwrap().unwrap(),
+            Ft8Metadata {
+                snr_sent_db: Some(-10),
+                snr_received_db: Some(-18),
+                power_watts: Some(25),
+                audio_frequency_hz: Some(1_500),
+                source_software: Some("WSJT-X".into()),
+                protocol: Some("FT8".into()),
+                final_message: Some("RR73".into()),
+            }
+        );
+
+        let second_export = parse(&export(&second.export_adif().unwrap())).unwrap();
+        assert_eq!(second_export.records, reparsed.records);
+        assert_eq!(
+            second.import_adif(&reparsed, 1_700_000_300).unwrap(),
+            AdifImportReport {
+                imported: 0,
+                duplicates_skipped: 3,
+            }
+        );
+        assert_eq!(second.list().unwrap().len(), 3);
     }
 
     #[test]

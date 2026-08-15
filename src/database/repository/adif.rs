@@ -49,6 +49,11 @@ impl QsoRepository {
                         value: "Digital Ham Radio Logbook".into(),
                         data_type: None,
                     },
+                    AdifField {
+                        name: "PROGRAMVERSION".into(),
+                        value: env!("CARGO_PKG_VERSION").into(),
+                        data_type: None,
+                    },
                 ],
             }),
             records,
