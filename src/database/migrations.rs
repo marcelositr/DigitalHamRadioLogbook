@@ -1,6 +1,6 @@
 use rusqlite::{Connection, Error, Result};
 
-const CURRENT_SCHEMA_VERSION: i64 = 5;
+const CURRENT_SCHEMA_VERSION: i64 = 6;
 
 const INITIAL_SCHEMA: &str = r#"
 CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -105,6 +105,30 @@ INSERT INTO schema_migrations(version, applied_at_utc)
 VALUES (5, CAST(strftime('%s', 'now') AS INTEGER));
 "#;
 
+const DSTAR_SCHEMA: &str = r#"
+CREATE TABLE IF NOT EXISTS dstar_metadata (
+    qso_id INTEGER PRIMARY KEY,
+    reflector TEXT,
+    module TEXT,
+    mycall TEXT,
+    urcall TEXT,
+    rpt1 TEXT,
+    rpt2 TEXT,
+    notes TEXT NOT NULL DEFAULT '',
+    FOREIGN KEY (qso_id) REFERENCES qsos(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_dstar_metadata_reflector_nocase
+ON dstar_metadata(reflector COLLATE NOCASE);
+CREATE INDEX IF NOT EXISTS idx_dstar_metadata_module_nocase
+ON dstar_metadata(module COLLATE NOCASE);
+CREATE INDEX IF NOT EXISTS idx_dstar_metadata_rpt1_nocase
+ON dstar_metadata(rpt1 COLLATE NOCASE);
+
+INSERT INTO schema_migrations(version, applied_at_utc)
+VALUES (6, CAST(strftime('%s', 'now') AS INTEGER));
+"#;
+
 const FT8_SCHEMA: &str = r#"
 CREATE TABLE IF NOT EXISTS ft8_metadata (
     qso_id INTEGER PRIMARY KEY,
@@ -165,6 +189,15 @@ pub fn run(connection: &mut Connection) -> Result<()> {
         transaction.execute_batch(QUERY_INDEXES_SCHEMA)?;
     }
 
+    let has_dstar_schema: bool = transaction.query_row(
+        "SELECT EXISTS(SELECT 1 FROM schema_migrations WHERE version = 6)",
+        [],
+        |row| row.get(0),
+    )?;
+    if !has_dstar_schema {
+        transaction.execute_batch(DSTAR_SCHEMA)?;
+    }
+
     validate_schema(&transaction)?;
     transaction.commit()
 }
@@ -202,6 +235,7 @@ fn validate_schema(connection: &Connection) -> Result<()> {
         "digital_routes",
         "dmr_metadata",
         "ft8_metadata",
+        "dstar_metadata",
         "adif_extra_fields",
     ] {
         let exists: bool = connection.query_row(
@@ -232,6 +266,9 @@ fn validate_schema(connection: &Connection) -> Result<()> {
         "idx_digital_routes_network_nocase",
         "idx_digital_routes_repeater_nocase",
         "idx_digital_routes_hotspot_nocase",
+        "idx_dstar_metadata_reflector_nocase",
+        "idx_dstar_metadata_module_nocase",
+        "idx_dstar_metadata_rpt1_nocase",
     ] {
         let exists: bool = connection.query_row(
             "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = ?1)",
@@ -263,7 +300,7 @@ mod tests {
                 row.get(0)
             })
             .unwrap();
-        assert_eq!(version, 5);
+        assert_eq!(version, CURRENT_SCHEMA_VERSION);
 
         let dmr_table_exists: bool = connection
             .query_row(
@@ -283,6 +320,15 @@ mod tests {
             .unwrap();
         assert!(ft8_table_exists);
 
+        let dstar_table_exists: bool = connection
+            .query_row(
+                "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'dstar_metadata')",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert!(dstar_table_exists);
+
         let extra_fields_table_exists: bool = connection
             .query_row(
                 "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'adif_extra_fields')",
@@ -298,13 +344,14 @@ mod tests {
                     'idx_qsos_datetime_start_id_desc',
                     'idx_qsos_mode_datetime_start_id_desc',
                     'idx_dmr_metadata_local_id',
-                    'idx_digital_routes_network_nocase'
+                    'idx_digital_routes_network_nocase',
+                    'idx_dstar_metadata_reflector_nocase'
                 )",
                 [],
                 |row| row.get(0),
             )
             .unwrap();
-        assert_eq!(indexes, 4);
+        assert_eq!(indexes, 5);
     }
 
     #[test]
@@ -356,6 +403,12 @@ mod tests {
                     1
                 );
             }
+            if version >= 6 {
+                assert_eq!(
+                    scalar(&connection, "SELECT COUNT(*) FROM dstar_metadata"),
+                    1
+                );
+            }
             assert_eq!(
                 connection
                     .query_row("PRAGMA quick_check", [], |row| row.get::<_, String>(0))
@@ -385,6 +438,9 @@ mod tests {
         }
         if version >= 5 {
             connection.execute_batch(QUERY_INDEXES_SCHEMA).unwrap();
+        }
+        if version >= 6 {
+            connection.execute_batch(DSTAR_SCHEMA).unwrap();
         }
     }
 
@@ -428,6 +484,14 @@ mod tests {
             connection
                 .execute(
                     "INSERT INTO adif_extra_fields(qso_id, field_order, name, value) VALUES (?1, 0, 'APP_TEST', 'preserved')",
+                    [qso_id],
+                )
+                .unwrap();
+        }
+        if version >= 6 {
+            connection
+                .execute(
+                    "INSERT INTO dstar_metadata(qso_id, reflector, module, rpt1) VALUES (?1, 'REF001', 'C', 'PY2MIG B')",
                     [qso_id],
                 )
                 .unwrap();
@@ -533,6 +597,39 @@ mod tests {
             .unwrap();
         let count: i64 = connection
             .query_row("SELECT COUNT(*) FROM ft8_metadata", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(count, 0);
+    }
+
+    #[test]
+    fn dstar_metadata_is_deleted_with_its_qso() {
+        let mut connection = Connection::open_in_memory().unwrap();
+        connection
+            .execute_batch("PRAGMA foreign_keys = ON;")
+            .unwrap();
+        run(&mut connection).unwrap();
+        connection
+            .execute(
+                "INSERT INTO qsos (
+                    callsign, datetime_start_utc, frequency_hz, mode,
+                    created_at_utc, updated_at_utc
+                 ) VALUES ('PY2DSTAR', 1700000000, 145500000, 'D-STAR', 1700000000, 1700000000)",
+                [],
+            )
+            .unwrap();
+        let qso_id = connection.last_insert_rowid();
+        connection
+            .execute(
+                "INSERT INTO dstar_metadata(qso_id, reflector, module) VALUES (?1, 'REF001', 'C')",
+                [qso_id],
+            )
+            .unwrap();
+
+        connection
+            .execute("DELETE FROM qsos WHERE id = ?1", [qso_id])
+            .unwrap();
+        let count: i64 = connection
+            .query_row("SELECT COUNT(*) FROM dstar_metadata", [], |row| row.get(0))
             .unwrap();
         assert_eq!(count, 0);
     }
