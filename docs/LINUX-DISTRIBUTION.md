@@ -28,6 +28,7 @@ Requisitos:
 - dependências nativas de compilação do projeto;
 - `tar`;
 - `sha256sum` ou `shasum`;
+- opcionalmente GNU `tar` e `gzip` para normalização determinística;
 - opcionalmente `ldd` para validar bibliotecas compartilhadas.
 
 Na raiz do repositório:
@@ -42,7 +43,9 @@ Um diretório de saída pode ser informado:
 packaging/linux/make-release.sh artifacts
 ```
 
-O script executa exatamente um build bloqueado de release (`cargo build --locked --release`), monta um staging mínimo, cria `digital-ham-radio-logbook-VERSAO-linux-ARQUITETURA.tar.gz` e grava o checksum adjacente em `.tar.gz.sha256`.
+O script valida ferramentas, arquivos de entrada e diretório de saída antes do build, executa exatamente um build bloqueado de release (`cargo build --locked --release`) e monta um staging mínimo. O tarball e o checksum são concluídos em arquivos temporários no próprio diretório de saída; somente depois são renomeados para `digital-ham-radio-logbook-VERSAO-linux-ARQUITETURA.tar.gz` e `.tar.gz.sha256`. O checksum é publicado por último e funciona como marcador de conclusão, evitando que consumidores encontrem um checksum para um tarball ainda parcial.
+
+Quando GNU `tar` e `gzip` estão disponíveis, o conteúdo é ordenado, proprietário e grupo são normalizados para `0`, timestamps usam `${SOURCE_DATE_EPOCH:-0}` e o cabeçalho gzip não contém nome nem timestamp. Com as mesmas entradas, arquitetura e `SOURCE_DATE_EPOCH`, isso produz tarballs reproduzíveis. Em outras implementações de `tar`, a geração continua de forma portátil, com um aviso de que os metadados não foram normalizados.
 
 ## Verificar e extrair
 
@@ -119,6 +122,17 @@ Instalação, atualização e desinstalação **não removem nem alteram dados d
 A pasta `digital-ham-log` é deliberadamente separada dos arquivos instalados e sempre preservada pelo desinstalador. Para remoção manual dos dados, primeiro faça backup e confirme os caminhos XDG efetivos; essa ação é irreversível e não faz parte dos scripts de distribuição.
 
 O aplicativo é local/offline e não instala telemetria, daemon ou atualização automática.
+
+## Validação do packaging
+
+O teste POSIX de distribuição não compila o aplicativo real: ele cria uma cópia mínima e isolada do layout da release com um payload controlado. O teste verifica o conteúdo exato do tarball, checksum, ausência de temporários de publicação, planos `--dry-run`, instalação, reinstalação, desinstalação e preservação de dados/configuração XDG sentinela:
+
+```sh
+sh -n packaging/linux/*.sh
+packaging/linux/smoke-test.sh
+```
+
+A CI executa essas verificações em um job pequeno e independente do build Rust.
 
 ## Solução de problemas
 
