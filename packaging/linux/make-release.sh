@@ -34,7 +34,7 @@ CHECKSUM_TMP=$OUTPUT_DIR/.$RELEASE_NAME.tar.gz.sha256.tmp.$$
 cleanup() { rm -rf -- "$STAGING_PARENT"; rm -f -- "$ARCHIVE_TMP" "$CHECKSUM_TMP"; }
 trap cleanup EXIT HUP INT TERM
 
-for tool in cargo tar sed uname mkdir cp chmod mv rm; do
+for tool in cargo tar sed uname mkdir cp chmod mv rm find; do
     command -v "$tool" >/dev/null 2>&1 || {
         printf 'Required tool not found: %s\n' "$tool" >&2
         exit 1
@@ -88,6 +88,8 @@ cp -- "$SCRIPT_DIR/$APP_ID.desktop.in" "$STAGING/share/applications/"
 cp -- "$ROOT_DIR/assets/$APP_ID.svg" "$STAGING/share/icons/hicolor/scalable/apps/"
 cp -- "$ROOT_DIR/LICENSE" "$STAGING/"
 cp -- "$ROOT_DIR/docs/LINUX-DISTRIBUTION.md" "$STAGING/docs/"
+find "$STAGING" -type d -exec chmod 755 {} +
+find "$STAGING" -type f -exec chmod 644 {} +
 chmod 755 "$STAGING/install.sh" "$STAGING/uninstall.sh" "$STAGING/bin/$PACKAGE"
 
 # GNU tar and gzip can remove timestamps, ownership, ordering and gzip header

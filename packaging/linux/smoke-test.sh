@@ -9,6 +9,7 @@ TMP_ROOT=${TMPDIR:-/tmp}/digital-ham-radio-logbook-packaging-test.$$
 FIXTURE=$TMP_ROOT/repository
 TOOLS=$TMP_ROOT/tools
 DIST=$TMP_ROOT/dist
+DIST_SECOND=$TMP_ROOT/dist-second
 EXTRACT=$TMP_ROOT/extract
 TEST_HOME=$TMP_ROOT/home
 XDG_DATA_HOME=$TMP_ROOT/xdg-data
@@ -31,7 +32,7 @@ else
 fi
 
 mkdir -p "$FIXTURE/packaging/linux" "$FIXTURE/assets" "$FIXTURE/docs" \
-    "$TOOLS" "$DIST" "$EXTRACT" "$TEST_HOME" "$XDG_DATA_HOME" \
+    "$TOOLS" "$DIST" "$DIST_SECOND" "$EXTRACT" "$TEST_HOME" "$XDG_DATA_HOME" \
     "$XDG_CONFIG_HOME/digital-ham-log" "$XDG_BIN_HOME"
 cp "$SCRIPT_DIR/make-release.sh" "$SCRIPT_DIR/install.sh" \
     "$SCRIPT_DIR/uninstall.sh" "$SCRIPT_DIR/$APP_ID.desktop.in" \
@@ -58,11 +59,15 @@ printf 'smoke payload has no shared-library dependencies\n'
 EOF
 chmod 755 "$TOOLS/cargo" "$TOOLS/ldd"
 
-PATH=$TOOLS:$PATH SOURCE_DATE_EPOCH=0 "$FIXTURE/packaging/linux/make-release.sh" "$DIST"
+(umask 002; PATH=$TOOLS:$PATH SOURCE_DATE_EPOCH=0 "$FIXTURE/packaging/linux/make-release.sh" "$DIST")
+(umask 077; PATH=$TOOLS:$PATH SOURCE_DATE_EPOCH=0 "$FIXTURE/packaging/linux/make-release.sh" "$DIST_SECOND")
 ARCHIVE=$(find "$DIST" -type f -name '*.tar.gz' -print)
+SECOND_ARCHIVE=$(find "$DIST_SECOND" -type f -name '*.tar.gz' -print)
 CHECKSUM=$(find "$DIST" -type f -name '*.tar.gz.sha256' -print)
 [ -n "$ARCHIVE" ] && [ -f "$ARCHIVE" ] || fail 'release archive was not created'
+[ -n "$SECOND_ARCHIVE" ] && [ -f "$SECOND_ARCHIVE" ] || fail 'second release archive was not created'
 [ -n "$CHECKSUM" ] && [ -f "$CHECKSUM" ] || fail 'release checksum was not created'
+cmp "$ARCHIVE" "$SECOND_ARCHIVE" || fail 'normalized archives differ across umasks'
 [ "$(find "$DIST" -type f -name '*.tmp.*' -print)" = '' ] || fail 'temporary publication files remain'
 
 (cd "$DIST" && if [ "$VERIFY_CHECKSUM" = sha256sum ]; then sha256sum -c "$(basename "$CHECKSUM")"; else shasum -a 256 -c "$(basename "$CHECKSUM")"; fi)
