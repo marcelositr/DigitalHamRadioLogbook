@@ -611,7 +611,7 @@ Versão `v0.2.1` publicada e verificada em https://github.com/marcelositr/Digita
 - [x] Confirmar CI completo de `main`, incluindo schemas 0–5.
 - [x] Publicar `v0.2.2` em https://github.com/marcelositr/DigitalHamRadioLogbook/releases/tag/v0.2.2.
 
-## Marco 30 — Robustez estrutural v0.3.0 (EM ANDAMENTO)
+## Marco 30 — Robustez estrutural v0.3.0 (CONCLUÍDO)
 
 ### Fase 1 — Auditoria e baseline (CONCLUÍDA)
 
@@ -653,7 +653,7 @@ Versão `v0.2.1` publicada e verificada em https://github.com/marcelositr/Digita
 - [x] Executar pacote real, instalação `v0.2.2`, atualização para `v0.3.0` e desinstalação isoladas.
 - [x] Confirmar schema 5, integridade e preservação por hash de QSO/configuração.
 
-### Fase 6 — Gates finais (EM ANDAMENTO)
+### Fase 6 — Gates finais e publicação (CONCLUÍDA)
 
 - [x] Finalizar changelog, arquitetura, performance e release notes.
 - [x] Executar fmt, check, clippy estrito, 99 testes ativos, build e migration matrix.
@@ -664,7 +664,45 @@ Versão `v0.2.1` publicada e verificada em https://github.com/marcelositr/Digita
 - [x] Aguardar e receber aprovação da regressão manual.
 - [x] Publicar `develop` e confirmar os oito jobs de CI, incluindo packaging e schemas 0–5.
 - [x] Parar antes de `main`, tag e GitHub Release.
+- [x] Integrar em `main`, publicar tag/release `v0.3.0` e confirmar oito jobs de CI após autorização.
+
+## Marco 31 — Interoperabilidade ADIF v0.4.0 (EM ANDAMENTO)
+
+### Fase 1 — Auditoria e inventário (CONCLUÍDA)
+
+- [x] Ler documentação, parser, exporter, converter, repository e testes ADIF.
+- [x] Inventariar campos comuns, DMR, FT8, aliases, APP fields e unknown fields.
+- [x] Identificar perda silenciosa em aliases e RX/TX DMR.
+- [x] Confirmar baseline de 25 testes ADIF filtrados.
+
+### Fase 2 — Corpus e parser (CONCLUÍDA)
+
+- [x] Criar 16 fixtures válidas e 8 inválidas, sintéticas e sem dados pessoais.
+- [x] Cobrir header, múltiplos registros, DMR, FT8, Unicode, tipos, unknowns, caixa, whitespace e CRLF.
+- [x] Tornar BOM inicial explícito e rejeitar arquivo não vazio sem tags.
+- [x] Validar nomes/tipos estruturais e melhorar diagnóstico de EOH fora de ordem.
+
+### Fase 3 — Preservação e round-trip (CONCLUÍDA)
+
+- [x] Rejeitar conflitos de aliases em vez de descartar valores.
+- [x] Preservar DMR RX/TX com campos privados estáveis.
+- [x] Adicionar `PROGRAMVERSION` ao header exportado.
+- [x] Cobrir round-trip completo por dois bancos SQLite para genérico, DMR, FT8, unknown/APP fields e Unicode.
+
+### Fase 4 — Fuzzing (CONCLUÍDA)
+
+- [x] Criar target mínimo `bytes → UTF-8 válido → parser` com `cargo-fuzz`.
+- [x] Usar as 24 fixtures como seeds.
+- [x] Executar 60 segundos, 3.618.168 entradas e zero crashes conhecidos.
+
+### Fase 5 — Documentação e gates (EM ANDAMENTO)
+
+- [x] Documentar interoperabilidade e extensões privadas.
+- [x] Atualizar versão fonte para `0.4.0` e changelog.
+- [x] Executar fmt, check, clippy estrito, 113 testes ativos e build locked.
+- [x] Confirmar exportação de 100k em ~1,03 s, sem regressão relevante.
+- [ ] Executar regressão manual final e preparar release.
 
 ## Próxima ação exata
 
-Solicitar autorização explícita para integrar `develop` em `main`, criar a tag `v0.3.0` e publicar a GitHub Release com tarball/checksum. Não iniciar `0.4.0`.
+Executar regressão manual final de importação/exportação usando DMR, FT8, unknown field, Unicode, CRLF e arquivo quebrado. Não iniciar `0.5.0`.

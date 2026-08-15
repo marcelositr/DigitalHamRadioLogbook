@@ -13,7 +13,7 @@ O MVP funcional inclui:
 - listagem, pesquisa, criação, edição e exclusão confirmada de QSOs;
 - campos comuns e metadados específicos de DMR e FT8;
 - filtros gerais, DMR e FT8;
-- importação e exportação ADIF transacionais;
+- importação ADIF transacional e exportação publicada por arquivo temporário seguro;
 - preservação de campos ADIF desconhecidos;
 - configuração local da estação;
 - links externos configuráveis para consulta de callsign e GridSquare;
@@ -168,6 +168,8 @@ Erros operacionais comuns exibem orientação prática junto do detalhe técnico
 A abertura do banco recusa schemas futuros, valida os objetos esperados e executa verificações SQLite de integridade e foreign keys. Backups passam pelas mesmas verificações. A configuração e a exportação ADIF são publicadas por temporário + rename, usam permissões privadas `0600` no Unix e reduzem o risco de arquivos parciais.
 
 O procedimento seguro de restauração está em `docs/DATA-RECOVERY.md`. Nunca substitua o banco enquanto a aplicação estiver aberta.
+
+O contrato de campos, normalizações, corpus e limitações ADIF está em `docs/ADIF-INTEROPERABILITY.md`. As extensões privadas compatíveis estão em `docs/ADIF-EXTENSIONS.md`.
 
 ## Licença e autoria
 

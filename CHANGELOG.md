@@ -4,7 +4,26 @@ Este projeto segue [Semantic Versioning](https://semver.org/). As release notes 
 
 ## [Unreleased]
 
-## [0.3.0] - Em desenvolvimento
+## [0.4.0] - Em desenvolvimento
+
+### Added
+
+- corpus ADIF permanente com fixtures válidas e inválidas;
+- round-trip completo por dois bancos SQLite para QSO comum, DMR, FT8, unknown fields e Unicode;
+- target `cargo-fuzz` isolado para o parser;
+- documentação de interoperabilidade e extensões `APP_DHRL_*`.
+
+### Changed
+
+- parser trata BOM/CRLF conscientemente e valida nomes/tipos estruturais;
+- header exportado inclui `PROGRAMVERSION` derivado da versão compilada.
+
+### Fixed
+
+- conflitos entre aliases ADIF agora são recusados em vez de descartar um valor;
+- frequências RX/TX DMR passam a sobreviver round-trip ADIF.
+
+## [0.3.0] - 2026-08-15
 
 ### Added
 

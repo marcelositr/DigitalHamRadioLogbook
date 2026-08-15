@@ -1,0 +1,57 @@
+# Extensões ADIF do Digital Ham Radio Logbook
+
+Campos `APP_DHRL_*` publicados são contratos de compatibilidade. O importer continuará aceitando estes nomes; o exporter usa somente os nomes canônicos abaixo. Valores são emitidos sem tipo explícito, salvo campos desconhecidos originalmente tipados.
+
+## DMR
+
+| Campo | Significado | Exemplo |
+|---|---|---|
+| `APP_DHRL_REMOTE_DMR_ID` | DMR ID remoto | `7241234` |
+| `APP_DHRL_LOCAL_DMR_ID` | DMR ID local | `7245678` |
+| `APP_DHRL_TALKGROUP` | Talkgroup | `724` |
+| `APP_DHRL_TIMESLOT` | Timeslot 1 ou 2 | `1` |
+| `APP_DHRL_COLOR_CODE` | Color code 0–15 | `1` |
+| `APP_DHRL_NETWORK` | Rede informada | `Local` |
+| `APP_DHRL_CALL_TYPE` | `group` ou `private` | `group` |
+| `APP_DHRL_ACCESS_TYPE` | `simplex`, `repeater` ou `hotspot` | `repeater` |
+| `APP_DHRL_REPEATER` | Callsign da repetidora | `PY2RPT` |
+| `APP_DHRL_HOTSPOT` | Identificação do hotspot | `MMDVM` |
+| `APP_DHRL_DMR_NOTES` | Observação específica DMR | `TG regional` |
+| `APP_DHRL_RX_FREQUENCY_HZ` | Frequência RX exata em Hz | `438500000` |
+| `APP_DHRL_TX_FREQUENCY_HZ` | Frequência TX exata em Hz | `431500000` |
+
+Aliases históricos/externos aceitos apenas na importação:
+
+- `MY_SIG_INFO` como fallback de talkgroup;
+- `SIG` como fallback de rede.
+
+Se alias e campo canônico aparecerem simultaneamente, o registro é recusado para não descartar um valor silenciosamente.
+
+## FT8
+
+| Campo | Significado | Exemplo |
+|---|---|---|
+| `APP_DHRL_SNR_SENT` | SNR enviado, dB | `-10` |
+| `APP_DHRL_AUDIO_FREQUENCY` | Frequência de áudio, Hz | `1500` |
+| `APP_DHRL_SOURCE_SOFTWARE` | Software de origem | `WSJT-X` |
+| `APP_DHRL_PROTOCOL` | Protocolo informado | `FT8` |
+| `APP_DHRL_FINAL_MESSAGE` | Mensagem final | `RR73` |
+
+Campos padrão usados quando disponíveis:
+
+- `SNR` para SNR recebido;
+- `TX_PWR` para potência.
+
+`APP_DHRL_SNR_RECEIVED` continua aceito como alias de importação. Se aparecer junto com `SNR`, o registro é recusado por ambiguidade.
+
+## Campos desconhecidos
+
+Campos não reconhecidos são preservados por QSO com:
+
+- nome normalizado para uppercase;
+- valor exato;
+- tipo ADIF quando presente;
+- duplicatas;
+- ordem relativa entre os campos desconhecidos.
+
+Na exportação, campos conhecidos são emitidos primeiro em ordem canônica e os desconhecidos são anexados em sua ordem relativa original. A posição original entre campos conhecidos e desconhecidos não é preservada.
