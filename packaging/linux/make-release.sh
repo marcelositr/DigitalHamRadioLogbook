@@ -27,9 +27,42 @@ RELEASE_NAME=$PACKAGE-$VERSION-linux-$ARCH
 STAGING_PARENT=$OUTPUT_DIR/.staging.$$
 STAGING=$STAGING_PARENT/$RELEASE_NAME
 ARCHIVE=$OUTPUT_DIR/$RELEASE_NAME.tar.gz
+CHECKSUM=$ARCHIVE.sha256
+ARCHIVE_TMP=$OUTPUT_DIR/.$RELEASE_NAME.tar.gz.tmp.$$
+CHECKSUM_TMP=$OUTPUT_DIR/.$RELEASE_NAME.tar.gz.sha256.tmp.$$
 
-cleanup() { rm -rf -- "$STAGING_PARENT"; }
+cleanup() { rm -rf -- "$STAGING_PARENT"; rm -f -- "$ARCHIVE_TMP" "$CHECKSUM_TMP"; }
 trap cleanup EXIT HUP INT TERM
+
+for tool in cargo tar sed uname mkdir cp chmod mv rm; do
+    command -v "$tool" >/dev/null 2>&1 || {
+        printf 'Required tool not found: %s\n' "$tool" >&2
+        exit 1
+    }
+done
+if command -v sha256sum >/dev/null 2>&1; then
+    HASH_TOOL=sha256sum
+elif command -v shasum >/dev/null 2>&1; then
+    HASH_TOOL=shasum
+else
+    printf 'Neither sha256sum nor shasum is available.\n' >&2
+    exit 1
+fi
+for source in \
+    "$SCRIPT_DIR/install.sh" \
+    "$SCRIPT_DIR/uninstall.sh" \
+    "$SCRIPT_DIR/$APP_ID.desktop.in" \
+    "$ROOT_DIR/assets/$APP_ID.svg" \
+    "$ROOT_DIR/LICENSE" \
+    "$ROOT_DIR/docs/LINUX-DISTRIBUTION.md"
+do
+    [ -f "$source" ] || { printf 'Required release file not found: %s\n' "$source" >&2; exit 1; }
+done
+mkdir -p -- "$OUTPUT_DIR"
+[ -d "$OUTPUT_DIR" ] && [ -w "$OUTPUT_DIR" ] || {
+    printf 'Output directory is not writable: %s\n' "$OUTPUT_DIR" >&2
+    exit 1
+}
 
 cd "$ROOT_DIR"
 cargo build --locked --release
@@ -48,7 +81,7 @@ else
 fi
 
 mkdir -p -- "$STAGING/bin" "$STAGING/share/applications" \
-    "$STAGING/share/icons/hicolor/scalable/apps" "$STAGING/docs" "$OUTPUT_DIR"
+    "$STAGING/share/icons/hicolor/scalable/apps" "$STAGING/docs"
 cp -- "$BINARY" "$STAGING/bin/$PACKAGE"
 cp -- "$SCRIPT_DIR/install.sh" "$SCRIPT_DIR/uninstall.sh" "$STAGING/"
 cp -- "$SCRIPT_DIR/$APP_ID.desktop.in" "$STAGING/share/applications/"
@@ -57,14 +90,34 @@ cp -- "$ROOT_DIR/LICENSE" "$STAGING/"
 cp -- "$ROOT_DIR/docs/LINUX-DISTRIBUTION.md" "$STAGING/docs/"
 chmod 755 "$STAGING/install.sh" "$STAGING/uninstall.sh" "$STAGING/bin/$PACKAGE"
 
-tar -C "$STAGING_PARENT" -czf "$ARCHIVE" "$RELEASE_NAME"
-if command -v sha256sum >/dev/null 2>&1; then
-    (cd "$OUTPUT_DIR" && sha256sum "$RELEASE_NAME.tar.gz" >"$RELEASE_NAME.tar.gz.sha256")
-elif command -v shasum >/dev/null 2>&1; then
-    (cd "$OUTPUT_DIR" && shasum -a 256 "$RELEASE_NAME.tar.gz" >"$RELEASE_NAME.tar.gz.sha256")
+# GNU tar and gzip can remove timestamps, ownership, ordering and gzip header
+# variance. Other tar implementations retain the portable release path.
+if tar --version 2>/dev/null | grep 'GNU tar' >/dev/null 2>&1 && command -v gzip >/dev/null 2>&1; then
+    SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-0}
+    tar -C "$STAGING_PARENT" --sort=name --format=posix \
+        --mtime="@$SOURCE_DATE_EPOCH" --owner=0 --group=0 --numeric-owner \
+        --pax-option=delete=atime,delete=ctime -cf - "$RELEASE_NAME" |
+        gzip -n >"$ARCHIVE_TMP"
 else
-    printf 'Neither sha256sum nor shasum is available.\n' >&2
-    exit 1
+    printf 'GNU tar and gzip not both available; archive metadata is not normalized.\n' >&2
+    tar -C "$STAGING_PARENT" -czf "$ARCHIVE_TMP" "$RELEASE_NAME"
 fi
 
-printf 'Created %s\nCreated %s.sha256\n' "$ARCHIVE" "$ARCHIVE"
+if [ "$HASH_TOOL" = sha256sum ]; then
+    checksum_line=$(sha256sum "$ARCHIVE_TMP")
+else
+    checksum_line=$(shasum -a 256 "$ARCHIVE_TMP")
+fi
+checksum_value=${checksum_line%% *}
+[ -n "$checksum_value" ] || { printf 'Could not calculate archive checksum.\n' >&2; exit 1; }
+printf '%s  %s\n' "$checksum_value" "$RELEASE_NAME.tar.gz" >"$CHECKSUM_TMP"
+
+# Both files are complete before publication. The checksum is the commit marker:
+# remove any previous marker, replace the archive, then publish its new checksum.
+rm -f -- "$CHECKSUM"
+mv -f -- "$ARCHIVE_TMP" "$ARCHIVE"
+mv -f -- "$CHECKSUM_TMP" "$CHECKSUM"
+
+trap - EXIT HUP INT TERM
+rm -rf -- "$STAGING_PARENT"
+printf 'Created %s\nCreated %s\n' "$ARCHIVE" "$CHECKSUM"
