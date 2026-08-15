@@ -129,7 +129,6 @@ fn convert_dmr(record: &AdifRecord) -> Result<DmrMetadata, AdifConversionError> 
         rx_frequency_hz: optional_decimal_hz(record, "APP_DHRL_RX_FREQUENCY_HZ")?,
         tx_frequency_hz: optional_decimal_hz(record, "APP_DHRL_TX_FREQUENCY_HZ")?,
         notes: string_value(record, "APP_DHRL_DMR_NOTES"),
-        ..Default::default()
     })
     .map_err(|error| AdifConversionError::new(error.to_string()))
 }
