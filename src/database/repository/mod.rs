@@ -1,6 +1,8 @@
 mod adif;
 mod backup;
 mod queries;
+#[cfg(test)]
+mod stress;
 
 use std::collections::BTreeMap;
 use std::path::Path;
