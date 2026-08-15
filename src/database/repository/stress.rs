@@ -38,6 +38,7 @@ fn run_benchmark(
     let started = Instant::now();
     let repository = QsoRepository::open(database_path)?;
     let opening = started.elapsed();
+    print_query_plans(&repository)?;
 
     let first_page = measure(|| repository.search_page("", 0, 100))?;
     let middle_offset = count.saturating_div(2).saturating_sub(50);
@@ -189,6 +190,51 @@ fn run_benchmark(
     println!("database_bytes={}", fs::metadata(database_path)?.len());
     println!("backup_bytes={}", fs::metadata(backup_path)?.len());
     println!("adif_bytes={}", serialize.1.len());
+    Ok(())
+}
+
+fn print_query_plans(repository: &QsoRepository) -> rusqlite::Result<()> {
+    println!("DHRL_QUERY_PLAN first_page");
+    print_query_plan(
+        repository,
+        "EXPLAIN QUERY PLAN
+         SELECT id FROM qsos
+         ORDER BY datetime_start_utc DESC, id DESC LIMIT 100 OFFSET 0",
+    )?;
+    println!("DHRL_QUERY_PLAN callsign_substring");
+    print_query_plan(
+        repository,
+        "EXPLAIN QUERY PLAN
+         SELECT id FROM qsos
+         WHERE callsign LIKE '%PY00042%' COLLATE NOCASE
+         ORDER BY datetime_start_utc DESC, id DESC LIMIT 100",
+    )?;
+    println!("DHRL_QUERY_PLAN dmr_talkgroup");
+    print_query_plan(
+        repository,
+        "EXPLAIN QUERY PLAN
+         SELECT q.id FROM qsos q
+         JOIN dmr_metadata d ON d.qso_id = q.id
+         WHERE d.talkgroup = 724
+         ORDER BY q.datetime_start_utc DESC, q.id DESC LIMIT 100",
+    )?;
+    println!("DHRL_QUERY_PLAN ft8_snr");
+    print_query_plan(
+        repository,
+        "EXPLAIN QUERY PLAN
+         SELECT q.id FROM qsos q
+         JOIN ft8_metadata f ON f.qso_id = q.id
+         WHERE f.snr_received_db BETWEEN -15 AND -5
+         ORDER BY q.datetime_start_utc DESC, q.id DESC LIMIT 100",
+    )
+}
+
+fn print_query_plan(repository: &QsoRepository, sql: &str) -> rusqlite::Result<()> {
+    let mut statement = repository.connection.prepare(sql)?;
+    let rows = statement.query_map([], |row| row.get::<_, String>(3))?;
+    for detail in rows {
+        println!("  {}", detail?);
+    }
     Ok(())
 }
 
