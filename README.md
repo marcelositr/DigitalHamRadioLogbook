@@ -11,6 +11,7 @@ O MVP funcional inclui:
 - interface Slint desktop-first com identidade técnica própria, alta legibilidade e operação confortável em `1050×680`;
 - banco SQLite local com migrations versionadas;
 - listagem, pesquisa, criação, edição e exclusão confirmada de QSOs;
+- fluxo **Save & New** para registrar QSOs consecutivos sem duplicar o contato recém-gravado;
 - campos comuns e metadados específicos de DMR, FT8, D-STAR e YSF/System Fusion (`C4FM`);
 - filtros gerais, DMR, FT8, D-STAR e YSF;
 - importação ADIF transacional e exportação publicada por arquivo temporário seguro;
@@ -136,7 +137,11 @@ Para YSF/System Fusion, o modo interno é `C4FM`; a UI também aceita os aliases
 
 Esses são os subconjuntos suportados pelo aplicativo, não uma promessa de suporte integral aos protocolos, equipamentos ou dialetos ADIF. `digital_routes` continua específico de DMR.
 
-Ao editar um registro pela tabela, o mesmo formulário é aberto preenchido. As ações de salvar e cancelar permanecem fixas no rodapé enquanto os campos podem ser rolados.
+Ao editar um registro pela tabela, o mesmo formulário é aberto preenchido. As ações de salvar e cancelar permanecem fixas no rodapé enquanto os campos podem ser rolados. Ao abrir um novo QSO, o foco vai para callsign.
+
+No fluxo de criação, **Save & New** valida e grava o QSO, atualiza a listagem, limpa todos os campos comuns, metadados de modo e metadata do editor e prepara um formulário novo com outro UTC fixo. A ação não cria um segundo QSO e não aparece na edição. Uma proteção contra double-submit impede duas gravações concorrentes, e o snapshot de estado limpo é atualizado somente depois do commit bem-sucedido.
+
+Antes de criar ou editar manualmente, o aplicativo procura uma possível duplicidade pela identidade exata callsign normalizado + data/hora UTC inicial + frequência em Hz + modo normalizado. Na edição, o próprio registro é excluído da consulta. O aviso oferece **Review** ou **Save anyway**: nunca mescla registros, nunca bloqueia a gravação e não depende de constraint `UNIQUE`.
 
 A interface pode ser percorrida por `Tab`. A navegação superior e os links de callsign/GridSquare aceitam `Enter` ou `Space`, campos e botões seguem a ordem visual, `Enter` executa a pesquisa ou salva a partir de Notes, e `Escape` cancela o fluxo atual. Regiões principais, campos essenciais, ações personalizadas e mensagens de status também expõem semântica para tecnologias assistivas.
 
@@ -159,9 +164,15 @@ Somente templates `http://` ou `https://` são aceitos, e os placeholders corres
 
 ## Atalhos de teclado
 
+- `Ctrl+N` abre um novo QSO e posiciona o foco em callsign.
+- `Ctrl+S` salva o QSO atual.
+- `Ctrl+Enter` executa **Save & New** somente durante a criação.
+- `Ctrl+F` retorna ao Logbook e posiciona o foco na pesquisa.
 - `Enter` no campo de busca executa a busca.
 - `Enter` no campo de observações salva o QSO atual.
-- `Escape` cancela o formulário e retorna ao Logbook, além de fechar uma confirmação de exclusão pendente.
+- `Escape` é exclusivo para cancelar ou fechar o fluxo atual, incluindo confirmações pendentes.
+
+Esses atalhos foram cobertos por testes, inclusive a preservação do clipboard.
 
 ## Logging
 

@@ -35,7 +35,8 @@ src/database/
 - QSO + DMR/FT8/D-STAR/YSF e importação ADIF são transacionais;
 - ordenação da listagem: `datetime_start_utc DESC, id DESC`;
 - paginação atual usa `LIMIT/OFFSET`, preservada por não haver degradação relevante em 100 mil QSOs;
-- SQLite permanece a fonte de verdade.
+- SQLite permanece a fonte de verdade;
+- schema atual permanece 7; os fluxos de `v0.7.0` não exigem migration, índice ou constraint `UNIQUE` nova.
 
 ## Arquitetura de quatro modos
 
@@ -58,3 +59,9 @@ Consulte `docs/WHAT-ADDING-DSTAR-REQUIRED.md`, `docs/ADDING-A-DIGITAL-MODE.md` e
 - evolução do schema: nova migration em `migrations.rs`, sem editar migrations publicadas.
 
 Os índices YSF são limitados a TX/RX DG-ID. `EXPLAIN QUERY PLAN` não demonstrou benefício para room e WIRES-X node, consultados por substring, portanto essas colunas permanecem sem índice.
+
+## Salvamento manual e aviso de duplicidade
+
+O editor envia um snapshot imutável do formulário para validação e persistência. Um guard de submissão impede double-submit; o snapshot de referência para dirty state só é substituído depois do commit bem-sucedido. Em **Save & New**, exclusivo da criação, a sequência é validar → commit → refresh da listagem → limpeza integral dos campos e metadados → captura de um novo UTC fixo. O QSO recém-gravado não é reenviado.
+
+A consulta de possível duplicidade usa callsign normalizado, UTC inicial, frequência inteira em Hz e modo normalizado. Updates excluem o próprio ID. O resultado é deliberadamente apenas um aviso com **Review** e **Save anyway**: não há merge, bloqueio, migration, índice novo ou constraint `UNIQUE`, preservando duplicados manuais intencionais.

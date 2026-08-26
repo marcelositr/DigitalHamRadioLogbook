@@ -725,7 +725,7 @@ Versão `v0.2.1` publicada e verificada em https://github.com/marcelositr/Digita
 - [x] Atualizar versão fonte e documentação para `0.5.0`.
 - [x] Publicar a tag/release `v0.5.0`; `main` no commit `ef262bd`.
 
-## Marco 33 — YSF/C4FM e preparação v0.6.0 (CONCLUÍDO, NÃO PUBLICADO)
+## Marco 33 — YSF/C4FM e v0.6.0 (CONCLUÍDO E PUBLICADO)
 
 - [x] Confirmar baseline inicial de 133 testes ativos + 1 ignored.
 - [x] Adicionar `YsfMetadata` e consolidar `ModeMetadata` com variantes Generic, DMR, FT8, D-STAR e YSF.
@@ -741,8 +741,27 @@ Versão `v0.2.1` publicada e verificada em https://github.com/marcelositr/Digita
 - [x] Confirmar suíte final atual: 157 testes ativos + 1 ignored.
 - [x] Registrar stress release de 10k: first 1.031 ms; middle 6.765 ms; final 12.481 ms; search 6.720 ms; DSTAR 2.953 ms; YSF room 1.720 ms; node 1.784 ms; DG-ID 1.676 ms; backup 39.617 ms; export-domain 114.442 ms; serialize 17.727 ms.
 - [x] Registrar stress release de 100k: first 7.601 ms; middle 73.706 ms; final 138.205 ms; search 74.263 ms; DSTAR 12.859 ms; YSF room 9.052 ms; node 13.297 ms; DG-ID 9.356 ms; backup 358.293 ms; export-domain 1200.912 ms; serialize 153.598 ms.
-- [x] Atualizar versão fonte e documentação para `0.6.0` sem publicar.
+- [x] Atualizar versão fonte e documentação para `0.6.0`.
+- [x] Publicar a tag/release `v0.6.0`; `main` e a tag no commit `034996f`.
+
+## Marco 34 — Save & New e duplicidade manual v0.7.0 (PREPARADO LOCALMENTE, NÃO PUBLICADO)
+
+- [x] Adicionar **Save & New** somente ao fluxo de novo QSO.
+- [x] Executar validar → commit → refresh → limpeza integral → novo UTC fixo, sem criar um segundo QSO.
+- [x] Limpar todos os campos comuns, metadados de Generic/DMR/FT8/D-STAR/YSF e metadata interna do editor.
+- [x] Adicionar guard contra double-submit e atualizar o snapshot somente após commit bem-sucedido.
+- [x] Adicionar aviso de duplicidade manual por callsign + UTC inicial + frequência em Hz + modo normalizados.
+- [x] Oferecer **Review** e **Save anyway**; nunca fazer merge ou bloquear duplicados intencionais.
+- [x] Excluir o próprio ID da consulta durante edição.
+- [x] Manter schema 7, sem migration, índice novo ou constraint `UNIQUE`.
+- [x] Cobrir `Ctrl+N`, `Ctrl+S`, `Ctrl+Enter`, `Ctrl+F`, `Enter` em Notes e `Escape` exclusivo; preservar clipboard.
+- [x] Direcionar foco para callsign em novo QSO e para search com `Ctrl+F`.
+- [x] Confirmar suíte final atual: 165 testes ativos + 1 ignored.
+- [x] Medir duplicate lookup release em 100k, 200 iterações: hit 0.029352 ms; miss 0.028080 ms; self 0.028480 ms; collision 0.029927 ms.
+- [x] Confirmar plano por `idx_qsos_datetime_start` e decisão de não adicionar índice.
+- [x] Atualizar versão fonte e documentação para `0.7.0` sem publicar.
+- [ ] Executar checklist visual de Generic/DMR/FT8/D-STAR/YSF, **Save & New**, warning, dirty state, atalhos e `1050×680`; pendente, não aprovado.
 
 ## Próxima ação exata
 
-A `v0.6.0` permanece somente preparada localmente. Qualquer artefato, integração, tag ou publicação exige uma ação posterior separada.
+Executar o checklist manual pendente de `docs/VISUAL-QA.md` em `1050×680`. A `v0.7.0` permanece somente preparada localmente; não integrar em `main`, criar tag ou publicar sem ação posterior explícita.
