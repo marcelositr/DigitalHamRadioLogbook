@@ -83,7 +83,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        source-version: [0, 1, 2, 3, 4, 5, 6]
+        source-version: [0, 1, 2, 3, 4, 5, 6, 7]
     steps:
       - name: Check out repository
         uses: actions/checkout@v5

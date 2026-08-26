@@ -1,4 +1,4 @@
-use super::{DStarMetadata, DmrMetadata, Ft8Metadata};
+use super::{DStarMetadata, DmrMetadata, Ft8Metadata, YsfMetadata};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ModeMetadata {
@@ -6,6 +6,7 @@ pub enum ModeMetadata {
     Dmr(DmrMetadata),
     Ft8(Ft8Metadata),
     Dstar(DStarMetadata),
+    Ysf(YsfMetadata),
 }
 
 impl ModeMetadata {
@@ -14,6 +15,7 @@ impl ModeMetadata {
             "DMR" => matches!(self, Self::Dmr(_)),
             "FT8" => matches!(self, Self::Ft8(_)),
             "DSTAR" => matches!(self, Self::Dstar(_)),
+            "C4FM" => matches!(self, Self::Ysf(_)),
             _ => matches!(self, Self::Generic),
         }
     }
@@ -24,6 +26,7 @@ impl ModeMetadata {
             Self::Dmr(_) => Some("DMR"),
             Self::Ft8(_) => Some("FT8"),
             Self::Dstar(_) => Some("DSTAR"),
+            Self::Ysf(_) => Some("C4FM"),
         }
     }
 }

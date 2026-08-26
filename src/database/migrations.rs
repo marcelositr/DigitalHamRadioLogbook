@@ -1,6 +1,6 @@
 use rusqlite::{Connection, Error, Result};
 
-const CURRENT_SCHEMA_VERSION: i64 = 6;
+const CURRENT_SCHEMA_VERSION: i64 = 7;
 
 const INITIAL_SCHEMA: &str = r#"
 CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -129,6 +129,31 @@ INSERT INTO schema_migrations(version, applied_at_utc)
 VALUES (6, CAST(strftime('%s', 'now') AS INTEGER));
 "#;
 
+const YSF_SCHEMA: &str = r#"
+CREATE TABLE IF NOT EXISTS ysf_metadata (
+    qso_id INTEGER PRIMARY KEY,
+    room TEXT,
+    wires_x_node TEXT,
+    repeater TEXT,
+    network TEXT,
+    access_type TEXT NOT NULL CHECK (access_type IN ('simplex', 'repeater', 'hotspot')),
+    tx_dg_id INTEGER CHECK (tx_dg_id BETWEEN 0 AND 99),
+    rx_dg_id INTEGER CHECK (rx_dg_id BETWEEN 0 AND 99),
+    notes TEXT NOT NULL DEFAULT '',
+    FOREIGN KEY (qso_id) REFERENCES qsos(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_ysf_metadata_room_nocase
+ON ysf_metadata(room COLLATE NOCASE);
+CREATE INDEX IF NOT EXISTS idx_ysf_metadata_wires_x_node_nocase
+ON ysf_metadata(wires_x_node COLLATE NOCASE);
+CREATE INDEX IF NOT EXISTS idx_ysf_metadata_tx_dg_id ON ysf_metadata(tx_dg_id);
+CREATE INDEX IF NOT EXISTS idx_ysf_metadata_rx_dg_id ON ysf_metadata(rx_dg_id);
+
+INSERT INTO schema_migrations(version, applied_at_utc)
+VALUES (7, CAST(strftime('%s', 'now') AS INTEGER));
+"#;
+
 const FT8_SCHEMA: &str = r#"
 CREATE TABLE IF NOT EXISTS ft8_metadata (
     qso_id INTEGER PRIMARY KEY,
@@ -198,6 +223,15 @@ pub fn run(connection: &mut Connection) -> Result<()> {
         transaction.execute_batch(DSTAR_SCHEMA)?;
     }
 
+    let has_ysf_schema: bool = transaction.query_row(
+        "SELECT EXISTS(SELECT 1 FROM schema_migrations WHERE version = 7)",
+        [],
+        |row| row.get(0),
+    )?;
+    if !has_ysf_schema {
+        transaction.execute_batch(YSF_SCHEMA)?;
+    }
+
     validate_schema(&transaction)?;
     transaction.commit()
 }
@@ -236,6 +270,7 @@ fn validate_schema(connection: &Connection) -> Result<()> {
         "dmr_metadata",
         "ft8_metadata",
         "dstar_metadata",
+        "ysf_metadata",
         "adif_extra_fields",
     ] {
         let exists: bool = connection.query_row(
@@ -269,6 +304,10 @@ fn validate_schema(connection: &Connection) -> Result<()> {
         "idx_dstar_metadata_reflector_nocase",
         "idx_dstar_metadata_module_nocase",
         "idx_dstar_metadata_rpt1_nocase",
+        "idx_ysf_metadata_room_nocase",
+        "idx_ysf_metadata_wires_x_node_nocase",
+        "idx_ysf_metadata_tx_dg_id",
+        "idx_ysf_metadata_rx_dg_id",
     ] {
         let exists: bool = connection.query_row(
             "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = ?1)",
@@ -409,6 +448,9 @@ mod tests {
                     1
                 );
             }
+            if version >= 7 {
+                assert_eq!(scalar(&connection, "SELECT COUNT(*) FROM ysf_metadata"), 1);
+            }
             assert_eq!(
                 connection
                     .query_row("PRAGMA quick_check", [], |row| row.get::<_, String>(0))
@@ -441,6 +483,9 @@ mod tests {
         }
         if version >= 6 {
             connection.execute_batch(DSTAR_SCHEMA).unwrap();
+        }
+        if version >= 7 {
+            connection.execute_batch(YSF_SCHEMA).unwrap();
         }
     }
 
@@ -492,6 +537,20 @@ mod tests {
             connection
                 .execute(
                     "INSERT INTO dstar_metadata(qso_id, reflector, module, rpt1) VALUES (?1, 'REF001', 'C', 'PY2MIG B')",
+                    [qso_id],
+                )
+                .unwrap();
+        }
+        if version >= 7 {
+            connection
+                .execute(
+                    "INSERT INTO ysf_metadata (
+                        qso_id, room, wires_x_node, repeater, network,
+                        access_type, tx_dg_id, rx_dg_id, notes
+                     ) VALUES (
+                        ?1, 'BRASIL-SP', 'PY2MIG-ND', 'PY2MIG-RPT', 'WIRES-X',
+                        'repeater', 10, 20, 'preserved'
+                     )",
                     [qso_id],
                 )
                 .unwrap();
@@ -632,6 +691,38 @@ mod tests {
             .query_row("SELECT COUNT(*) FROM dstar_metadata", [], |row| row.get(0))
             .unwrap();
         assert_eq!(count, 0);
+    }
+
+    #[test]
+    fn ysf_metadata_is_deleted_with_its_qso() {
+        let mut connection = Connection::open_in_memory().unwrap();
+        connection
+            .execute_batch("PRAGMA foreign_keys = ON;")
+            .unwrap();
+        run(&mut connection).unwrap();
+        connection
+            .execute(
+                "INSERT INTO qsos (
+                    callsign, datetime_start_utc, frequency_hz, mode,
+                    created_at_utc, updated_at_utc
+                 ) VALUES ('PY2YSF', 1700000000, 145500000, 'YSF', 1700000000, 1700000000)",
+                [],
+            )
+            .unwrap();
+        let qso_id = connection.last_insert_rowid();
+        connection
+            .execute(
+                "INSERT INTO ysf_metadata (
+                    qso_id, room, wires_x_node, access_type, tx_dg_id, rx_dg_id
+                 ) VALUES (?1, 'BRASIL-SP', 'PY2YSF-ND', 'hotspot', 10, 20)",
+                [qso_id],
+            )
+            .unwrap();
+
+        connection
+            .execute("DELETE FROM qsos WHERE id = ?1", [qso_id])
+            .unwrap();
+        assert_eq!(scalar(&connection, "SELECT COUNT(*) FROM ysf_metadata"), 0);
     }
 
     #[test]
