@@ -14,7 +14,7 @@ export component MainWindow inherits Window {
     background: Theme.background;
 
     in-out property <int> active-page: 0; // 0 logbook, 1 form, 2 tools, 3 settings
-    in-out property <int> active-filter: 0; // 0 all, 1 DMR, 2 FT8, 3 D-STAR
+    in-out property <int> active-filter: 0; // 0 all, 1 DMR, 2 FT8, 3 D-STAR, 4 YSF/C4FM
     in-out property <bool> filters-expanded: false;
     in-out property <bool> filters-applied: false;
     in-out property <[QsoRow]> qsos;
@@ -32,7 +32,7 @@ export component MainWindow inherits Window {
     in-out property <string> callsign-text;
     in-out property <string> datetime-text;
     in-out property <string> mode-text;
-    in-out property <int> mode-kind: 0; // 0 generic, 1 DMR, 2 FT8, 3 D-STAR
+    in-out property <int> mode-kind: 0; // 0 generic, 1 DMR, 2 FT8, 3 D-STAR, 4 YSF/C4FM
     in-out property <string> frequency-text;
     in-out property <string> band-text;
     in-out property <string> rst-sent-text;
@@ -66,6 +66,14 @@ export component MainWindow inherits Window {
     in-out property <string> dstar-rpt1-text;
     in-out property <string> dstar-rpt2-text;
     in-out property <string> dstar-notes-text;
+    in-out property <string> ysf-room-text;
+    in-out property <string> ysf-wires-x-node-text;
+    in-out property <string> ysf-repeater-text;
+    in-out property <string> ysf-network-text;
+    in-out property <string> ysf-access-type-text: "simplex";
+    in-out property <string> ysf-tx-dg-id-text;
+    in-out property <string> ysf-rx-dg-id-text;
+    in-out property <string> ysf-notes-text;
     in-out property <string> search-text;
     in-out property <string> dmr-filter-id-text;
     in-out property <string> dmr-filter-talkgroup-text;
@@ -83,6 +91,9 @@ export component MainWindow inherits Window {
     in-out property <string> dstar-filter-reflector-text;
     in-out property <string> dstar-filter-module-text;
     in-out property <string> dstar-filter-rpt1-text;
+    in-out property <string> ysf-filter-room-text;
+    in-out property <string> ysf-filter-node-text;
+    in-out property <string> ysf-filter-dg-id-text;
     in-out property <string> adif-path-text;
     in-out property <string> backup-path-text;
     in-out property <string> pending-delete-id;
@@ -107,6 +118,7 @@ export component MainWindow inherits Window {
     callback filter-dmr(); callback clear-dmr-filter();
     callback filter-ft8(); callback clear-ft8-filter();
     callback filter-dstar(); callback clear-dstar-filter();
+    callback filter-ysf(); callback clear-ysf-filter();
     callback save-local-callsign(); callback save-external-links(); callback restore-external-link-defaults();
     callback open-callsign-lookup(string); callback open-grid-lookup(string);
     callback preview-adif(); callback confirm-adif-import(); callback cancel-adif-import(); callback invalidate-adif-preview(); callback export-adif();
@@ -217,6 +229,17 @@ export component MainWindow inherits Window {
             dstar-filter-reflector-text <=> root.dstar-filter-reflector-text;
             dstar-filter-module-text <=> root.dstar-filter-module-text;
             dstar-filter-rpt1-text <=> root.dstar-filter-rpt1-text;
+            ysf-filter-room-text <=> root.ysf-filter-room-text;
+            ysf-filter-node-text <=> root.ysf-filter-node-text;
+            ysf-filter-dg-id-text <=> root.ysf-filter-dg-id-text;
+            ysf-room-text <=> root.ysf-room-text;
+            ysf-wires-x-node-text <=> root.ysf-wires-x-node-text;
+            ysf-repeater-text <=> root.ysf-repeater-text;
+            ysf-network-text <=> root.ysf-network-text;
+            ysf-access-type-text <=> root.ysf-access-type-text;
+            ysf-tx-dg-id-text <=> root.ysf-tx-dg-id-text;
+            ysf-rx-dg-id-text <=> root.ysf-rx-dg-id-text;
+            ysf-notes-text <=> root.ysf-notes-text;
             editing-id <=> root.editing-id;
             filters-applied <=> root.filters-applied;
             filters-expanded <=> root.filters-expanded;
@@ -254,11 +277,13 @@ export component MainWindow inherits Window {
             clear-dmr-filter => { root.clear-dmr-filter(); }
             clear-ft8-filter => { root.clear-ft8-filter(); }
             clear-dstar-filter => { root.clear-dstar-filter(); }
+            clear-ysf-filter => { root.clear-ysf-filter(); }
             delete-qso(value) => { root.delete-qso(value); }
             editor-opened => { root.editor-opened(); }
             filter-dmr => { root.filter-dmr(); }
             filter-ft8 => { root.filter-ft8(); }
             filter-dstar => { root.filter-dstar(); }
+            filter-ysf => { root.filter-ysf(); }
             mode-input-changed(value) => { root.mode-input-changed(value); }
             previous-logbook-page => { root.previous-logbook-page(); }
             next-logbook-page => { root.next-logbook-page(); }
@@ -291,6 +316,14 @@ export component MainWindow inherits Window {
             dstar-rpt1-text <=> root.dstar-rpt1-text;
             dstar-rpt2-text <=> root.dstar-rpt2-text;
             dstar-notes-text <=> root.dstar-notes-text;
+            ysf-room-text <=> root.ysf-room-text;
+            ysf-wires-x-node-text <=> root.ysf-wires-x-node-text;
+            ysf-repeater-text <=> root.ysf-repeater-text;
+            ysf-network-text <=> root.ysf-network-text;
+            ysf-access-type-text <=> root.ysf-access-type-text;
+            ysf-tx-dg-id-text <=> root.ysf-tx-dg-id-text;
+            ysf-rx-dg-id-text <=> root.ysf-rx-dg-id-text;
+            ysf-notes-text <=> root.ysf-notes-text;
             editing-id <=> root.editing-id;
             frequency-text <=> root.frequency-text;
             ft8-audio-frequency-text <=> root.ft8-audio-frequency-text;

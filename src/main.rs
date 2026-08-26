@@ -19,6 +19,7 @@ use app::editor_navigation::{connect_editor_navigation_handlers, editor_snapshot
 use app::file_dialogs::connect_file_dialog_handlers;
 use app::filters::{
     connect_dmr_filter_handlers, connect_dstar_filter_handlers, connect_ft8_filter_handlers,
+    connect_ysf_filter_handlers,
 };
 use app::paths::{config_path, database_path};
 use app::qso_editor::{connect_mode_handler, connect_save_handler};
@@ -52,7 +53,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     ui.set_grid_url_text(app_config.borrow().external_links.grid_url.clone().into());
     ui.set_active_page(app_config.borrow().operational.sanitized_active_page());
     let configured_filter = app_config.borrow().operational.active_filter;
-    ui.set_active_filter(if (0..=3).contains(&configured_filter) {
+    ui.set_active_filter(if (0..=4).contains(&configured_filter) {
         configured_filter
     } else {
         0
@@ -74,6 +75,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     connect_dmr_filter_handlers(&ui, &repository, &logbook_state);
     connect_ft8_filter_handlers(&ui, &repository, &logbook_state);
     connect_dstar_filter_handlers(&ui, &repository, &logbook_state);
+    connect_ysf_filter_handlers(&ui, &repository, &logbook_state);
     connect_delete_handler(&ui, &repository, &logbook_state);
     connect_pagination_handlers(&ui, &repository, &logbook_state);
     connect_file_dialog_handlers(&ui, &app_config, config_path.clone());

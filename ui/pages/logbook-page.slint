@@ -55,6 +55,17 @@ export component LogbookPage inherits VerticalBox {
     in-out property <string> dstar-filter-reflector-text;
     in-out property <string> dstar-filter-module-text;
     in-out property <string> dstar-filter-rpt1-text;
+    in-out property <string> ysf-room-text;
+    in-out property <string> ysf-wires-x-node-text;
+    in-out property <string> ysf-repeater-text;
+    in-out property <string> ysf-network-text;
+    in-out property <string> ysf-access-type-text;
+    in-out property <string> ysf-tx-dg-id-text;
+    in-out property <string> ysf-rx-dg-id-text;
+    in-out property <string> ysf-notes-text;
+    in-out property <string> ysf-filter-room-text;
+    in-out property <string> ysf-filter-node-text;
+    in-out property <string> ysf-filter-dg-id-text;
     in-out property <string> grid-text;
     in-out property <string> mode-text;
     in-out property <string> name-text;
@@ -74,11 +85,13 @@ export component LogbookPage inherits VerticalBox {
     callback clear-dmr-filter();
     callback clear-ft8-filter();
     callback clear-dstar-filter();
+    callback clear-ysf-filter();
     callback delete-qso(string);
     callback editor-opened();
     callback filter-dmr();
     callback filter-ft8();
     callback filter-dstar();
+    callback filter-ysf();
     callback mode-input-changed(string);
     callback previous-logbook-page();
     callback next-logbook-page();
@@ -132,7 +145,7 @@ export component LogbookPage inherits VerticalBox {
 
             if root.filters-applied : HorizontalBox {
                 spacing: Theme.space-sm;
-                FilterChip { text: root.active-filter == 1 ? "DMR FILTER" : root.active-filter == 2 ? "FT8 FILTER" : "D-STAR FILTER"; selected: true; }
+                FilterChip { text: root.active-filter == 1 ? "DMR FILTER" : root.active-filter == 2 ? "FT8 FILTER" : root.active-filter == 3 ? "D-STAR FILTER" : "YSF/C4FM FILTER"; selected: true; }
                 Text { text: "Filtered view"; color: Theme.text-muted; font-size: Theme.text-xs; vertical-alignment: center; }
                 Rectangle { horizontal-stretch: 1; }
                 KeyboardAction {
@@ -141,6 +154,7 @@ export component LogbookPage inherits VerticalBox {
                         if root.active-filter == 1 { root.clear-dmr-filter(); }
                         else if root.active-filter == 2 { root.clear-ft8-filter(); }
                         else if root.active-filter == 3 { root.clear-dstar-filter(); }
+                        else if root.active-filter == 4 { root.clear-ysf-filter(); }
                     }
                 }
             }
@@ -163,10 +177,11 @@ export component LogbookPage inherits VerticalBox {
                         KeyboardAction { width: 58px; compact: true; label: "DMR"; description: "Configure DMR filters"; active: root.active-filter == 1; activated => { root.active-filter = 1; } }
                         KeyboardAction { width: 58px; compact: true; label: "FT8"; description: "Configure FT8 filters"; active: root.active-filter == 2; activated => { root.active-filter = 2; } }
                         KeyboardAction { width: 72px; compact: true; label: "D-STAR"; description: "Configure D-STAR filters"; active: root.active-filter == 3; activated => { root.active-filter = 3; } }
+                        KeyboardAction { width: 76px; compact: true; label: "YSF/C4FM"; description: "Configure YSF/C4FM filters"; active: root.active-filter == 4; activated => { root.active-filter = 4; } }
                     }
 
                     if root.active-filter == 0 : Text {
-                        text: "Choose DMR, FT8, or D-STAR to configure mode-specific filters.";
+                        text: "Choose DMR, FT8, D-STAR, or YSF/C4FM to configure mode-specific filters.";
                         color: Theme.text-secondary; vertical-alignment: center;
                     }
 
@@ -195,6 +210,15 @@ export component LogbookPage inherits VerticalBox {
                         LineEdit { text <=> root.dstar-filter-rpt1-text; placeholder-text: "RPT1"; horizontal-stretch: 1; }
                         KeyboardAction { width: 60px; compact: true; label: "Clear"; description: "Clear D-STAR filter fields"; activated => { root.clear-dstar-filter(); } }
                         KeyboardAction { width: 96px; compact: true; primary: true; label: "Apply filter"; description: "Apply D-STAR filters"; activated => { root.filter-dstar(); } }
+                    }
+
+                    if root.active-filter == 4 : HorizontalBox {
+                        spacing: 6px;
+                        LineEdit { text <=> root.ysf-filter-room-text; placeholder-text: "Room"; horizontal-stretch: 1; }
+                        LineEdit { text <=> root.ysf-filter-node-text; placeholder-text: "WIRES-X node"; horizontal-stretch: 1; }
+                        LineEdit { text <=> root.ysf-filter-dg-id-text; placeholder-text: "DG-ID (0–99)"; }
+                        KeyboardAction { width: 60px; compact: true; label: "Clear"; description: "Clear YSF/C4FM filter fields"; activated => { root.clear-ysf-filter(); } }
+                        KeyboardAction { width: 96px; compact: true; primary: true; label: "Apply filter"; description: "Apply YSF/C4FM filters"; activated => { root.filter-ysf(); } }
                     }
 
                     if root.active-filter == 2 : VerticalBox {
@@ -304,7 +328,12 @@ export component LogbookPage inherits VerticalBox {
                                     root.dstar-reflector-text = qso.dstar-reflector; root.dstar-module-text = qso.dstar-module;
                                     root.dstar-mycall-text = qso.dstar-mycall; root.dstar-urcall-text = qso.dstar-urcall;
                                     root.dstar-rpt1-text = qso.dstar-rpt1; root.dstar-rpt2-text = qso.dstar-rpt2;
-                                    root.dstar-notes-text = qso.dstar-notes; root.active-page = 1; root.editor-opened();
+                                    root.dstar-notes-text = qso.dstar-notes;
+                                    root.ysf-room-text = qso.ysf-room; root.ysf-wires-x-node-text = qso.ysf-wires-x-node;
+                                    root.ysf-repeater-text = qso.ysf-repeater; root.ysf-network-text = qso.ysf-network;
+                                    root.ysf-access-type-text = qso.ysf-access-type == "" ? "simplex" : qso.ysf-access-type;
+                                    root.ysf-tx-dg-id-text = qso.ysf-tx-dg-id; root.ysf-rx-dg-id-text = qso.ysf-rx-dg-id;
+                                    root.ysf-notes-text = qso.ysf-notes; root.active-page = 1; root.editor-opened();
                                 }
                             }
                             KeyboardAction {
