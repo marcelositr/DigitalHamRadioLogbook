@@ -1,10 +1,12 @@
 use rusqlite::{params, Result};
 
-use crate::domain::{DStarMetadata, DmrMetadata, Ft8Metadata, ModeMetadata, Qso};
+use crate::domain::{
+    DStarMetadata, DmrMetadata, Ft8Metadata, ModeMetadata, Qso, YsfAccessType, YsfMetadata,
+};
 
 use super::{
     map_qso, parse_stored_access_type, parse_stored_call_type, DmrFilter, DstarFilter, Ft8Filter,
-    QsoListItem, QsoPage, QsoRepository,
+    QsoListItem, QsoPage, QsoRepository, YsfFilter,
 };
 
 impl QsoRepository {
@@ -101,6 +103,48 @@ impl QsoRepository {
                     sql_limit,
                     sql_offset,
                 ],
+                map_qso_list_item,
+            )?
+            .collect::<Result<Vec<_>>>()?;
+        Ok(QsoPage {
+            items,
+            total: count_to_usize(total),
+            offset,
+            limit,
+        })
+    }
+
+    pub fn search_ysf_page(
+        &self,
+        filter: &YsfFilter,
+        offset: usize,
+        limit: usize,
+    ) -> Result<QsoPage> {
+        let room = trimmed_pattern(filter.room.as_deref());
+        let wires_x_node = trimmed_pattern(filter.wires_x_node.as_deref());
+        let dg_id = filter.dg_id.map(i64::from);
+        let total: i64 = self.connection.query_row(
+            "SELECT COUNT(*) FROM qsos q
+             JOIN ysf_metadata y ON y.qso_id = q.id
+             WHERE (?1 IS NULL OR y.room LIKE ?1 COLLATE NOCASE)
+               AND (?2 IS NULL OR y.wires_x_node LIKE ?2 COLLATE NOCASE)
+               AND (?3 IS NULL OR y.tx_dg_id = ?3 OR y.rx_dg_id = ?3)",
+            params![room, wires_x_node, dg_id],
+            |row| row.get(0),
+        )?;
+        let (offset, limit, sql_offset, sql_limit) = normalize_page(offset, limit);
+        let mut statement = self.connection.prepare(&format!(
+            "{LIST_ITEM_SELECT}
+             WHERE y.qso_id IS NOT NULL
+               AND (?1 IS NULL OR y.room LIKE ?1 COLLATE NOCASE)
+               AND (?2 IS NULL OR y.wires_x_node LIKE ?2 COLLATE NOCASE)
+               AND (?3 IS NULL OR y.tx_dg_id = ?3 OR y.rx_dg_id = ?3)
+             ORDER BY q.datetime_start_utc DESC, q.id DESC
+             LIMIT ?4 OFFSET ?5"
+        ))?;
+        let items = statement
+            .query_map(
+                params![room, wires_x_node, dg_id, sql_limit, sql_offset],
                 map_qso_list_item,
             )?
             .collect::<Result<Vec<_>>>()?;
@@ -220,6 +264,28 @@ impl QsoRepository {
             offset,
             limit,
         })
+    }
+
+    pub fn search_ysf(&self, filter: &YsfFilter) -> Result<Vec<Qso>> {
+        let room = trimmed_pattern(filter.room.as_deref());
+        let wires_x_node = trimmed_pattern(filter.wires_x_node.as_deref());
+        let mut statement = self.connection.prepare(
+            "SELECT q.id, q.callsign, q.datetime_start_utc, q.datetime_end_utc,
+                    q.frequency_hz, q.band, q.mode, q.submode, q.rst_sent,
+                    q.rst_received, q.grid_locator, q.name, q.qth, q.notes,
+                    q.created_at_utc, q.updated_at_utc
+             FROM qsos q
+             JOIN ysf_metadata y ON y.qso_id = q.id
+             WHERE (?1 IS NULL OR y.room LIKE ?1 COLLATE NOCASE)
+               AND (?2 IS NULL OR y.wires_x_node LIKE ?2 COLLATE NOCASE)
+               AND (?3 IS NULL OR y.tx_dg_id = ?3 OR y.rx_dg_id = ?3)
+             ORDER BY q.datetime_start_utc DESC, q.id DESC",
+        )?;
+        let rows = statement.query_map(
+            params![room, wires_x_node, filter.dg_id.map(i64::from)],
+            map_qso,
+        )?;
+        rows.collect()
     }
 
     pub fn search_dstar(&self, filter: &DstarFilter) -> Result<Vec<Qso>> {
@@ -394,19 +460,29 @@ const LIST_ITEM_SELECT: &str = "
            f.qso_id, f.snr_sent_db, f.snr_received_db, f.power_watts,
            f.audio_frequency_hz, f.source_software, f.protocol, f.final_message,
            ds.qso_id, ds.reflector, ds.module, ds.mycall, ds.urcall,
-           ds.rpt1, ds.rpt2, ds.notes
+           ds.rpt1, ds.rpt2, ds.notes,
+           y.qso_id, y.room, y.wires_x_node, y.repeater, y.network,
+           y.access_type, y.tx_dg_id, y.rx_dg_id, y.notes
     FROM qsos q
     LEFT JOIN dmr_metadata d ON d.qso_id = q.id
     LEFT JOIN digital_routes r ON r.qso_id = q.id
     LEFT JOIN ft8_metadata f ON f.qso_id = q.id
-    LEFT JOIN dstar_metadata ds ON ds.qso_id = q.id";
+    LEFT JOIN dstar_metadata ds ON ds.qso_id = q.id
+    LEFT JOIN ysf_metadata y ON y.qso_id = q.id";
+
+const DMR_OFFSET: usize = 16;
+const FT8_OFFSET: usize = 30;
+const DSTAR_OFFSET: usize = 38;
+const YSF_OFFSET: usize = 46;
 
 fn map_qso_list_item(row: &rusqlite::Row<'_>) -> Result<QsoListItem> {
     let qso = map_qso(row)?;
-    let has_dmr = row.get::<_, Option<i64>>(16)?.is_some();
-    let has_ft8 = row.get::<_, Option<i64>>(30)?.is_some();
-    let has_dstar = row.get::<_, Option<i64>>(38)?.is_some();
-    let metadata_count = usize::from(has_dmr) + usize::from(has_ft8) + usize::from(has_dstar);
+    let has_dmr = row.get::<_, Option<i64>>(DMR_OFFSET)?.is_some();
+    let has_ft8 = row.get::<_, Option<i64>>(FT8_OFFSET)?.is_some();
+    let has_dstar = row.get::<_, Option<i64>>(DSTAR_OFFSET)?.is_some();
+    let has_ysf = row.get::<_, Option<i64>>(YSF_OFFSET)?.is_some();
+    let metadata_count =
+        usize::from(has_dmr) + usize::from(has_ft8) + usize::from(has_dstar) + usize::from(has_ysf);
     if metadata_count > 1 {
         return Err(invalid_metadata(&qso, "multiple specialized metadata rows"));
     }
@@ -449,6 +525,18 @@ fn map_qso_list_item(row: &rusqlite::Row<'_>) -> Result<QsoListItem> {
             rpt2: row.get(44)?,
             notes: row.get(45)?,
         })
+    } else if has_ysf {
+        let access_type: String = row.get(YSF_OFFSET + 5)?;
+        ModeMetadata::Ysf(YsfMetadata {
+            room: row.get(YSF_OFFSET + 1)?,
+            wires_x_node: row.get(YSF_OFFSET + 2)?,
+            repeater: row.get(YSF_OFFSET + 3)?,
+            network: row.get(YSF_OFFSET + 4)?,
+            access_type: parse_ysf_access_type(&access_type)?,
+            tx_dg_id: row.get(YSF_OFFSET + 6)?,
+            rx_dg_id: row.get(YSF_OFFSET + 7)?,
+            notes: row.get(YSF_OFFSET + 8)?,
+        })
     } else {
         ModeMetadata::Generic
     };
@@ -456,6 +544,16 @@ fn map_qso_list_item(row: &rusqlite::Row<'_>) -> Result<QsoListItem> {
         return Err(invalid_metadata(&qso, "mode and metadata are incompatible"));
     }
     Ok(QsoListItem { qso, metadata })
+}
+
+fn parse_ysf_access_type(value: &str) -> Result<YsfAccessType> {
+    value.parse().map_err(|error| {
+        rusqlite::Error::FromSqlConversionFailure(
+            YSF_OFFSET + 5,
+            rusqlite::types::Type::Text,
+            Box::new(error),
+        )
+    })
 }
 
 fn invalid_metadata(qso: &Qso, reason: &str) -> rusqlite::Error {
@@ -484,6 +582,19 @@ mod tests {
             rpt1: Some(rpt1.into()),
             rpt2: Some("PY2RPT G".into()),
             notes: "D-STAR test".into(),
+        }
+    }
+
+    fn ysf_metadata(room: &str, node: &str, tx_dg_id: u8, rx_dg_id: u8) -> YsfMetadata {
+        YsfMetadata {
+            room: Some(room.into()),
+            wires_x_node: Some(node.into()),
+            repeater: Some("PY2RPT".into()),
+            network: Some("YSF".into()),
+            access_type: YsfAccessType::Repeater,
+            tx_dg_id: Some(tx_dg_id),
+            rx_dg_id: Some(rx_dg_id),
+            notes: "YSF test".into(),
         }
     }
 
@@ -532,6 +643,94 @@ mod tests {
             .execute("INSERT INTO dstar_metadata(qso_id) VALUES (?1)", [qso_id])
             .unwrap();
         assert!(repository.list_items().is_err());
+    }
+
+    #[test]
+    fn list_items_hydrates_ysf_metadata_and_preserves_generic_qsos() {
+        let repository = QsoRepository::in_memory().unwrap();
+        let ysf = NewQso::new("PY2YSF", 1_700_000_001, 145_500_000, "C4FM").unwrap();
+        let expected = ysf_metadata("Brazil", "PY2NODE", 10, 20);
+        repository
+            .insert_ysf(&ysf, &expected, 1_700_000_010)
+            .unwrap();
+        repository
+            .insert(
+                &NewQso::new("PY2FM", 1_700_000_000, 145_500_000, "FM").unwrap(),
+                1_700_000_010,
+            )
+            .unwrap();
+
+        let items = repository.list_items().unwrap();
+
+        assert_eq!(items.len(), 2);
+        assert_eq!(items[0].metadata, ModeMetadata::Ysf(expected));
+        assert_eq!(items[1].metadata, ModeMetadata::Generic);
+    }
+
+    #[test]
+    fn searches_ysf_with_combined_case_insensitive_filters_and_either_dg_id() {
+        let repository = QsoRepository::in_memory().unwrap();
+        for (callsign, datetime, room, node, tx, rx) in [
+            ("PY2TX", 1_700_000_001, "Brazil Room", "PY2NODE", 10, 20),
+            ("PY2RX", 1_700_000_002, "Brazil Room", "PY2NODE", 30, 10),
+            ("PY2OTHER", 1_700_000_003, "America", "OTHER", 10, 40),
+        ] {
+            let qso = NewQso::new(callsign, datetime, 145_500_000, "C4FM").unwrap();
+            repository
+                .insert_ysf(&qso, &ysf_metadata(room, node, tx, rx), datetime + 10)
+                .unwrap();
+        }
+
+        let result = repository
+            .search_ysf(&YsfFilter {
+                room: Some(" brazil ".into()),
+                wires_x_node: Some(" py2node ".into()),
+                dg_id: Some(10),
+            })
+            .unwrap();
+
+        assert_eq!(
+            result
+                .iter()
+                .map(|qso| qso.callsign.as_str())
+                .collect::<Vec<_>>(),
+            ["PY2RX", "PY2TX"]
+        );
+        assert_eq!(
+            repository.search_ysf(&YsfFilter::default()).unwrap().len(),
+            3
+        );
+    }
+
+    #[test]
+    fn paginates_ysf_in_order_with_metadata_and_reports_absence() {
+        let repository = QsoRepository::in_memory().unwrap();
+        for (callsign, datetime) in [("PY2OLD", 1_700_000_001), ("PY2NEW", 1_700_000_002)] {
+            let qso = NewQso::new(callsign, datetime, 145_500_000, "C4FM").unwrap();
+            repository
+                .insert_ysf(&qso, &ysf_metadata("Brazil", "NODE", 10, 20), datetime + 10)
+                .unwrap();
+        }
+
+        let page = repository
+            .search_ysf_page(&YsfFilter::default(), 1, 1)
+            .unwrap();
+        assert_eq!((page.total, page.offset, page.limit), (2, 1, 1));
+        assert_eq!(page.items[0].qso.callsign, "PY2OLD");
+        assert!(matches!(page.items[0].metadata, ModeMetadata::Ysf(_)));
+
+        let absent = repository
+            .search_ysf_page(
+                &YsfFilter {
+                    room: Some("missing".into()),
+                    ..Default::default()
+                },
+                0,
+                10,
+            )
+            .unwrap();
+        assert_eq!(absent.total, 0);
+        assert!(absent.items.is_empty());
     }
 
     #[test]
