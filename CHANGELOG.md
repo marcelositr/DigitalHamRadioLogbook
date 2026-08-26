@@ -4,7 +4,28 @@ Este projeto segue [Semantic Versioning](https://semver.org/). As release notes 
 
 ## [Unreleased]
 
-## [0.5.0] - Não publicada
+## [0.6.0] - Não publicada
+
+### Added
+
+- suporte específico a YSF/System Fusion, representado internamente pelo modo `C4FM`, em domínio, schema 7, repository, filtros, ADIF e UI;
+- metadados YSF para room, WIRES-X node, repeater, network, access type, TX/RX DG-ID e notes;
+- filtros YSF por room, WIRES-X node e DG-ID;
+- enum consolidado `ModeMetadata` para metadados DMR, FT8, D-STAR, YSF e modo genérico.
+
+### Changed
+
+- UI aceita os aliases `YSF` e `SYSTEM FUSION`, normalizando-os para `C4FM`;
+- ADIF YSF é exportado como `MODE=DIGITALVOICE` + `SUBMODE=C4FM` e também importa o histórico `MODE=C4FM`;
+- persistência e importação exigem integridade entre modo e variante de metadata e reconciliam campos ADIF extras ao trocar de modo.
+
+### Compatibility
+
+- `digital_routes` continua específico de DMR;
+- schema 7 adiciona `ysf_metadata`; somente TX/RX DG-ID receberam índices após inspeção com `EXPLAIN QUERY PLAN`;
+- não foram introduzidos traits nem plugins de modo.
+
+## [0.5.0] - Publicada
 
 ### Added
 
@@ -22,6 +43,8 @@ Este projeto segue [Semantic Versioning](https://semver.org/). As release notes 
 
 - `digital_routes` permanece específico de DMR;
 - suporte D-STAR cobre somente o subconjunto documentado, sem promessa de interoperabilidade total.
+
+A versão 0.5.0 foi publicada como tag/release; `main` estava no commit `ef262bd`.
 
 ## [0.4.0] - 2026-08-15
 

@@ -40,6 +40,21 @@ Se alias e campo canônico aparecerem simultaneamente, o registro é recusado pa
 
 `STATION_CALLSIGN` é o campo canônico exportado para MYCALL. `APP_DHRL_DSTAR_MYCALL` é aceito somente como alias de importação para compatibilidade. Se os dois campos aparecerem com valores diferentes, o registro é recusado por ambiguidade. A exportação D-STAR usa `MODE=DIGITALVOICE` e `SUBMODE=DSTAR`; o importer também aceita o histórico `MODE=DSTAR`.
 
+## YSF / System Fusion (`C4FM`)
+
+| Campo | Significado | Exemplo |
+|---|---|---|
+| `APP_DHRL_YSF_ROOM` | Room YSF/WIRES-X | `BRAZIL` |
+| `APP_DHRL_YSF_WIRES_X_NODE` | Identificação do nó WIRES-X | `PY2YSF-ND01` |
+| `APP_DHRL_YSF_REPEATER` | Repetidora utilizada | `PY2RPT` |
+| `APP_DHRL_YSF_NETWORK` | Rede informada | `WIRES-X` |
+| `APP_DHRL_YSF_ACCESS_TYPE` | `simplex`, `repeater` ou `hotspot` | `repeater` |
+| `APP_DHRL_YSF_TX_DG_ID` | DG-ID de transmissão, `00`–`99` | `01` |
+| `APP_DHRL_YSF_RX_DG_ID` | DG-ID de recepção, `00`–`99` | `99` |
+| `APP_DHRL_YSF_NOTES` | Observação específica YSF | `Room regional` |
+
+A exportação usa `MODE=DIGITALVOICE` e `SUBMODE=C4FM`; a importação também aceita o histórico `MODE=C4FM`. DG-IDs são exportados com dois dígitos. Estes oito nomes são os campos privados canônicos exatos; não há aliases privados adicionais documentados.
+
 ## FT8
 
 | Campo | Significado | Exemplo |

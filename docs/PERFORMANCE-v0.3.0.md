@@ -1,4 +1,4 @@
-# Performance e stress — v0.3.0
+# Performance e stress — baseline v0.3.0, atualização v0.6.0
 
 ## Objetivo e método
 
@@ -52,6 +52,26 @@ Tempos em milissegundos.
 
 A medição de 100k antes da correção era aproximadamente 9.259 ms e caiu para 1.067 ms após carregamento em lote.
 
+## Medição de preparação v0.6.0
+
+Tempos release em milissegundos; estes resultados atualizam os volumes mais relevantes após a inclusão de D-STAR e YSF/C4FM, sem substituir o histórico acima.
+
+| Operação | 10k | 100k |
+|---|---:|---:|
+| primeira página | 1.031 | 7.601 |
+| página intermediária | 6.765 | 73.706 |
+| página final | 12.481 | 138.205 |
+| busca callsign | 6.720 | 74.263 |
+| filtro D-STAR | 2.953 | 12.859 |
+| YSF room | 1.720 | 9.052 |
+| YSF WIRES-X node | 1.784 | 13.297 |
+| YSF DG-ID | 1.676 | 9.356 |
+| backup | 39.617 | 358.293 |
+| montar ADIF | 114.442 | 1200.912 |
+| serializar ADIF | 17.727 | 153.598 |
+
+O dataset atual distribui cinco categorias (`DMR`, `FT8`, genérico, `DSTAR` e `C4FM`). Os números continuam sendo caracterização local, não SLA.
+
 ## SQLite e planos
 
 Índices existentes cobrem ordenação temporal, modo, identificadores DMR, talkgroup, timeslot, SNR e colunas textuais normalizadas. `EXPLAIN QUERY PLAN` confirmou:
@@ -60,7 +80,8 @@ A medição de 100k antes da correção era aproximadamente 9.259 ms e caiu para
 - busca substring percorre o índice de ordenação, pois `%valor%` não possui prefixo indexável;
 - filtro de talkgroup usa `idx_dmr_metadata_talkgroup` e lookup da PK do QSO;
 - filtro de SNR usa `idx_ft8_metadata_snr_received` e lookup da PK do QSO;
-- filtros especializados usam B-tree temporária para a ordenação temporal após selecionar metadata.
+- filtros especializados usam B-tree temporária para a ordenação temporal após selecionar metadata;
+- YSF usa índices somente em `tx_dg_id` e `rx_dg_id`; `EXPLAIN QUERY PLAN` não justificou índices para room ou WIRES-X node porque os filtros são substring (`%valor%`).
 
 Os planos são impressos pelo benchmark para reprodução. Não foi adicionada migration de índice sem benefício demonstrado.
 
