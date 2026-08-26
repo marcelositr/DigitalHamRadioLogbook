@@ -6,7 +6,7 @@ use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 
 use crate::domain::{
     CommonQsoFields, DStarMetadata, DStarMetadataInput, DmrMetadata, DmrMetadataInput, Ft8Metadata,
-    Ft8MetadataInput, ModeMetadata, NewQso,
+    Ft8MetadataInput, ModeMetadata, NewQso, YsfAccessType, YsfMetadata, YsfMetadataInput,
 };
 
 use super::{AdifField, AdifRecord};
@@ -54,6 +54,7 @@ pub fn record_to_domain(record: &AdifRecord) -> Result<ImportedQso, AdifConversi
     let mode_metadata = match qso.mode.as_str() {
         "DMR" => ModeMetadata::Dmr(convert_dmr(record)?),
         "DSTAR" => ModeMetadata::Dstar(convert_dstar(record)?),
+        "C4FM" => ModeMetadata::Ysf(convert_ysf(record)?),
         "FT8" => ModeMetadata::Ft8(convert_ft8(record)?),
         _ => ModeMetadata::Generic,
     };
@@ -92,15 +93,20 @@ pub fn domain_to_record(imported: &ImportedQso) -> Result<AdifRecord, AdifConver
         field("FREQ", &format_frequency_mhz(imported.qso.frequency_hz)),
         field(
             "MODE",
-            if matches!(imported.mode_metadata, ImportedModeMetadata::Dstar(_)) {
+            if matches!(
+                imported.mode_metadata,
+                ImportedModeMetadata::Dstar(_) | ImportedModeMetadata::Ysf(_)
+            ) {
                 "DIGITALVOICE"
             } else {
                 &imported.qso.mode
             },
         ),
     ];
-    if matches!(imported.mode_metadata, ImportedModeMetadata::Dstar(_)) {
-        fields.push(field("SUBMODE", "DSTAR"));
+    match &imported.mode_metadata {
+        ImportedModeMetadata::Dstar(_) => fields.push(field("SUBMODE", "DSTAR")),
+        ImportedModeMetadata::Ysf(_) => fields.push(field("SUBMODE", "C4FM")),
+        _ => {}
     }
     push_optional(&mut fields, "BAND", imported.qso.band.as_deref());
     push_optional(&mut fields, "RST_SENT", imported.qso.rst_sent.as_deref());
@@ -123,6 +129,7 @@ pub fn domain_to_record(imported: &ImportedQso) -> Result<AdifRecord, AdifConver
     match &imported.mode_metadata {
         ImportedModeMetadata::Dmr(metadata) => append_dmr(&mut fields, metadata),
         ImportedModeMetadata::Dstar(metadata) => append_dstar(&mut fields, metadata),
+        ImportedModeMetadata::Ysf(metadata) => append_ysf(&mut fields, metadata),
         ImportedModeMetadata::Ft8(metadata) => append_ft8(&mut fields, metadata),
         ImportedModeMetadata::Generic => {}
     }
@@ -168,6 +175,22 @@ fn convert_dstar(record: &AdifRecord) -> Result<DStarMetadata, AdifConversionErr
         rpt1: string_value(record, "APP_DHRL_DSTAR_RPT1"),
         rpt2: string_value(record, "APP_DHRL_DSTAR_RPT2"),
         notes: string_value(record, "APP_DHRL_DSTAR_NOTES"),
+    })
+    .map_err(|error| AdifConversionError::new(error.to_string()))
+}
+
+fn convert_ysf(record: &AdifRecord) -> Result<YsfMetadata, AdifConversionError> {
+    YsfMetadata::from_input(YsfMetadataInput {
+        room: string_value(record, "APP_DHRL_YSF_ROOM"),
+        wires_x_node: string_value(record, "APP_DHRL_YSF_WIRES_X_NODE"),
+        repeater: string_value(record, "APP_DHRL_YSF_REPEATER"),
+        network: string_value(record, "APP_DHRL_YSF_NETWORK"),
+        access_type: value(record, "APP_DHRL_YSF_ACCESS_TYPE")
+            .unwrap_or("simplex")
+            .to_owned(),
+        tx_dg_id: string_value(record, "APP_DHRL_YSF_TX_DG_ID"),
+        rx_dg_id: string_value(record, "APP_DHRL_YSF_RX_DG_ID"),
+        notes: string_value(record, "APP_DHRL_YSF_NOTES"),
     })
     .map_err(|error| AdifConversionError::new(error.to_string()))
 }
@@ -225,6 +248,38 @@ fn append_dstar(fields: &mut Vec<AdifField>, metadata: &DStarMetadata) {
     }
     if !metadata.notes.is_empty() {
         fields.push(field("APP_DHRL_DSTAR_NOTES", &metadata.notes));
+    }
+}
+
+fn append_ysf(fields: &mut Vec<AdifField>, metadata: &YsfMetadata) {
+    push_optional(fields, "APP_DHRL_YSF_ROOM", metadata.room.as_deref());
+    push_optional(
+        fields,
+        "APP_DHRL_YSF_WIRES_X_NODE",
+        metadata.wires_x_node.as_deref(),
+    );
+    push_optional(
+        fields,
+        "APP_DHRL_YSF_REPEATER",
+        metadata.repeater.as_deref(),
+    );
+    push_optional(fields, "APP_DHRL_YSF_NETWORK", metadata.network.as_deref());
+    fields.push(field(
+        "APP_DHRL_YSF_ACCESS_TYPE",
+        metadata.access_type.as_str(),
+    ));
+    push_two_digit_number(fields, "APP_DHRL_YSF_TX_DG_ID", metadata.tx_dg_id);
+    push_two_digit_number(fields, "APP_DHRL_YSF_RX_DG_ID", metadata.rx_dg_id);
+    if metadata.repeater.is_some()
+        || matches!(
+            metadata.access_type,
+            YsfAccessType::Repeater | YsfAccessType::Hotspot
+        )
+    {
+        fields.push(field("PROP_MODE", "RPT"));
+    }
+    if !metadata.notes.is_empty() {
+        fields.push(field("APP_DHRL_YSF_NOTES", &metadata.notes));
     }
 }
 
@@ -297,6 +352,19 @@ fn known_fields(mode: &str) -> HashSet<&'static str> {
             "APP_DHRL_DSTAR_RPT2",
             "APP_DHRL_DSTAR_NOTES",
         ]);
+    } else if mode == "C4FM" {
+        fields.extend([
+            "SUBMODE",
+            "PROP_MODE",
+            "APP_DHRL_YSF_ROOM",
+            "APP_DHRL_YSF_WIRES_X_NODE",
+            "APP_DHRL_YSF_REPEATER",
+            "APP_DHRL_YSF_NETWORK",
+            "APP_DHRL_YSF_ACCESS_TYPE",
+            "APP_DHRL_YSF_TX_DG_ID",
+            "APP_DHRL_YSF_RX_DG_ID",
+            "APP_DHRL_YSF_NOTES",
+        ]);
     } else if mode == "DMR" {
         fields.extend([
             "APP_DHRL_REMOTE_DMR_ID",
@@ -339,6 +407,11 @@ fn canonical_domain_mode<'a>(
             && value(record, "SUBMODE").is_some_and(|value| value.eq_ignore_ascii_case("DSTAR")))
     {
         Ok("DSTAR")
+    } else if mode.eq_ignore_ascii_case("C4FM")
+        || (mode.eq_ignore_ascii_case("DIGITALVOICE")
+            && value(record, "SUBMODE").is_some_and(|value| value.eq_ignore_ascii_case("C4FM")))
+    {
+        Ok("C4FM")
     } else {
         Ok(mode)
     }
@@ -474,6 +547,12 @@ fn field(name: &str, value: &str) -> AdifField {
 fn push_optional(fields: &mut Vec<AdifField>, name: &str, value: Option<&str>) {
     if let Some(value) = value.filter(|value| !value.is_empty()) {
         fields.push(field(name, value));
+    }
+}
+
+fn push_two_digit_number(fields: &mut Vec<AdifField>, name: &str, value: Option<u8>) {
+    if let Some(value) = value {
+        fields.push(field(name, &format!("{value:02}")));
     }
 }
 
@@ -717,6 +796,77 @@ mod tests {
             .unwrap_err()
             .to_string()
             .contains("duplicate ADIF field APP_DHRL_DSTAR_RPT1"));
+    }
+
+    #[test]
+    fn imports_both_ysf_mode_forms_without_deriving_call_from_room_or_node() {
+        let historical = parse(include_str!(
+            "../../tests/fixtures/adif/valid/ysf-minimal.adi"
+        ))
+        .unwrap();
+        let private = parse(include_str!(
+            "../../tests/fixtures/adif/valid/ysf-private-or-unknown.adi"
+        ))
+        .unwrap();
+
+        let historical = record_to_domain(&historical.records[0]).unwrap();
+        assert_eq!(historical.qso.mode, "C4FM");
+        assert!(matches!(
+            historical.mode_metadata,
+            ImportedModeMetadata::Ysf(_)
+        ));
+
+        let private = record_to_domain(&private.records[0]).unwrap();
+        assert_eq!(private.qso.callsign, "PY2QSO");
+        let ImportedModeMetadata::Ysf(metadata) = &private.mode_metadata else {
+            panic!("expected YSF metadata");
+        };
+        assert_eq!(metadata.room.as_deref(), Some("NOTACALL"));
+        assert_eq!(metadata.wires_x_node.as_deref(), Some("ALSO-NOT-A-CALL"));
+        assert_eq!(private.extra_fields.len(), 2);
+
+        let exported = domain_to_record(&private).unwrap();
+        assert_eq!(exported.get("PROP_MODE"), None);
+    }
+
+    #[test]
+    fn exports_canonical_ysf_with_stable_fields_and_two_digit_dg_ids() {
+        let document = parse(include_str!("../../tests/fixtures/adif/valid/ysf-full.adi")).unwrap();
+        let imported = record_to_domain(&document.records[0]).unwrap();
+        let exported = domain_to_record(&imported).unwrap();
+
+        assert_eq!(exported.get("MODE"), Some("DIGITALVOICE"));
+        assert_eq!(exported.get("SUBMODE"), Some("C4FM"));
+        assert_eq!(exported.get("APP_DHRL_YSF_TX_DG_ID"), Some("01"));
+        assert_eq!(exported.get("APP_DHRL_YSF_RX_DG_ID"), Some("99"));
+        assert_eq!(exported.get("PROP_MODE"), Some("RPT"));
+        assert_eq!(exported.get("APP_VENDOR_YSF"), Some("opaque"));
+        assert_eq!(record_to_domain(&exported).unwrap(), imported);
+    }
+
+    #[test]
+    fn rejects_duplicate_known_ysf_fields_but_preserves_duplicate_unknowns() {
+        let duplicate = parse(
+            "<CALL:6>PY2YSF<QSO_DATE:8>20260815<TIME_ON:6>130000<FREQ:7>145.562\
+             <MODE:4>C4FM<APP_DHRL_YSF_ROOM:3>one<APP_DHRL_YSF_ROOM:3>two<EOR>",
+        )
+        .unwrap();
+        assert!(record_to_domain(&duplicate.records[0])
+            .unwrap_err()
+            .to_string()
+            .contains("duplicate ADIF field APP_DHRL_YSF_ROOM"));
+
+        let unknowns = parse(include_str!(
+            "../../tests/fixtures/adif/valid/ysf-private-or-unknown.adi"
+        ))
+        .unwrap();
+        assert_eq!(
+            record_to_domain(&unknowns.records[0])
+                .unwrap()
+                .extra_fields
+                .len(),
+            2
+        );
     }
 
     #[test]

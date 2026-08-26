@@ -9,8 +9,9 @@ use crate::adif::{
 use crate::domain::{ModeMetadata, NewQso, Qso};
 
 use super::{
-    insert_dmr_metadata, insert_dstar_metadata, insert_ft8_metadata, insert_qso, AdifImportPlan,
-    AdifImportPreview, AdifImportReport, QsoIdentity, QsoRepository,
+    insert_dmr_metadata, insert_dstar_metadata, insert_ft8_metadata, insert_qso,
+    insert_ysf_metadata, AdifImportPlan, AdifImportPreview, AdifImportReport, QsoIdentity,
+    QsoRepository,
 };
 
 impl QsoRepository {
@@ -146,6 +147,9 @@ impl QsoRepository {
                 }
                 ModeMetadata::Ft8(metadata) => {
                     insert_ft8_metadata(&transaction, qso_id, metadata)?;
+                }
+                ModeMetadata::Ysf(metadata) => {
+                    insert_ysf_metadata(&transaction, qso_id, metadata)?;
                 }
                 ModeMetadata::Generic => {}
             }
@@ -330,6 +334,66 @@ mod tests {
             restored.get_adif_extra_fields(restored_qso.id).unwrap(),
             repository.get_adif_extra_fields(qso.id).unwrap()
         );
+    }
+
+    #[test]
+    fn imports_exports_and_reimports_ysf_with_sqlite_metadata_and_unknowns() {
+        let repository = QsoRepository::in_memory().unwrap();
+        let document = parse(include_str!(
+            "../../../tests/fixtures/adif/valid/ysf-full.adi"
+        ))
+        .unwrap();
+
+        let report = repository.import_adif(&document, 1_700_000_100).unwrap();
+        assert_eq!(report.imported, 1);
+        let qso = repository.list().unwrap().remove(0);
+        assert_eq!(qso.mode, "C4FM");
+        let metadata = repository.get_ysf_metadata(qso.id).unwrap().unwrap();
+        assert_eq!(metadata.room.as_deref(), Some("America-Link"));
+        assert_eq!(metadata.tx_dg_id, Some(1));
+        assert_eq!(
+            repository.get_adif_extra_fields(qso.id).unwrap(),
+            vec![AdifField {
+                name: "APP_VENDOR_YSF".into(),
+                value: "opaque".into(),
+                data_type: Some("S".into()),
+            }]
+        );
+
+        let exported = repository.export_adif().unwrap();
+        let record = &exported.records[0];
+        assert_eq!(record.get("MODE"), Some("DIGITALVOICE"));
+        assert_eq!(record.get("SUBMODE"), Some("C4FM"));
+        assert_eq!(record.get("APP_DHRL_YSF_TX_DG_ID"), Some("01"));
+        assert_eq!(record.get("PROP_MODE"), Some("RPT"));
+        assert_eq!(record.get("APP_VENDOR_YSF"), Some("opaque"));
+
+        let restored = QsoRepository::in_memory().unwrap();
+        restored.import_adif(&exported, 1_700_000_200).unwrap();
+        let restored_qso = restored.list().unwrap().remove(0);
+        assert_eq!(
+            restored.get_ysf_metadata(restored_qso.id).unwrap(),
+            Some(metadata)
+        );
+        assert_eq!(
+            restored.get_adif_extra_fields(restored_qso.id).unwrap(),
+            repository.get_adif_extra_fields(qso.id).unwrap()
+        );
+    }
+
+    #[test]
+    fn deduplicates_historical_and_canonical_ysf_as_one_domain_mode() {
+        let repository = QsoRepository::in_memory().unwrap();
+        let document = parse(
+            "<CALL:6>PY2YSF<QSO_DATE:8>20260815<TIME_ON:6>130000<FREQ:7>145.562<MODE:4>C4FM<EOR>\
+             <CALL:6>PY2YSF<QSO_DATE:8>20260815<TIME_ON:6>130000<FREQ:7>145.562\
+             <MODE:12>DIGITALVOICE<SUBMODE:4>C4FM<EOR>",
+        )
+        .unwrap();
+
+        let report = repository.import_adif(&document, 1_700_000_100).unwrap();
+        assert_eq!(report.imported, 1);
+        assert_eq!(report.duplicates_skipped, 1);
     }
 
     #[test]
