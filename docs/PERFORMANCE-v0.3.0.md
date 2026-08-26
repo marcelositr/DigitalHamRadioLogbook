@@ -1,4 +1,4 @@
-# Performance e stress — baseline v0.3.0, atualização v0.6.0
+# Performance e stress — baseline v0.3.0, atualização v0.7.0
 
 ## Objetivo e método
 
@@ -71,6 +71,19 @@ Tempos release em milissegundos; estes resultados atualizam os volumes mais rele
 | serializar ADIF | 17.727 | 153.598 |
 
 O dataset atual distribui cinco categorias (`DMR`, `FT8`, genérico, `DSTAR` e `C4FM`). Os números continuam sendo caracterização local, não SLA.
+
+## Verificação de duplicidade manual v0.7.0
+
+Medição em build release, banco determinístico de 100 mil QSOs e 200 iterações por caso. Tempos médios em milissegundos:
+
+| Caso | Média |
+|---|---:|
+| hit | 0.029352 |
+| miss | 0.028080 |
+| self em edição | 0.028480 |
+| collision em edição | 0.029927 |
+
+`EXPLAIN QUERY PLAN` usa `idx_qsos_datetime_start`. A medição não justificou migration ou índice adicional; o schema permanece 7.
 
 ## SQLite e planos
 

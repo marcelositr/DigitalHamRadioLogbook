@@ -99,6 +99,8 @@ export component LogbookPage inherits VerticalBox {
     callback open-grid-lookup(string);
     callback request-page(int);
     callback search-qso(string);
+    in property <bool> search-focus-request;
+    changed search-focus-request => { search-input.focus(); }
 
             padding: Theme.space-md; spacing: Theme.space-sm;
 
@@ -120,7 +122,8 @@ export component LogbookPage inherits VerticalBox {
                 accessible-role: search;
                 accessible-label: "Search and logbook actions";
                 spacing: Theme.space-sm;
-                SearchField {
+                search-input := LineEdit {
+                    accessible-label: "Search logbook by callsign or mode";
                     text <=> root.search-text;
                     placeholder-text: "Search callsign or mode";
                     horizontal-stretch: 1;

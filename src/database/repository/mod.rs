@@ -144,6 +144,54 @@ impl QsoRepository {
     pub fn verify_integrity(&self) -> Result<()> {
         verify_connection_integrity(&self.connection)
     }
+
+    pub fn find_qso_identity_match(
+        &self,
+        qso: &NewQso,
+        excluding_id: Option<i64>,
+    ) -> Result<Option<i64>> {
+        match excluding_id {
+            None => self
+                .connection
+                .query_row(
+                    "SELECT id FROM qsos
+                     WHERE callsign = ?1 COLLATE NOCASE
+                       AND datetime_start_utc = ?2
+                       AND frequency_hz = ?3
+                       AND mode = ?4 COLLATE NOCASE
+                     LIMIT 1",
+                    params![
+                        qso.callsign,
+                        qso.datetime_start_utc,
+                        qso.frequency_hz,
+                        qso.mode
+                    ],
+                    |row| row.get(0),
+                )
+                .optional(),
+            Some(excluding_id) => self
+                .connection
+                .query_row(
+                    "SELECT id FROM qsos
+                     WHERE callsign = ?1 COLLATE NOCASE
+                       AND datetime_start_utc = ?2
+                       AND frequency_hz = ?3
+                       AND mode = ?4 COLLATE NOCASE
+                       AND id <> ?5
+                     LIMIT 1",
+                    params![
+                        qso.callsign,
+                        qso.datetime_start_utc,
+                        qso.frequency_hz,
+                        qso.mode,
+                        excluding_id
+                    ],
+                    |row| row.get(0),
+                )
+                .optional(),
+        }
+    }
+
     pub fn insert(&self, qso: &NewQso, now_utc: i64) -> Result<i64> {
         insert_qso(&self.connection, qso, now_utc)
     }
@@ -677,6 +725,97 @@ mod tests {
             _ => (0, 0, 0, 0),
         };
         assert_eq!((dmr, ft8, dstar, ysf), expected);
+    }
+
+    fn identity_qso() -> NewQso {
+        NewQso::new("PY2ABC", 1_700_000_000, 145_500_000, "FM").unwrap()
+    }
+
+    #[test]
+    fn finds_exact_identity_case_insensitively() {
+        let repository = QsoRepository::in_memory().unwrap();
+        let qso = identity_qso();
+        let id = repository.insert(&qso, 1).unwrap();
+        let differently_cased = NewQso::new("py2abc", 1_700_000_000, 145_500_000, "fm").unwrap();
+
+        assert_eq!(
+            repository
+                .find_qso_identity_match(&differently_cased, None)
+                .unwrap(),
+            Some(id)
+        );
+    }
+
+    #[test]
+    fn identity_requires_every_field_to_match() {
+        let repository = QsoRepository::in_memory().unwrap();
+        repository.insert(&identity_qso(), 1).unwrap();
+
+        let variants = [
+            NewQso::new("PY2XYZ", 1_700_000_000, 145_500_000, "FM").unwrap(),
+            NewQso::new("PY2ABC", 1_700_000_001, 145_500_000, "FM").unwrap(),
+            NewQso::new("PY2ABC", 1_700_000_000, 145_500_001, "FM").unwrap(),
+            NewQso::new("PY2ABC", 1_700_000_000, 145_500_000, "SSB").unwrap(),
+        ];
+
+        for variant in variants {
+            assert_eq!(
+                repository.find_qso_identity_match(&variant, None).unwrap(),
+                None
+            );
+        }
+    }
+
+    #[test]
+    fn editing_excludes_self_but_finds_another_collision() {
+        let repository = QsoRepository::in_memory().unwrap();
+        let qso = identity_qso();
+        let first_id = repository.insert(&qso, 1).unwrap();
+
+        assert_eq!(
+            repository
+                .find_qso_identity_match(&qso, Some(first_id))
+                .unwrap(),
+            None
+        );
+
+        let duplicate_id = repository.insert(&qso, 2).unwrap();
+        assert_eq!(
+            repository
+                .find_qso_identity_match(&qso, Some(first_id))
+                .unwrap(),
+            Some(duplicate_id)
+        );
+    }
+
+    #[test]
+    fn identity_lookup_does_not_block_duplicate_inserts() {
+        let repository = QsoRepository::in_memory().unwrap();
+        let qso = identity_qso();
+
+        let first_id = repository.insert(&qso, 1).unwrap();
+        assert_eq!(
+            repository.find_qso_identity_match(&qso, None).unwrap(),
+            Some(first_id)
+        );
+        let duplicate_id = repository.insert(&qso, 2).unwrap();
+
+        assert_ne!(first_id, duplicate_id);
+        assert_eq!(repository.list().unwrap().len(), 2);
+    }
+
+    #[test]
+    fn editing_with_nonexistent_id_still_finds_a_collision() {
+        let repository = QsoRepository::in_memory().unwrap();
+        let qso = identity_qso();
+        let id = repository.insert(&qso, 1).unwrap();
+
+        assert_eq!(
+            repository
+                .find_qso_identity_match(&qso, Some(i64::MAX))
+                .unwrap(),
+            Some(id)
+        );
     }
 
     fn ysf_metadata() -> YsfMetadata {

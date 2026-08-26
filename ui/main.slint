@@ -108,12 +108,20 @@ export component MainWindow inherits Window {
     in-out property <string> adif-preview-date-range;
     in-out property <string> adif-preview-invalid-details;
     in-out property <bool> discard-editor-visible: false;
+    in-out property <bool> duplicate-warning-visible: false;
+    in-out property <string> duplicate-warning-text;
+    property <bool> callsign-focus-request: false;
+    property <bool> search-focus-request: false;
     in-out property <int> pending-page: 0;
     in-out property <bool> exit-confirmation-visible: false;
     in-out property <bool> exit-save-failed: false;
     in-out property <string> exit-error-text;
 
-    callback save-qso(); callback search-qso(string); callback mode-input-changed(string);
+    callback save-qso(); callback save-and-new-qso(); callback search-qso(string); callback mode-input-changed(string);
+    callback review-duplicate(); callback save-duplicate-anyway();
+
+    public function focus-callsign() { root.callsign-focus-request = !root.callsign-focus-request; }
+    public function focus-search() { root.search-focus-request = !root.search-focus-request; }
     callback previous-logbook-page(); callback next-logbook-page();
     callback filter-dmr(); callback clear-dmr-filter();
     callback filter-ft8(); callback clear-ft8-filter();
@@ -130,12 +138,29 @@ export component MainWindow inherits Window {
     FocusScope {
         key-pressed(event) => {
             if event.text == Key.Escape {
-                root.pending-delete-id = "";
-                root.pending-delete-label = "";
-                if root.adif-preview-visible { root.cancel-adif-import(); }
                 if root.exit-confirmation-visible { root.continue-working(); }
+                else if root.duplicate-warning-visible { root.review-duplicate(); }
                 else if root.discard-editor-visible { root.keep-editing(); }
+                else if root.adif-preview-visible { root.cancel-adif-import(); }
+                else if root.pending-delete-id != "" { root.pending-delete-id = ""; root.pending-delete-label = ""; }
                 else if root.active-page == 1 { root.request-page(0); }
+                else { return reject; }
+                return accept;
+            }
+            if event.modifiers.control && event.text == "n" {
+                root.request-page(1);
+                return accept;
+            }
+            if event.modifiers.control && event.text == "s" && root.active-page == 1 && !root.duplicate-warning-visible && !root.discard-editor-visible {
+                root.save-qso();
+                return accept;
+            }
+            if event.modifiers.control && event.text == Key.Return && root.active-page == 1 && root.editing-id == "" && !root.duplicate-warning-visible && !root.discard-editor-visible {
+                root.save-and-new-qso();
+                return accept;
+            }
+            if event.modifiers.control && event.text == "f" && root.active-page == 0 {
+                root.focus-search();
                 return accept;
             }
             return reject;
@@ -196,8 +221,9 @@ export component MainWindow inherits Window {
             }
         }
 
-        if root.active-page == 0 : LogbookPage {
+        if root.active-page == 0 : logbook-page := LogbookPage {
             active-filter <=> root.active-filter;
+            search-focus-request: root.search-focus-request;
             active-page <=> root.active-page;
             band-text <=> root.band-text;
             callsign-text <=> root.callsign-text;
@@ -293,11 +319,14 @@ export component MainWindow inherits Window {
             search-qso(value) => { root.search-qso(value); }
         }
 
-        if root.active-page == 1 : QsoEditorPage {
+        if root.active-page == 1 : editor-page := QsoEditorPage {
             band-text <=> root.band-text;
             callsign-text <=> root.callsign-text;
+            callsign-focus-request: root.callsign-focus-request;
             datetime-text <=> root.datetime-text;
             discard-editor-visible <=> root.discard-editor-visible;
+            duplicate-warning-visible <=> root.duplicate-warning-visible;
+            duplicate-warning-text <=> root.duplicate-warning-text;
             dmr-access-type-text <=> root.dmr-access-type-text;
             dmr-call-type-text <=> root.dmr-call-type-text;
             dmr-color-code-text <=> root.dmr-color-code-text;
@@ -346,6 +375,9 @@ export component MainWindow inherits Window {
             mode-input-changed(value) => { root.mode-input-changed(value); }
             request-page(value) => { root.request-page(value); }
             save-qso => { root.save-qso(); }
+            save-and-new-qso => { root.save-and-new-qso(); }
+            review-duplicate => { root.review-duplicate(); }
+            save-duplicate-anyway => { root.save-duplicate-anyway(); }
         }
 
         if root.active-page == 2 : ToolsPage {

@@ -4,7 +4,28 @@ Este projeto segue [Semantic Versioning](https://semver.org/). As release notes 
 
 ## [Unreleased]
 
-## [0.6.0] - Não publicada
+## [0.7.0] - Não publicada
+
+### Added
+
+- ação **Save & New** exclusiva da criação de QSO: valida e grava o formulário, atualiza a listagem, limpa todos os campos e metadados e inicia o próximo formulário com um novo UTC fixo;
+- aviso de possível duplicidade manual pela identidade callsign + UTC inicial + frequência em Hz + modo, com as ações **Review** e **Save anyway**;
+- atalhos `Ctrl+N`, `Ctrl+S`, `Ctrl+Enter` e `Ctrl+F`, preservando o conteúdo do clipboard.
+
+### Changed
+
+- foco inicial direcionado ao callsign ao abrir um novo QSO e à pesquisa ao usar `Ctrl+F`;
+- `Enter` em Notes continua salvando e `Escape` permanece exclusivamente reservado ao cancelamento/fechamento do fluxo atual;
+- salvamentos usam proteção contra double-submit e atualizam o snapshot do formulário somente após commit bem-sucedido;
+- edição exclui o próprio QSO da detecção de duplicidade.
+
+### Compatibility
+
+- duplicidade manual é somente um aviso: não mescla, não bloqueia e não adiciona restrição `UNIQUE`;
+- schema permanece na versão 7, sem migration ou índice novo;
+- medições release em 100 mil QSOs confirmaram o plano por `idx_qsos_datetime_start`; nenhum índice adicional foi adotado.
+
+## [0.6.0] - Publicada
 
 ### Added
 
@@ -24,6 +45,8 @@ Este projeto segue [Semantic Versioning](https://semver.org/). As release notes 
 - `digital_routes` continua específico de DMR;
 - schema 7 adiciona `ysf_metadata`; somente TX/RX DG-ID receberam índices após inspeção com `EXPLAIN QUERY PLAN`;
 - não foram introduzidos traits nem plugins de modo.
+
+A versão 0.6.0 foi publicada como tag/release; `main` e a tag estavam no commit `034996f`.
 
 ## [0.5.0] - Publicada
 

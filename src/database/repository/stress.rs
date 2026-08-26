@@ -5,6 +5,8 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use rusqlite::params;
 
+use crate::domain::NewQso;
+
 use super::{DmrFilter, DstarFilter, Ft8Filter, QsoRepository, YsfFilter};
 
 #[test]
@@ -39,6 +41,7 @@ fn run_benchmark(
     let repository = QsoRepository::open(database_path)?;
     let opening = started.elapsed();
     print_query_plans(&repository)?;
+    benchmark_identity_lookup(&repository, count)?;
 
     let first_page = measure(|| repository.search_page("", 0, 100))?;
     let middle_offset = count.saturating_div(2).saturating_sub(50);
@@ -248,6 +251,29 @@ fn print_query_plans(repository: &QsoRepository) -> rusqlite::Result<()> {
          SELECT id FROM qsos
          ORDER BY datetime_start_utc DESC, id DESC LIMIT 100 OFFSET 0",
     )?;
+    println!("DHRL_QUERY_PLAN identity_create");
+    print_query_plan(
+        repository,
+        "EXPLAIN QUERY PLAN
+         SELECT id FROM qsos
+         WHERE callsign = 'PY00042' COLLATE NOCASE
+           AND datetime_start_utc = 1700000042
+           AND frequency_hz = 145500000
+           AND mode = 'SSB' COLLATE NOCASE
+         LIMIT 1",
+    )?;
+    println!("DHRL_QUERY_PLAN identity_edit");
+    print_query_plan(
+        repository,
+        "EXPLAIN QUERY PLAN
+         SELECT id FROM qsos
+         WHERE callsign = 'PY00042' COLLATE NOCASE
+           AND datetime_start_utc = 1700000042
+           AND frequency_hz = 145500000
+           AND mode = 'SSB' COLLATE NOCASE
+           AND id <> 43
+         LIMIT 1",
+    )?;
     println!("DHRL_QUERY_PLAN callsign_substring");
     print_query_plan(
         repository,
@@ -450,6 +476,81 @@ fn seed_database(repository: &QsoRepository, count: usize) -> rusqlite::Result<(
         }
     }
     transaction.commit()
+}
+
+fn benchmark_identity_lookup(
+    repository: &QsoRepository,
+    count: usize,
+) -> Result<(), Box<dyn Error>> {
+    let iterations = std::env::var("DHRL_STRESS_IDENTITY_ITERATIONS")
+        .unwrap_or_else(|_| "200".to_owned())
+        .parse::<usize>()?;
+    if iterations == 0 {
+        return Err("DHRL_STRESS_IDENTITY_ITERATIONS must be greater than zero".into());
+    }
+
+    let index = count / 2;
+    let mode = match index % 5 {
+        0 => "DMR",
+        1 => "FT8",
+        2 => "SSB",
+        3 => "DSTAR",
+        _ => "C4FM",
+    };
+    let frequency_hz = match mode {
+        "DMR" | "DSTAR" | "C4FM" => 438_500_000,
+        "FT8" => 14_074_000,
+        _ => 145_500_000,
+    };
+    let hit = NewQso::new(
+        format!("PY{:05}", index % 10_000),
+        1_700_000_000 + index as i64,
+        frequency_hz,
+        mode,
+    )?;
+    let miss = NewQso::new(
+        "ZZ0MISS",
+        hit.datetime_start_utc,
+        hit.frequency_hz,
+        &hit.mode,
+    )?;
+    let hit_id = index as i64 + 1;
+
+    println!("DHRL_IDENTITY_RESULT iterations={iterations}");
+    measure_repeated("identity_hit", iterations, || {
+        repository.find_qso_identity_match(&hit, None)
+    })?;
+    measure_repeated("identity_miss", iterations, || {
+        repository.find_qso_identity_match(&miss, None)
+    })?;
+    measure_repeated("identity_self", iterations, || {
+        repository.find_qso_identity_match(&hit, Some(hit_id))
+    })?;
+
+    let duplicate_id = repository.insert(&hit, 1_800_000_000)?;
+    measure_repeated("identity_collision", iterations, || {
+        repository.find_qso_identity_match(&hit, Some(hit_id))
+    })?;
+    repository.delete(duplicate_id)?;
+    Ok(())
+}
+
+fn measure_repeated<T>(
+    label: &str,
+    iterations: usize,
+    mut operation: impl FnMut() -> rusqlite::Result<T>,
+) -> rusqlite::Result<()> {
+    let started = Instant::now();
+    for _ in 0..iterations {
+        operation()?;
+    }
+    let total = started.elapsed();
+    println!(
+        "{label}_total_ms={:.3} {label}_avg_ms={:.6}",
+        total.as_secs_f64() * 1_000.0,
+        total.as_secs_f64() * 1_000.0 / iterations as f64
+    );
+    Ok(())
 }
 
 fn measure<T, E>(operation: impl FnOnce() -> Result<T, E>) -> Result<(Duration, T), E> {

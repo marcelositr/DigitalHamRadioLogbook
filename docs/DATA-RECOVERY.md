@@ -42,7 +42,7 @@ Configuration and ADIF exports use a temporary file in the destination directory
 8. Rename the temporary restored file to `logbook.sqlite3`.
 9. Ensure stale `logbook.sqlite3-wal` and `logbook.sqlite3-shm` files from the previous database are not left beside the restored database; preserve them in the recovery directory instead of deleting them.
 10. Start the application. It will validate integrity and apply supported migrations.
-11. Verify representative generic, DMR, and FT8 records before removing any recovery copies.
+11. Verify representative generic, DMR, FT8, D-STAR, and YSF/C4FM records before removing any recovery copies.
 
 Example with default paths, while the application is closed:
 
@@ -80,7 +80,7 @@ The application creates its own XDG data/configuration directories. Backup and e
 After restoration:
 
 - open and search the Logbook;
-- inspect one generic, one DMR, and one FT8 QSO when available;
+- inspect one generic, one DMR, one FT8, one D-STAR, and one YSF/C4FM QSO when available;
 - create a new backup to a new filename;
 - export ADIF to a new filename;
 - close and restart the application to confirm persistence.

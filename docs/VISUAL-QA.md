@@ -1,5 +1,30 @@
 # Visual QA checklist
 
+## v0.7.0 — checklist pendente, não aprovado
+
+Esta seção registra somente o roteiro da validação manual atual. Nenhum item abaixo foi aprovado ainda; a homologação histórica das seções seguintes não aprova as mudanças de `v0.7.0`.
+
+### Janela e modos em `1050×680`
+
+- [ ] Confirmar que nenhum controle sobrepõe, corta ou exige fullscreen em `1050×680`.
+- [ ] Criar e editar um QSO genérico, DMR, FT8, D-STAR e YSF/C4FM, verificando todos os campos e metadados condicionais.
+- [ ] Confirmar rolagem até Notes e rodapé fixo em todos os modos.
+
+### Save & New, warning e dirty state
+
+- [ ] Em novo QSO, confirmar **Save & New**: valida, grava uma vez, atualiza a lista, limpa todos os campos/metadados e apresenta novo UTC fixo.
+- [ ] Confirmar que **Save & New** não cria um segundo QSO e não aparece durante edição.
+- [ ] Confirmar warning pela identidade callsign + UTC + Hz + mode, com **Review** e **Save anyway** legíveis e acessíveis.
+- [ ] Confirmar que edição exclui o próprio QSO e que colisão real continua permitindo **Save anyway**, sem merge ou bloqueio.
+- [ ] Confirmar dirty state após edição, erro de validação, **Review**, save concluído e formulário limpo pós-commit.
+
+### Atalhos, foco e clipboard
+
+- [ ] Validar `Ctrl+N`, `Ctrl+S`, `Ctrl+Enter` e `Ctrl+F` por teclado.
+- [ ] Confirmar `Enter` em Notes para salvar e `Escape` exclusivamente para cancelar/fechar o fluxo atual.
+- [ ] Confirmar foco em callsign ao abrir novo QSO e foco na pesquisa após `Ctrl+F`.
+- [ ] Confirmar que copiar/colar e o conteúdo existente do clipboard são preservados ao usar os atalhos.
+
 Last full visual approval: 2026-08-14 — i3/tiled mode at the default `1050×680` window size.
 
 All items below were approved after Marco 10. No control may require fullscreen to become accessible.
