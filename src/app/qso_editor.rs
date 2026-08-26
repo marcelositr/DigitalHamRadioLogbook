@@ -471,7 +471,29 @@ mod tests {
     use std::sync::{Mutex, MutexGuard, OnceLock};
 
     static TEST_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+    static HEADLESS_PLATFORM: OnceLock<()> = OnceLock::new();
     static NEXT_DATABASE: AtomicU64 = AtomicU64::new(0);
+
+    struct HeadlessPlatform;
+
+    impl slint::platform::Platform for HeadlessPlatform {
+        fn create_window_adapter(
+            &self,
+        ) -> Result<Rc<dyn slint::platform::WindowAdapter>, slint::PlatformError> {
+            Ok(
+                slint::platform::software_renderer::MinimalSoftwareWindow::new(
+                    slint::platform::software_renderer::RepaintBufferType::NewBuffer,
+                ),
+            )
+        }
+    }
+
+    fn initialize_headless_platform() {
+        HEADLESS_PLATFORM.get_or_init(|| {
+            slint::platform::set_platform(Box::new(HeadlessPlatform))
+                .expect("headless Slint platform must be initialized before the test UI");
+        });
+    }
     const FIRST_UTC: i64 = 1_700_000_000;
     const SECOND_UTC: i64 = 1_700_000_060;
 
@@ -488,6 +510,7 @@ mod tests {
                 .get_or_init(|| Mutex::new(()))
                 .lock()
                 .unwrap_or_else(|poisoned| poisoned.into_inner());
+            initialize_headless_platform();
             let path = std::env::temp_dir().join(format!(
                 "digital-ham-radio-logbook-qso-editor-{}-{}.sqlite3",
                 std::process::id(),
