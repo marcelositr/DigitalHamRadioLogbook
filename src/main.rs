@@ -52,12 +52,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     );
     ui.set_grid_url_text(app_config.borrow().external_links.grid_url.clone().into());
     ui.set_active_page(app_config.borrow().operational.sanitized_active_page());
-    let configured_filter = app_config.borrow().operational.active_filter;
-    ui.set_active_filter(if (0..=4).contains(&configured_filter) {
-        configured_filter
-    } else {
-        0
-    });
+    ui.set_active_filter(app_config.borrow().operational.sanitized_active_filter());
     ui.set_filters_expanded(app_config.borrow().operational.filters_expanded);
     if app_config.borrow().station.callsign.is_empty() {
         set_status(&ui, "Configure the local station callsign", STATUS_WARNING);
@@ -70,7 +65,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     connect_station_config_handler(&ui, &app_config, config_path.clone());
     connect_mode_handler(&ui);
     connect_external_link_handlers(&ui, &app_config, config_path.clone());
-    connect_save_handler(&ui, &repository, &logbook_state);
+    connect_save_handler(&ui, &repository, &logbook_state, &editor_baseline);
     connect_search_handler(&ui, &repository, &logbook_state);
     connect_dmr_filter_handlers(&ui, &repository, &logbook_state);
     connect_ft8_filter_handlers(&ui, &repository, &logbook_state);

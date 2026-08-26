@@ -1,6 +1,6 @@
 use super::*;
 
-#[derive(Clone, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(crate) struct EditorSnapshot(pub(super) Vec<String>);
 
 pub(super) fn has_unsaved_changes(current: &EditorSnapshot, baseline: &EditorSnapshot) -> bool {
@@ -105,7 +105,11 @@ pub(crate) fn connect_editor_navigation_handlers(
             *request_baseline.borrow_mut() = editor_snapshot(&ui);
         }
         ui.set_discard_editor_visible(false);
+        ui.set_duplicate_warning_visible(false);
         ui.set_active_page(target);
+        if target == 1 {
+            ui.invoke_focus_callsign();
+        }
     });
 
     let weak_ui = ui.as_weak();

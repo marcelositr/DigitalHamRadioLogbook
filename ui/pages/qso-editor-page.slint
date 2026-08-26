@@ -56,6 +56,13 @@ export component QsoEditorPage inherits VerticalBox {
     callback mode-input-changed(string);
     callback request-page(int);
     callback save-qso();
+    callback save-and-new-qso();
+    callback review-duplicate();
+    callback save-duplicate-anyway();
+    in-out property <bool> duplicate-warning-visible;
+    in-out property <string> duplicate-warning-text;
+    in property <bool> callsign-focus-request;
+    changed callsign-focus-request => { callsign-input.focus(); }
 
     spacing: 0px;
 
@@ -116,7 +123,7 @@ export component QsoEditorPage inherits VerticalBox {
                         VerticalBox {
                             spacing: Theme.space-xs; horizontal-stretch: 2;
                             DataLabel { text: "CALLSIGN  *"; }
-                            LineEdit { accessible-label: "Callsign, required"; text <=> root.callsign-text; placeholder-text: "PU2XYZ"; }
+                            callsign-input := LineEdit { accessible-label: "Callsign, required"; text <=> root.callsign-text; placeholder-text: "PU2XYZ"; }
                         }
                         VerticalBox {
                             spacing: Theme.space-xs; horizontal-stretch: 3;
@@ -315,6 +322,26 @@ export component QsoEditorPage inherits VerticalBox {
         }
     }
 
+    if root.duplicate-warning-visible : Rectangle {
+
+        accessible-role: form;
+        accessible-label: "Possible duplicate QSO actions";
+        background: Theme.warning-surface;
+        border-width: 1px;
+        border-color: Theme.warning;
+        HorizontalBox {
+            padding: Theme.space-md; spacing: Theme.space-md;
+            Rectangle { width: 3px; background: Theme.warning; }
+            VerticalBox {
+                spacing: Theme.space-2xs; horizontal-stretch: 1;
+                Text { text: "POSSIBLE DUPLICATE QSO"; color: Theme.warning; font-size: Theme.text-sm; font-weight: 700; }
+                Text { text: root.duplicate-warning-text; color: Theme.text-secondary; font-size: Theme.text-xs; wrap: word-wrap; }
+            }
+            KeyboardAction { width: 82px; compact: true; label: "Review"; description: "Return to the unchanged QSO form without saving"; activated => { root.review-duplicate(); } }
+            KeyboardAction { width: 108px; compact: true; primary: true; label: "Save anyway"; description: "Save this exact duplicate QSO"; activated => { root.save-duplicate-anyway(); } }
+        }
+    }
+
     if root.discard-editor-visible : Rectangle {
         background: Theme.warning-surface;
         border-width: 1px;
@@ -349,6 +376,10 @@ export component QsoEditorPage inherits VerticalBox {
             DataLabel { text: "ESC"; }
             Text { text: "Cancel / close"; color: Theme.text-secondary; font-size: Theme.text-xs; vertical-alignment: center; }
             Rectangle { horizontal-stretch: 1; }
+            if root.editing-id == "" : KeyboardAction {
+                width: 116px; label: "Save & New"; description: "Save this QSO and open a clean new QSO form (Ctrl+Enter)";
+                activated => { root.save-and-new-qso(); }
+            }
             KeyboardAction { width: 76px; label: "Cancel"; description: "Cancel QSO editing"; activated => { root.request-page(0); } }
             KeyboardAction {
                 width: 116px;

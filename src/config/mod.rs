@@ -43,7 +43,7 @@ impl OperationalConfig {
     }
 
     pub fn sanitized_active_filter(&self) -> i32 {
-        if (0..=2).contains(&self.active_filter) {
+        if (0..=4).contains(&self.active_filter) {
             self.active_filter
         } else {
             0
@@ -285,9 +285,9 @@ mod tests {
         assert!(OperationalConfig::existing_directory("/path/that/does/not/exist").is_none());
 
         operational.active_page = 3;
-        operational.active_filter = 2;
+        operational.active_filter = 4;
         assert_eq!(operational.sanitized_active_page(), 3);
-        assert_eq!(operational.sanitized_active_filter(), 2);
+        assert_eq!(operational.sanitized_active_filter(), 4);
     }
 
     #[test]
