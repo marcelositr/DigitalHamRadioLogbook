@@ -143,10 +143,7 @@ CREATE TABLE IF NOT EXISTS ysf_metadata (
     FOREIGN KEY (qso_id) REFERENCES qsos(id) ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_ysf_metadata_room_nocase
-ON ysf_metadata(room COLLATE NOCASE);
-CREATE INDEX IF NOT EXISTS idx_ysf_metadata_wires_x_node_nocase
-ON ysf_metadata(wires_x_node COLLATE NOCASE);
+
 CREATE INDEX IF NOT EXISTS idx_ysf_metadata_tx_dg_id ON ysf_metadata(tx_dg_id);
 CREATE INDEX IF NOT EXISTS idx_ysf_metadata_rx_dg_id ON ysf_metadata(rx_dg_id);
 
@@ -304,8 +301,6 @@ fn validate_schema(connection: &Connection) -> Result<()> {
         "idx_dstar_metadata_reflector_nocase",
         "idx_dstar_metadata_module_nocase",
         "idx_dstar_metadata_rpt1_nocase",
-        "idx_ysf_metadata_room_nocase",
-        "idx_ysf_metadata_wires_x_node_nocase",
         "idx_ysf_metadata_tx_dg_id",
         "idx_ysf_metadata_rx_dg_id",
     ] {
