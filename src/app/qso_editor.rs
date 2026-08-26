@@ -14,7 +14,15 @@ fn mode_kind(mode: &str) -> i32 {
         "DMR" => 1,
         "FT8" => 2,
         "DSTAR" | "D-STAR" => 3,
+        "YSF" | "C4FM" | "SYSTEM FUSION" => 4,
         _ => 0,
+    }
+}
+
+fn canonical_mode(mode: &str) -> String {
+    match mode.trim().to_ascii_uppercase().as_str() {
+        "YSF" | "C4FM" | "SYSTEM FUSION" => "C4FM".to_owned(),
+        _ => mode.to_owned(),
     }
 }
 
@@ -75,7 +83,7 @@ fn save_form(ui: &MainWindow, repository: &QsoRepository) -> Result<&'static str
         ui.get_callsign_text().as_str(),
         datetime_start_utc,
         frequency_hz,
-        ui.get_mode_text().as_str(),
+        canonical_mode(ui.get_mode_text().as_str()),
     )?
     .with_common_fields(CommonQsoFields {
         band_override: ui.get_band_text().to_string(),
@@ -122,6 +130,22 @@ fn save_form(ui: &MainWindow, repository: &QsoRepository) -> Result<&'static str
         if id.is_empty() {
             repository.insert_dstar(&qso, &metadata, now_utc)?;
         } else if !repository.update_dstar(id.parse()?, &qso, &metadata, now_utc)? {
+            return Err("QSO no longer exists".into());
+        }
+    } else if qso.mode == "C4FM" {
+        let metadata = YsfMetadata::from_input(YsfMetadataInput {
+            room: ui.get_ysf_room_text().to_string(),
+            wires_x_node: ui.get_ysf_wires_x_node_text().to_string(),
+            repeater: ui.get_ysf_repeater_text().to_string(),
+            network: ui.get_ysf_network_text().to_string(),
+            access_type: ui.get_ysf_access_type_text().to_string(),
+            tx_dg_id: ui.get_ysf_tx_dg_id_text().to_string(),
+            rx_dg_id: ui.get_ysf_rx_dg_id_text().to_string(),
+            notes: ui.get_ysf_notes_text().to_string(),
+        })?;
+        if id.is_empty() {
+            repository.insert_ysf(&qso, &metadata, now_utc)?;
+        } else if !repository.update_ysf(id.parse()?, &qso, &metadata, now_utc)? {
             return Err("QSO no longer exists".into());
         }
     } else if qso.mode == "FT8" {
@@ -190,6 +214,14 @@ pub(crate) fn clear_editor(ui: &MainWindow) -> Result<(), Box<dyn Error>> {
     ui.set_dstar_rpt1_text("".into());
     ui.set_dstar_rpt2_text("".into());
     ui.set_dstar_notes_text("".into());
+    ui.set_ysf_room_text("".into());
+    ui.set_ysf_wires_x_node_text("".into());
+    ui.set_ysf_repeater_text("".into());
+    ui.set_ysf_network_text("".into());
+    ui.set_ysf_access_type_text("simplex".into());
+    ui.set_ysf_tx_dg_id_text("".into());
+    ui.set_ysf_rx_dg_id_text("".into());
+    ui.set_ysf_notes_text("".into());
     Ok(())
 }
 
@@ -208,8 +240,20 @@ mod tests {
         for value in ["DSTAR", "dstar", "D-STAR", " d-star "] {
             assert_eq!(mode_kind(value), 3);
         }
+        for value in [
+            "YSF",
+            "ysf",
+            "C4FM",
+            "c4fm",
+            "SYSTEM FUSION",
+            " system fusion ",
+        ] {
+            assert_eq!(mode_kind(value), 4);
+            assert_eq!(canonical_mode(value), "C4FM");
+        }
         for value in ["M17", "", "FT-8"] {
             assert_eq!(mode_kind(value), 0);
         }
+        assert_eq!(canonical_mode(" DMR "), " DMR ");
     }
 }

@@ -9,6 +9,11 @@ fn valid(name: &str) -> &'static str {
         "dstar-minimal" => include_str!("fixtures/adif/valid/dstar-minimal.adi"),
         "dstar-full" => include_str!("fixtures/adif/valid/dstar-full.adi"),
         "dstar-private" => include_str!("fixtures/adif/valid/dstar-private.adi"),
+        "ysf-minimal" => include_str!("fixtures/adif/valid/ysf-minimal.adi"),
+        "ysf-full" => include_str!("fixtures/adif/valid/ysf-full.adi"),
+        "ysf-private-or-unknown" => {
+            include_str!("fixtures/adif/valid/ysf-private-or-unknown.adi")
+        }
         "ft8" => include_str!("fixtures/adif/valid/ft8.adi"),
         "mixed" => include_str!("fixtures/adif/valid/mixed.adi"),
         "unicode" => include_str!("fixtures/adif/valid/unicode.adi"),
@@ -99,6 +104,32 @@ fn parses_historical_canonical_and_private_dstar_records() {
         private.records[0].get("APP_DHRL_DSTAR_URCALL"),
         Some("NOTACALL")
     );
+}
+
+#[test]
+fn parses_historical_canonical_and_private_or_unknown_ysf_records() {
+    let minimal = parsed("ysf-minimal");
+    assert_eq!(minimal.records[0].get("MODE"), Some("C4FM"));
+
+    let full = parsed("ysf-full");
+    assert_eq!(full.records[0].get("MODE"), Some("DIGITALVOICE"));
+    assert_eq!(full.records[0].get("SUBMODE"), Some("C4FM"));
+    assert_eq!(full.records[0].get("APP_DHRL_YSF_TX_DG_ID"), Some("1"));
+    assert_eq!(full.records[0].get("APP_VENDOR_YSF"), Some("opaque"));
+
+    let private = parsed("ysf-private-or-unknown");
+    assert_eq!(private.records[0].get("CALL"), Some("PY2QSO"));
+    assert_eq!(
+        private.records[0].get("APP_DHRL_YSF_ROOM"),
+        Some("NOTACALL")
+    );
+    let unknowns: Vec<_> = private.records[0]
+        .fields
+        .iter()
+        .filter(|field| field.name == "APP_VENDOR_YSF")
+        .map(|field| field.value.as_str())
+        .collect();
+    assert_eq!(unknowns, ["one", "two"]);
 }
 
 #[test]

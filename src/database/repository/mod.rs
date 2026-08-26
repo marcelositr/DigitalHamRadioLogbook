@@ -4,6 +4,7 @@ mod queries;
 #[cfg(test)]
 mod stress;
 
+use adif::reconcile_adif_extra_fields;
 use std::collections::BTreeMap;
 use std::path::Path;
 
@@ -11,7 +12,8 @@ use rusqlite::{params, Connection, OptionalExtension, Result, Transaction};
 
 use crate::adif::ImportedQso;
 use crate::domain::{
-    DStarMetadata, DmrAccessType, DmrCallType, DmrMetadata, Ft8Metadata, NewQso, Qso,
+    DStarMetadata, DmrAccessType, DmrCallType, DmrMetadata, Ft8Metadata, ModeMetadata, NewQso, Qso,
+    YsfAccessType, YsfMetadata,
 };
 
 use super::migrations;
@@ -43,6 +45,13 @@ pub struct Ft8Filter {
     pub maximum_snr_received_db: Option<i16>,
     pub start_utc: Option<i64>,
     pub end_utc: Option<i64>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct YsfFilter {
+    pub room: Option<String>,
+    pub wires_x_node: Option<String>,
+    pub dg_id: Option<u8>,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -99,9 +108,7 @@ pub const DEFAULT_PAGE_SIZE: usize = 100;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct QsoListItem {
     pub qso: Qso,
-    pub dmr: Option<DmrMetadata>,
-    pub dstar: Option<DStarMetadata>,
-    pub ft8: Option<Ft8Metadata>,
+    pub metadata: ModeMetadata,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -142,6 +149,7 @@ impl QsoRepository {
     }
 
     pub fn insert_dmr(&self, qso: &NewQso, metadata: &DmrMetadata, now_utc: i64) -> Result<i64> {
+        require_mode(qso, "DMR")?;
         let transaction = self.connection.unchecked_transaction()?;
         let qso_id = insert_qso(&transaction, qso, now_utc)?;
         insert_dmr_metadata(&transaction, qso_id, metadata)?;
@@ -150,6 +158,7 @@ impl QsoRepository {
     }
 
     pub fn insert_ft8(&self, qso: &NewQso, metadata: &Ft8Metadata, now_utc: i64) -> Result<i64> {
+        require_mode(qso, "FT8")?;
         let transaction = self.connection.unchecked_transaction()?;
         let qso_id = insert_qso(&transaction, qso, now_utc)?;
         insert_ft8_metadata(&transaction, qso_id, metadata)?;
@@ -163,11 +172,54 @@ impl QsoRepository {
         metadata: &DStarMetadata,
         now_utc: i64,
     ) -> Result<i64> {
+        require_mode(qso, "DSTAR")?;
         let transaction = self.connection.unchecked_transaction()?;
         let qso_id = insert_qso(&transaction, qso, now_utc)?;
         insert_dstar_metadata(&transaction, qso_id, metadata)?;
         transaction.commit()?;
         Ok(qso_id)
+    }
+
+    pub fn insert_ysf(&self, qso: &NewQso, metadata: &YsfMetadata, now_utc: i64) -> Result<i64> {
+        require_mode(qso, "C4FM")?;
+        let transaction = self.connection.unchecked_transaction()?;
+        let qso_id = insert_qso(&transaction, qso, now_utc)?;
+        insert_ysf_metadata(&transaction, qso_id, metadata)?;
+        transaction.commit()?;
+        Ok(qso_id)
+    }
+
+    pub fn update_ysf(
+        &self,
+        qso_id: i64,
+        qso: &NewQso,
+        metadata: &YsfMetadata,
+        now_utc: i64,
+    ) -> Result<bool> {
+        require_mode(qso, "C4FM")?;
+        let transaction = self.connection.unchecked_transaction()?;
+        let changed = update_qso(&transaction, qso_id, qso, now_utc)?;
+        if !changed {
+            transaction.rollback()?;
+            return Ok(false);
+        }
+        reconcile_adif_extra_fields(&transaction, qso_id, &qso.mode)?;
+        delete_mode_metadata(&transaction, qso_id)?;
+        insert_ysf_metadata(&transaction, qso_id, metadata)?;
+        transaction.commit()?;
+        Ok(true)
+    }
+
+    pub fn get_ysf_metadata(&self, qso_id: i64) -> Result<Option<YsfMetadata>> {
+        self.connection
+            .query_row(
+                "SELECT room, wires_x_node, repeater, network, access_type,
+                        tx_dg_id, rx_dg_id, notes
+                 FROM ysf_metadata WHERE qso_id = ?1",
+                params![qso_id],
+                map_ysf_metadata,
+            )
+            .optional()
     }
 
     pub fn update_dstar(
@@ -177,12 +229,14 @@ impl QsoRepository {
         metadata: &DStarMetadata,
         now_utc: i64,
     ) -> Result<bool> {
+        require_mode(qso, "DSTAR")?;
         let transaction = self.connection.unchecked_transaction()?;
         let changed = update_qso(&transaction, qso_id, qso, now_utc)?;
         if !changed {
             transaction.rollback()?;
             return Ok(false);
         }
+        reconcile_adif_extra_fields(&transaction, qso_id, &qso.mode)?;
         delete_mode_metadata(&transaction, qso_id)?;
         insert_dstar_metadata(&transaction, qso_id, metadata)?;
         transaction.commit()?;
@@ -207,12 +261,14 @@ impl QsoRepository {
         metadata: &Ft8Metadata,
         now_utc: i64,
     ) -> Result<bool> {
+        require_mode(qso, "FT8")?;
         let transaction = self.connection.unchecked_transaction()?;
         let changed = update_qso(&transaction, qso_id, qso, now_utc)?;
         if !changed {
             transaction.rollback()?;
             return Ok(false);
         }
+        reconcile_adif_extra_fields(&transaction, qso_id, &qso.mode)?;
         delete_mode_metadata(&transaction, qso_id)?;
         insert_ft8_metadata(&transaction, qso_id, metadata)?;
         transaction.commit()?;
@@ -238,12 +294,14 @@ impl QsoRepository {
         metadata: &DmrMetadata,
         now_utc: i64,
     ) -> Result<bool> {
+        require_mode(qso, "DMR")?;
         let transaction = self.connection.unchecked_transaction()?;
         let changed = update_qso(&transaction, qso_id, qso, now_utc)?;
         if !changed {
             transaction.rollback()?;
             return Ok(false);
         }
+        reconcile_adif_extra_fields(&transaction, qso_id, &qso.mode)?;
         delete_mode_metadata(&transaction, qso_id)?;
         insert_dmr_metadata(&transaction, qso_id, metadata)?;
         transaction.commit()?;
@@ -273,6 +331,7 @@ impl QsoRepository {
             transaction.rollback()?;
             return Ok(false);
         }
+        reconcile_adif_extra_fields(&transaction, id, &qso.mode)?;
         delete_mode_metadata(&transaction, id)?;
         transaction.commit()?;
         Ok(true)
@@ -283,6 +342,17 @@ impl QsoRepository {
             .connection
             .execute("DELETE FROM qsos WHERE id = ?1", params![id])?;
         Ok(changed > 0)
+    }
+}
+
+fn require_mode(qso: &NewQso, expected: &str) -> Result<()> {
+    if qso.mode == expected {
+        Ok(())
+    } else {
+        Err(rusqlite::Error::InvalidParameterName(format!(
+            "specialized {expected} metadata is incompatible with QSO mode {}",
+            qso.mode
+        )))
     }
 }
 
@@ -336,6 +406,51 @@ fn insert_qso(connection: &Connection, qso: &NewQso, now_utc: i64) -> Result<i64
         ],
     )?;
     Ok(connection.last_insert_rowid())
+}
+
+fn insert_ysf_metadata(
+    transaction: &Transaction<'_>,
+    qso_id: i64,
+    metadata: &YsfMetadata,
+) -> Result<()> {
+    transaction.execute(
+        "INSERT INTO ysf_metadata (
+            qso_id, room, wires_x_node, repeater, network, access_type,
+            tx_dg_id, rx_dg_id, notes
+         ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+        params![
+            qso_id,
+            metadata.room,
+            metadata.wires_x_node,
+            metadata.repeater,
+            metadata.network,
+            metadata.access_type.as_str(),
+            metadata.tx_dg_id.map(i64::from),
+            metadata.rx_dg_id.map(i64::from),
+            metadata.notes
+        ],
+    )?;
+    Ok(())
+}
+
+fn map_ysf_metadata(row: &rusqlite::Row<'_>) -> Result<YsfMetadata> {
+    let access_type: String = row.get(4)?;
+    Ok(YsfMetadata {
+        room: row.get(0)?,
+        wires_x_node: row.get(1)?,
+        repeater: row.get(2)?,
+        network: row.get(3)?,
+        access_type: parse_stored_ysf_access_type(&access_type)?,
+        tx_dg_id: row.get(5)?,
+        rx_dg_id: row.get(6)?,
+        notes: row.get(7)?,
+    })
+}
+
+fn parse_stored_ysf_access_type(value: &str) -> Result<YsfAccessType> {
+    value.parse().map_err(|error| {
+        rusqlite::Error::FromSqlConversionFailure(4, rusqlite::types::Type::Text, Box::new(error))
+    })
 }
 
 fn insert_dstar_metadata(
@@ -424,6 +539,10 @@ fn delete_mode_metadata(transaction: &Transaction<'_>, qso_id: i64) -> Result<()
     )?;
     transaction.execute(
         "DELETE FROM dstar_metadata WHERE qso_id = ?1",
+        params![qso_id],
+    )?;
+    transaction.execute(
+        "DELETE FROM ysf_metadata WHERE qso_id = ?1",
         params![qso_id],
     )?;
     Ok(())
@@ -523,7 +642,166 @@ fn map_qso(row: &rusqlite::Row<'_>) -> Result<Qso> {
 mod tests {
     use super::*;
     use crate::adif::{export, parse, AdifField};
-    use crate::domain::{CommonQsoFields, DStarMetadataInput, DmrMetadataInput, Ft8MetadataInput};
+    use crate::domain::{
+        CommonQsoFields, DStarMetadataInput, DmrMetadataInput, Ft8MetadataInput, YsfMetadataInput,
+    };
+
+    fn assert_metadata_invariant(repository: &QsoRepository, qso_id: i64, expected_mode: &str) {
+        let (mode, dmr, ft8, dstar, ysf): (String, i64, i64, i64, i64) = repository
+            .connection
+            .query_row(
+                "SELECT q.mode,
+                        (SELECT COUNT(*) FROM dmr_metadata WHERE qso_id = q.id),
+                        (SELECT COUNT(*) FROM ft8_metadata WHERE qso_id = q.id),
+                        (SELECT COUNT(*) FROM dstar_metadata WHERE qso_id = q.id),
+                        (SELECT COUNT(*) FROM ysf_metadata WHERE qso_id = q.id)
+                 FROM qsos q WHERE q.id = ?1",
+                [qso_id],
+                |row| {
+                    Ok((
+                        row.get(0)?,
+                        row.get(1)?,
+                        row.get(2)?,
+                        row.get(3)?,
+                        row.get(4)?,
+                    ))
+                },
+            )
+            .unwrap();
+        assert_eq!(mode, expected_mode);
+        let expected = match expected_mode {
+            "DMR" => (1, 0, 0, 0),
+            "FT8" => (0, 1, 0, 0),
+            "DSTAR" => (0, 0, 1, 0),
+            "C4FM" => (0, 0, 0, 1),
+            _ => (0, 0, 0, 0),
+        };
+        assert_eq!((dmr, ft8, dstar, ysf), expected);
+    }
+
+    fn ysf_metadata() -> YsfMetadata {
+        YsfMetadata::from_input(YsfMetadataInput {
+            room: "America-Link".into(),
+            wires_x_node: "Node 724".into(),
+            repeater: "PY2YSF-RPT".into(),
+            network: "WIRES-X".into(),
+            access_type: "repeater".into(),
+            tx_dg_id: "1".into(),
+            rx_dg_id: "99".into(),
+            notes: "Clear audio".into(),
+        })
+        .unwrap()
+    }
+
+    #[test]
+    fn specialized_writes_reject_mode_mismatch_without_partial_changes() {
+        let repository = QsoRepository::in_memory().unwrap();
+        let ft8_metadata = Ft8Metadata::from_input(Ft8MetadataInput::default()).unwrap();
+        let fm = NewQso::new("PY2BAD", 1_700_000_000, 145_500_000, "FM").unwrap();
+
+        assert!(repository
+            .insert_ft8(&fm, &ft8_metadata, 1_700_000_001)
+            .is_err());
+        assert!(repository.list().unwrap().is_empty());
+
+        let valid = NewQso::new("PY2GOOD", 1_700_000_002, 14_074_000, "FT8").unwrap();
+        let id = repository
+            .insert_ft8(&valid, &ft8_metadata, 1_700_000_003)
+            .unwrap();
+        assert!(repository
+            .update_ft8(id, &fm, &ft8_metadata, 1_700_000_004)
+            .is_err());
+        let stored = repository.list().unwrap().remove(0);
+        assert_eq!(stored.mode, "FT8");
+        assert_eq!(repository.get_ft8_metadata(id).unwrap(), Some(ft8_metadata));
+    }
+
+    #[test]
+    fn inserts_reads_updates_and_deletes_ysf_atomically() {
+        let repository = QsoRepository::in_memory().unwrap();
+        let qso = NewQso::new("PY2YSF", 1_700_000_000, 145_562_500, "C4FM").unwrap();
+        let metadata = ysf_metadata();
+        let qso_id = repository.insert_ysf(&qso, &metadata, 1).unwrap();
+        assert_eq!(repository.get_ysf_metadata(qso_id).unwrap(), Some(metadata));
+        assert_metadata_invariant(&repository, qso_id, "C4FM");
+
+        let updated_qso = NewQso::new("PU2YSF", 1_700_000_010, 439_600_000, "C4FM").unwrap();
+        let updated_metadata = YsfMetadata::from_input(YsfMetadataInput {
+            room: "Brazil".into(),
+            access_type: "hotspot".into(),
+            tx_dg_id: "10".into(),
+            notes: "Updated".into(),
+            ..Default::default()
+        })
+        .unwrap();
+        assert!(repository
+            .update_ysf(qso_id, &updated_qso, &updated_metadata, 2)
+            .unwrap());
+        assert_eq!(
+            repository.get_ysf_metadata(qso_id).unwrap(),
+            Some(updated_metadata)
+        );
+        assert_metadata_invariant(&repository, qso_id, "C4FM");
+
+        assert!(repository.delete(qso_id).unwrap());
+        assert_eq!(repository.get_ysf_metadata(qso_id).unwrap(), None);
+    }
+
+    #[test]
+    fn rolls_back_ysf_insert_and_update_failures() {
+        let repository = QsoRepository::in_memory().unwrap();
+        repository
+            .connection
+            .execute_batch(
+                "CREATE TRIGGER reject_ysf_insert BEFORE INSERT ON ysf_metadata
+                 BEGIN SELECT RAISE(ABORT, 'rejected YSF metadata'); END;",
+            )
+            .unwrap();
+        let qso = NewQso::new("PY2YSF", 1_700_000_000, 145_562_500, "C4FM").unwrap();
+        let metadata = ysf_metadata();
+        assert!(repository.insert_ysf(&qso, &metadata, 1).is_err());
+        assert!(repository.list().unwrap().is_empty());
+
+        repository
+            .connection
+            .execute_batch("DROP TRIGGER reject_ysf_insert;")
+            .unwrap();
+        let qso_id = repository.insert_ysf(&qso, &metadata, 2).unwrap();
+        repository
+            .connection
+            .execute_batch(
+                "CREATE TRIGGER reject_ysf_update BEFORE INSERT ON ysf_metadata
+                 BEGIN SELECT RAISE(ABORT, 'rejected YSF metadata'); END;",
+            )
+            .unwrap();
+        let changed = NewQso::new("PU2BAD", 1_700_000_010, 439_600_000, "C4FM").unwrap();
+        assert!(repository
+            .update_ysf(qso_id, &changed, &metadata, 3)
+            .is_err());
+        assert_eq!(repository.list().unwrap()[0].callsign, "PY2YSF");
+        assert_eq!(repository.get_ysf_metadata(qso_id).unwrap(), Some(metadata));
+        assert_metadata_invariant(&repository, qso_id, "C4FM");
+    }
+
+    #[test]
+    fn ysf_writes_require_canonical_c4fm_mode_without_partial_changes() {
+        let repository = QsoRepository::in_memory().unwrap();
+        let metadata = ysf_metadata();
+        for mode in ["YSF", "SYSTEM FUSION"] {
+            let mismatch = NewQso::new("PY2BAD", 1_700_000_000, 145_562_500, mode).unwrap();
+            assert!(repository.insert_ysf(&mismatch, &metadata, 1).is_err());
+        }
+        assert!(repository.list().unwrap().is_empty());
+
+        let valid = NewQso::new("PY2YSF", 1_700_000_000, 145_562_500, "C4FM").unwrap();
+        let qso_id = repository.insert_ysf(&valid, &metadata, 2).unwrap();
+        let mismatch = NewQso::new("PU2BAD", 1_700_000_010, 439_600_000, "YSF").unwrap();
+        assert!(repository
+            .update_ysf(qso_id, &mismatch, &metadata, 3)
+            .is_err());
+        assert_eq!(repository.list().unwrap()[0].callsign, "PY2YSF");
+        assert_metadata_invariant(&repository, qso_id, "C4FM");
+    }
 
     #[test]
     fn creates_consistent_backup_without_overwriting() {
@@ -619,7 +897,7 @@ mod tests {
     }
 
     #[test]
-    fn backup_restores_generic_dmr_ft8_dstar_and_adif_extra_data() {
+    fn backup_restores_generic_dmr_ft8_dstar_ysf_and_adif_extra_data() {
         let repository = QsoRepository::in_memory().unwrap();
         let document = parse(
             "<CALL:6>PU2GEN<QSO_DATE:8>20231114<TIME_ON:6>221320<FREQ:7>145.500<MODE:3>M17<EOR>\
@@ -635,6 +913,11 @@ mod tests {
         )
         .unwrap();
         repository.import_adif(&document, 1_700_000_100).unwrap();
+        let ysf_qso = NewQso::new("PY2YSF", 1_700_000_004, 145_562_500, "C4FM").unwrap();
+        let ysf = ysf_metadata();
+        repository
+            .insert_ysf(&ysf_qso, &ysf, 1_700_000_100)
+            .unwrap();
         let directory = temporary_database_path("backup-restore");
         std::fs::create_dir_all(&directory).unwrap();
         let backup = directory.join("backup.sqlite3");
@@ -644,10 +927,11 @@ mod tests {
         std::fs::copy(&backup, &restored).unwrap();
         let restored_repository = QsoRepository::open(&restored).unwrap();
         let qsos = restored_repository.list().unwrap();
-        assert_eq!(qsos.len(), 4);
+        assert_eq!(qsos.len(), 5);
         let dmr_id = qsos.iter().find(|qso| qso.mode == "DMR").unwrap().id;
         let ft8_id = qsos.iter().find(|qso| qso.mode == "FT8").unwrap().id;
         let dstar_id = qsos.iter().find(|qso| qso.mode == "DSTAR").unwrap().id;
+        let ysf_id = qsos.iter().find(|qso| qso.mode == "C4FM").unwrap().id;
         assert_eq!(
             restored_repository
                 .get_dmr_metadata(dmr_id)
@@ -676,6 +960,11 @@ mod tests {
                 notes: "Backup D-STAR route".into(),
             })
         );
+        assert_eq!(
+            restored_repository.get_ysf_metadata(ysf_id).unwrap(),
+            Some(ysf)
+        );
+        assert_metadata_invariant(&restored_repository, ysf_id, "C4FM");
         assert_eq!(
             restored_repository.get_adif_extra_fields(ft8_id).unwrap(),
             vec![AdifField {
@@ -1673,6 +1962,53 @@ mod tests {
     }
 
     #[test]
+    fn transitions_between_generic_dmr_ft8_dstar_and_ysf_keep_exact_metadata() {
+        let repository = QsoRepository::in_memory().unwrap();
+        let ysf_qso = NewQso::new("PY2YSF", 1_700_000_000, 145_562_500, "C4FM").unwrap();
+        let ysf = ysf_metadata();
+        let generic_qso = NewQso::new("PY2GEN", 1_700_000_000, 145_500_000, "M17").unwrap();
+        let dmr_qso = NewQso::new("PU2DMR", 1_700_000_000, 438_500_000, "DMR").unwrap();
+        let dmr = DmrMetadata::from_input(DmrMetadataInput {
+            call_type: "group".into(),
+            access_type: "simplex".into(),
+            ..Default::default()
+        })
+        .unwrap();
+        let ft8_qso = NewQso::new("PY2FT8", 1_700_000_000, 14_074_000, "FT8").unwrap();
+        let ft8 = Ft8Metadata::from_input(Ft8MetadataInput::default()).unwrap();
+        let dstar_qso = NewQso::new("PY2DST", 1_700_000_000, 145_670_000, "DSTAR").unwrap();
+        let dstar = DStarMetadata::from_input(DStarMetadataInput::default()).unwrap();
+
+        let generic_id = repository.insert(&generic_qso, 1).unwrap();
+        repository
+            .update_ysf(generic_id, &ysf_qso, &ysf, 2)
+            .unwrap();
+        assert_metadata_invariant(&repository, generic_id, "C4FM");
+        repository.update(generic_id, &generic_qso, 3).unwrap();
+        assert_metadata_invariant(&repository, generic_id, "M17");
+
+        let dmr_id = repository.insert_dmr(&dmr_qso, &dmr, 4).unwrap();
+        repository.update_ysf(dmr_id, &ysf_qso, &ysf, 5).unwrap();
+        assert_metadata_invariant(&repository, dmr_id, "C4FM");
+        repository.update_dmr(dmr_id, &dmr_qso, &dmr, 6).unwrap();
+        assert_metadata_invariant(&repository, dmr_id, "DMR");
+
+        let ft8_id = repository.insert_ft8(&ft8_qso, &ft8, 7).unwrap();
+        repository.update_ysf(ft8_id, &ysf_qso, &ysf, 8).unwrap();
+        assert_metadata_invariant(&repository, ft8_id, "C4FM");
+        repository.update_ft8(ft8_id, &ft8_qso, &ft8, 9).unwrap();
+        assert_metadata_invariant(&repository, ft8_id, "FT8");
+
+        let dstar_id = repository.insert_dstar(&dstar_qso, &dstar, 10).unwrap();
+        repository.update_ysf(dstar_id, &ysf_qso, &ysf, 11).unwrap();
+        assert_metadata_invariant(&repository, dstar_id, "C4FM");
+        repository
+            .update_dstar(dstar_id, &dstar_qso, &dstar, 12)
+            .unwrap();
+        assert_metadata_invariant(&repository, dstar_id, "DSTAR");
+    }
+
+    #[test]
     fn filters_ft8_qsos_by_common_fields_snr_and_period() {
         let repository = QsoRepository::in_memory().unwrap();
         let first_qso = NewQso::new("PY2AAA", 1_700_000_000, 14_074_000, "FT8")
@@ -1857,10 +2193,8 @@ mod tests {
 
         let all = repository.search_page("", 0, DEFAULT_PAGE_SIZE).unwrap();
         assert_eq!(all.total, 2);
-        assert_eq!(all.items[0].ft8, Some(ft8.clone()));
-        assert!(all.items[0].dmr.is_none());
-        assert_eq!(all.items[1].dmr, Some(dmr.clone()));
-        assert!(all.items[1].ft8.is_none());
+        assert_eq!(all.items[0].metadata, ModeMetadata::Ft8(ft8.clone()));
+        assert_eq!(all.items[1].metadata, ModeMetadata::Dmr(dmr.clone()));
 
         let dmr_page = repository
             .search_dmr_page(
@@ -1873,7 +2207,7 @@ mod tests {
             )
             .unwrap();
         assert_eq!(dmr_page.total, 1);
-        assert_eq!(dmr_page.items[0].dmr, Some(dmr));
+        assert_eq!(dmr_page.items[0].metadata, ModeMetadata::Dmr(dmr));
 
         let ft8_page = repository
             .search_ft8_page(
@@ -1886,7 +2220,7 @@ mod tests {
             )
             .unwrap();
         assert_eq!(ft8_page.total, 1);
-        assert_eq!(ft8_page.items[0].ft8, Some(ft8));
+        assert_eq!(ft8_page.items[0].metadata, ModeMetadata::Ft8(ft8));
     }
 
     #[test]

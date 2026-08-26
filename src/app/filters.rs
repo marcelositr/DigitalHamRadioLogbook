@@ -269,6 +269,86 @@ pub(crate) fn connect_dstar_filter_handlers(
     });
 }
 
+pub(crate) fn connect_ysf_filter_handlers(
+    ui: &MainWindow,
+    repository: &Rc<QsoRepository>,
+    state: &SharedLogbookViewState,
+) {
+    let weak_ui = ui.as_weak();
+    let filter_repository = Rc::clone(repository);
+    let filter_state = Rc::clone(state);
+    ui.on_filter_ysf(move || {
+        let Some(ui) = weak_ui.upgrade() else { return };
+        let result = (|| -> Result<(), Box<dyn Error>> {
+            let filter = YsfFilter {
+                room: optional_filter_text(ui.get_ysf_filter_room_text().as_str()),
+                wires_x_node: optional_filter_text(ui.get_ysf_filter_node_text().as_str()),
+                dg_id: parse_optional_dg_id(ui.get_ysf_filter_dg_id_text().as_str())?,
+            };
+            let previous_state = filter_state.borrow().clone();
+            {
+                let mut state = filter_state.borrow_mut();
+                state.query = LogbookQuery::Ysf(filter);
+                state.offset = 0;
+            }
+            if let Err(error) = refresh_qso_list(&ui, &filter_repository, &filter_state) {
+                *filter_state.borrow_mut() = previous_state;
+                return Err(error);
+            }
+            Ok(())
+        })();
+        match result {
+            Ok(()) => {
+                ui.set_filters_applied(true);
+                ui.set_filters_expanded(false);
+                set_status(&ui, "YSF/C4FM filters applied", STATUS_SUCCESS);
+            }
+            Err(error) => set_status(
+                &ui,
+                format!("Could not filter YSF/C4FM QSOs: {error}"),
+                STATUS_ERROR,
+            ),
+        }
+    });
+
+    let weak_ui = ui.as_weak();
+    let clear_repository = Rc::clone(repository);
+    let clear_state = Rc::clone(state);
+    ui.on_clear_ysf_filter(move || {
+        let Some(ui) = weak_ui.upgrade() else { return };
+        ui.set_ysf_filter_room_text("".into());
+        ui.set_ysf_filter_node_text("".into());
+        ui.set_ysf_filter_dg_id_text("".into());
+        let previous_state = clear_state.borrow().clone();
+        {
+            let mut state = clear_state.borrow_mut();
+            state.query = LogbookQuery::General(ui.get_search_text().to_string());
+            state.offset = 0;
+        }
+        match refresh_qso_list(&ui, &clear_repository, &clear_state) {
+            Ok(()) => {
+                ui.set_filters_applied(false);
+                ui.set_filters_expanded(false);
+                set_status(&ui, "YSF/C4FM filters cleared", STATUS_INFO);
+            }
+            Err(error) => {
+                *clear_state.borrow_mut() = previous_state;
+                set_status(&ui, format!("Could not reload QSOs: {error}"), STATUS_ERROR);
+            }
+        }
+    });
+}
+
+fn parse_optional_dg_id(input: &str) -> Result<Option<u8>, Box<dyn Error>> {
+    if input.trim().is_empty() {
+        return Ok(None);
+    }
+    match input.trim().parse::<u8>() {
+        Ok(value @ 0..=99) => Ok(Some(value)),
+        _ => Err("DG-ID filter must be between 0 and 99".into()),
+    }
+}
+
 fn clear_ft8_filter_fields(ui: &MainWindow) {
     ui.set_ft8_filter_callsign_text("".into());
     ui.set_ft8_filter_grid_text("".into());
@@ -335,6 +415,9 @@ mod tests {
         assert_eq!(parse_optional_snr("-18").unwrap(), Some(-18));
         assert!(parse_optional_snr("-60").is_err());
         assert_eq!(parse_optional_utc_datetime("").unwrap(), None);
+        assert_eq!(parse_optional_dg_id(" 0 ").unwrap(), Some(0));
+        assert_eq!(parse_optional_dg_id("99").unwrap(), Some(99));
+        assert!(parse_optional_dg_id("100").is_err());
         assert!(validate_ft8_filter_ranges(&Ft8Filter {
             start_utc: Some(2),
             end_utc: Some(1),

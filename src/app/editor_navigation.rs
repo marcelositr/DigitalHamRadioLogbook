@@ -55,6 +55,14 @@ pub(crate) fn editor_snapshot(ui: &MainWindow) -> EditorSnapshot {
         ui.get_dstar_rpt1_text().to_string(),
         ui.get_dstar_rpt2_text().to_string(),
         ui.get_dstar_notes_text().to_string(),
+        ui.get_ysf_room_text().to_string(),
+        ui.get_ysf_wires_x_node_text().to_string(),
+        ui.get_ysf_repeater_text().to_string(),
+        ui.get_ysf_network_text().to_string(),
+        ui.get_ysf_access_type_text().to_string(),
+        ui.get_ysf_tx_dg_id_text().to_string(),
+        ui.get_ysf_rx_dg_id_text().to_string(),
+        ui.get_ysf_notes_text().to_string(),
     ])
 }
 

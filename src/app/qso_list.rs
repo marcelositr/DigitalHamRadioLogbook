@@ -1,5 +1,6 @@
 use super::*;
 use digital_ham_radio_logbook::database::{QsoListItem, QsoPage, DEFAULT_PAGE_SIZE};
+use digital_ham_radio_logbook::domain::ModeMetadata;
 
 #[derive(Debug, Clone)]
 pub(crate) enum LogbookQuery {
@@ -7,6 +8,7 @@ pub(crate) enum LogbookQuery {
     Dmr(DmrFilter),
     Ft8(Ft8Filter),
     Dstar(DstarFilter),
+    Ysf(YsfFilter),
 }
 
 #[derive(Debug, Clone)]
@@ -188,6 +190,9 @@ fn search_page(
         LogbookQuery::Dstar(filter) => {
             repository.search_dstar_page(filter, offset, DEFAULT_PAGE_SIZE)?
         }
+        LogbookQuery::Ysf(filter) => {
+            repository.search_ysf_page(filter, offset, DEFAULT_PAGE_SIZE)?
+        }
     })
 }
 
@@ -211,15 +216,20 @@ pub(crate) fn refresh_rows(ui: &MainWindow, items: Vec<QsoListItem>) -> Result<(
         .into_iter()
         .map(|item| {
             let qso = item.qso;
-            let dmr = item.dmr;
-            let ft8 = item.ft8;
-            let dstar = item.dstar;
+            let (dmr, ft8, dstar, ysf) = match item.metadata {
+                ModeMetadata::Dmr(metadata) => (Some(metadata), None, None, None),
+                ModeMetadata::Ft8(metadata) => (None, Some(metadata), None, None),
+                ModeMetadata::Dstar(metadata) => (None, None, Some(metadata), None),
+                ModeMetadata::Ysf(metadata) => (None, None, None, Some(metadata)),
+                ModeMetadata::Generic => (None, None, None, None),
+            };
             let datetime = format_utc_datetime(qso.datetime_start_utc)?;
             let route_summary = dmr
                 .as_ref()
                 .map(format_dmr_route)
                 .or_else(|| ft8.as_ref().map(format_ft8_summary))
                 .or_else(|| dstar.as_ref().map(format_dstar_summary))
+                .or_else(|| ysf.as_ref().map(format_ysf_summary))
                 .unwrap_or_default();
             Ok(QsoRow {
                 id: SharedString::from(qso.id.to_string()),
@@ -330,6 +340,38 @@ pub(crate) fn refresh_rows(ui: &MainWindow, items: Vec<QsoListItem>) -> Result<(
                     .map(|v| v.notes.clone())
                     .unwrap_or_default()
                     .into(),
+                ysf_room: ysf
+                    .as_ref()
+                    .and_then(|v| v.room.clone())
+                    .unwrap_or_default()
+                    .into(),
+                ysf_wires_x_node: ysf
+                    .as_ref()
+                    .and_then(|v| v.wires_x_node.clone())
+                    .unwrap_or_default()
+                    .into(),
+                ysf_repeater: ysf
+                    .as_ref()
+                    .and_then(|v| v.repeater.clone())
+                    .unwrap_or_default()
+                    .into(),
+                ysf_network: ysf
+                    .as_ref()
+                    .and_then(|v| v.network.clone())
+                    .unwrap_or_default()
+                    .into(),
+                ysf_access_type: ysf
+                    .as_ref()
+                    .map(|v| v.access_type.as_str())
+                    .unwrap_or("")
+                    .into(),
+                ysf_tx_dg_id: optional_number(ysf.as_ref().and_then(|v| v.tx_dg_id)).into(),
+                ysf_rx_dg_id: optional_number(ysf.as_ref().and_then(|v| v.rx_dg_id)).into(),
+                ysf_notes: ysf
+                    .as_ref()
+                    .map(|v| v.notes.clone())
+                    .unwrap_or_default()
+                    .into(),
             })
         })
         .collect::<Result<Vec<_>, Box<dyn Error>>>()?;
@@ -390,6 +432,26 @@ fn format_dstar_summary(metadata: &DStarMetadata) -> String {
     parts.join(" · ")
 }
 
+fn format_ysf_summary(metadata: &YsfMetadata) -> String {
+    let mut parts = Vec::new();
+    if let Some(room) = &metadata.room {
+        parts.push(room.clone());
+    }
+    if let Some(node) = &metadata.wires_x_node {
+        parts.push(format!("Node {node}"));
+    }
+    if let Some(tx) = metadata.tx_dg_id {
+        parts.push(format!("DG-ID TX {tx}"));
+    }
+    if let Some(rx) = metadata.rx_dg_id {
+        parts.push(format!("RX {rx}"));
+    }
+    if parts.is_empty() {
+        parts.push(metadata.access_type.as_str().to_owned());
+    }
+    parts.join(" · ")
+}
+
 fn format_ft8_summary(metadata: &Ft8Metadata) -> String {
     let mut parts = Vec::new();
     if let Some(snr) = metadata.snr_received_db {
@@ -430,6 +492,23 @@ mod tests {
     fn saturates_values_for_slint_ints() {
         assert_eq!(saturating_i32(42), 42);
         assert_eq!(saturating_i32(usize::MAX), i32::MAX);
+    }
+
+    #[test]
+    fn formats_compact_ysf_route_summary() {
+        let metadata = YsfMetadata::from_input(YsfMetadataInput {
+            room: "Brazil Room".into(),
+            wires_x_node: "PY2YSF".into(),
+            tx_dg_id: "10".into(),
+            rx_dg_id: "20".into(),
+            access_type: "hotspot".into(),
+            ..Default::default()
+        })
+        .unwrap();
+        assert_eq!(
+            format_ysf_summary(&metadata),
+            "Brazil Room · Node PY2YSF · DG-ID TX 10 · RX 20"
+        );
     }
 
     #[test]

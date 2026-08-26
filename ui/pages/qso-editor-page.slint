@@ -35,6 +35,14 @@ export component QsoEditorPage inherits VerticalBox {
     in-out property <string> dstar-rpt1-text;
     in-out property <string> dstar-rpt2-text;
     in-out property <string> dstar-notes-text;
+    in-out property <string> ysf-room-text;
+    in-out property <string> ysf-wires-x-node-text;
+    in-out property <string> ysf-repeater-text;
+    in-out property <string> ysf-network-text;
+    in-out property <string> ysf-access-type-text;
+    in-out property <string> ysf-tx-dg-id-text;
+    in-out property <string> ysf-rx-dg-id-text;
+    in-out property <string> ysf-notes-text;
     in-out property <string> grid-text;
     in-out property <int> mode-kind;
     in-out property <string> mode-text;
@@ -253,6 +261,35 @@ export component QsoEditorPage inherits VerticalBox {
                         VerticalBox { spacing: Theme.space-xs; DataLabel { text: "RPT1"; } LineEdit { text <=> root.dstar-rpt1-text; } }
                         VerticalBox { spacing: Theme.space-xs; DataLabel { text: "RPT2"; } LineEdit { text <=> root.dstar-rpt2-text; } }
                         VerticalBox { spacing: Theme.space-xs; horizontal-stretch: 2; DataLabel { text: "D-STAR NOTES"; } LineEdit { text <=> root.dstar-notes-text; } }
+                    }
+                }
+            }
+
+            if root.mode-kind == 4 : Panel {
+                raised: true;
+                VerticalBox {
+                    padding: Theme.space-md;
+                    spacing: Theme.space-sm;
+                    HorizontalBox {
+                        spacing: Theme.space-sm;
+                        SectionTitle { text: "YSF / C4FM DETAILS"; horizontal-stretch: 1; }
+                        Tag { width: 58px; height: 22px; text: "C4FM"; accent: true; }
+                        DataLabel { text: "SYSTEM FUSION ROUTING"; }
+                    }
+                    Rectangle { height: 1px; background: Theme.divider; }
+                    HorizontalBox {
+                        spacing: Theme.space-sm;
+                        VerticalBox { spacing: Theme.space-xs; horizontal-stretch: 2; DataLabel { text: "ROOM"; } LineEdit { text <=> root.ysf-room-text; } }
+                        VerticalBox { spacing: Theme.space-xs; horizontal-stretch: 2; DataLabel { text: "WIRES-X NODE"; } LineEdit { text <=> root.ysf-wires-x-node-text; } }
+                        VerticalBox { spacing: Theme.space-xs; horizontal-stretch: 2; DataLabel { text: "REPEATER"; } LineEdit { text <=> root.ysf-repeater-text; } }
+                        VerticalBox { spacing: Theme.space-xs; horizontal-stretch: 2; DataLabel { text: "NETWORK"; } LineEdit { text <=> root.ysf-network-text; } }
+                    }
+                    HorizontalBox {
+                        spacing: Theme.space-sm;
+                        VerticalBox { spacing: Theme.space-xs; horizontal-stretch: 2; DataLabel { text: "ACCESS TYPE"; } LineEdit { text <=> root.ysf-access-type-text; placeholder-text: "simplex, repeater, or hotspot"; } }
+                        VerticalBox { spacing: Theme.space-xs; DataLabel { text: "TX DG-ID"; } LineEdit { text <=> root.ysf-tx-dg-id-text; placeholder-text: "0–99"; } }
+                        VerticalBox { spacing: Theme.space-xs; DataLabel { text: "RX DG-ID"; } LineEdit { text <=> root.ysf-rx-dg-id-text; placeholder-text: "0–99"; } }
+                        VerticalBox { spacing: Theme.space-xs; horizontal-stretch: 3; DataLabel { text: "YSF NOTES"; } LineEdit { text <=> root.ysf-notes-text; } }
                     }
                 }
             }

@@ -1,6 +1,6 @@
 # Progresso de implementação
 
-Última atualização: 2026-08-15
+Última atualização: 2026-08-26
 
 Este arquivo é o checkpoint persistente do projeto. Ao retomar o trabalho, ler `SPEC.md` e este arquivo antes de modificar código.
 
@@ -707,7 +707,7 @@ Versão `v0.2.1` publicada e verificada em https://github.com/marcelositr/Digita
 - [x] Parar antes de `main`, tag e GitHub Release.
 - [x] Concluir posteriormente a publicação de `v0.4.0` como release final.
 
-## Marco 32 — Suporte D-STAR e preparação v0.5.0 (CONCLUÍDO, NÃO PUBLICADO)
+## Marco 32 — Suporte D-STAR e v0.5.0 (CONCLUÍDO E PUBLICADO)
 
 - [x] Confirmar baseline inicial de 113 testes ativos + 1 ignored.
 - [x] Adicionar modelo `DStarMetadata`: reflector, module, MYCALL, URCALL, RPT1, RPT2 e notes.
@@ -722,8 +722,27 @@ Versão `v0.2.1` publicada e verificada em https://github.com/marcelositr/Digita
 - [x] Confirmar suíte final atual: 133 testes ativos + 1 ignored.
 - [x] Registrar stress release de 10k: first 1.039 ms; final 10.522 ms; DSTAR 2.599 ms; backup 35.099 ms; export-domain 111.243 ms; serialize 16.221 ms.
 - [x] Registrar stress release de 100k: first 7.530 ms; final 113.225 ms; DSTAR 9.444 ms; backup 363.867 ms; export 1132.022 ms; serialize 148.753 ms.
-- [x] Atualizar versão fonte e documentação para `0.5.0` sem publicar.
+- [x] Atualizar versão fonte e documentação para `0.5.0`.
+- [x] Publicar a tag/release `v0.5.0`; `main` no commit `ef262bd`.
+
+## Marco 33 — YSF/C4FM e preparação v0.6.0 (CONCLUÍDO, NÃO PUBLICADO)
+
+- [x] Confirmar baseline inicial de 133 testes ativos + 1 ignored.
+- [x] Adicionar `YsfMetadata` e consolidar `ModeMetadata` com variantes Generic, DMR, FT8, D-STAR e YSF.
+- [x] Representar o modo internamente como `C4FM`; aceitar `YSF` e `SYSTEM FUSION` como aliases de UI.
+- [x] Modelar room, WIRES-X node, repeater, network, access type, TX/RX DG-ID e notes.
+- [x] Adicionar schema 7 com `ysf_metadata`, cascade e índices apenas para TX/RX DG-ID após `EXPLAIN QUERY PLAN`.
+- [x] Manter room e WIRES-X node como buscas substring sem índice e `digital_routes` específico de DMR.
+- [x] Adicionar CRUD, materialização, filtros e UI específicos de YSF/C4FM.
+- [x] Exportar ADIF canônico `MODE=DIGITALVOICE` + `SUBMODE=C4FM` e importar também o histórico `MODE=C4FM`.
+- [x] Definir os campos `APP_DHRL_YSF_*` e preservar/reconciliar extras ADIF sem duplicar campos que se tornam conhecidos.
+- [x] Exigir integridade entre modo do QSO e variante de `ModeMetadata` nas operações agregadas.
+- [x] Revisar a arquitetura de quatro modos e manter implementação explícita, sem traits/plugins.
+- [x] Confirmar suíte final atual: 157 testes ativos + 1 ignored.
+- [x] Registrar stress release de 10k: first 1.031 ms; middle 6.765 ms; final 12.481 ms; search 6.720 ms; DSTAR 2.953 ms; YSF room 1.720 ms; node 1.784 ms; DG-ID 1.676 ms; backup 39.617 ms; export-domain 114.442 ms; serialize 17.727 ms.
+- [x] Registrar stress release de 100k: first 7.601 ms; middle 73.706 ms; final 138.205 ms; search 74.263 ms; DSTAR 12.859 ms; YSF room 9.052 ms; node 13.297 ms; DG-ID 9.356 ms; backup 358.293 ms; export-domain 1200.912 ms; serialize 153.598 ms.
+- [x] Atualizar versão fonte e documentação para `0.6.0` sem publicar.
 
 ## Próxima ação exata
 
-Revisar e autorizar separadamente qualquer preparação de artefato, integração, tag ou publicação de `v0.5.0`; nenhuma publicação foi realizada neste marco.
+A `v0.6.0` permanece somente preparada localmente. Qualquer artefato, integração, tag ou publicação exige uma ação posterior separada.
