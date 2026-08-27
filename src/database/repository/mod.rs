@@ -145,6 +145,10 @@ impl QsoRepository {
         verify_connection_integrity(&self.connection)
     }
 
+    pub fn health(&self) -> super::health::HealthReport {
+        super::health::inspect_connection(&self.connection)
+    }
+
     pub fn find_qso_identity_match(
         &self,
         qso: &NewQso,
