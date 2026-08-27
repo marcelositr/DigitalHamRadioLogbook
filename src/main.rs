@@ -75,7 +75,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     connect_pagination_handlers(&ui, &repository, &logbook_state);
     connect_file_dialog_handlers(&ui, &app_config, config_path.clone());
     connect_adif_handlers(&ui, &repository, &pending_adif_plan, &logbook_state);
-    connect_backup_handler(&ui, &repository);
+    connect_backup_handler(&ui, &repository, database_path);
     connect_editor_navigation_handlers(&ui, &editor_baseline);
     connect_close_handlers(
         &ui,

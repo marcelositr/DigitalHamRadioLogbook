@@ -13,7 +13,8 @@ use digital_ham_radio_logbook::config::{
     self, expand_url_template, AppConfig, DEFAULT_CALLSIGN_URL, DEFAULT_GRID_URL,
 };
 use digital_ham_radio_logbook::database::{
-    AdifImportPlan, AdifImportReport, DmrFilter, DstarFilter, Ft8Filter, QsoRepository, YsfFilter,
+    inspect_database, AdifImportPlan, AdifImportReport, DmrFilter, DstarFilter, Ft8Filter,
+    HealthReport, HealthStatus, QsoRepository, YsfFilter,
 };
 use digital_ham_radio_logbook::domain::{
     CommonQsoFields, DStarMetadata, DStarMetadataInput, DmrMetadata, DmrMetadataInput, Ft8Metadata,
