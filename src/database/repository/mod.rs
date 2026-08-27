@@ -1016,6 +1016,7 @@ mod tests {
         let error = repository.backup_to(&destination).unwrap_err().to_string();
         assert!(error.contains("missing table adif_extra_fields"));
         assert!(!destination.exists());
+        assert_eq!(std::fs::read_dir(&directory).unwrap().count(), 0);
         std::fs::remove_dir_all(directory).unwrap();
     }
 
@@ -1036,6 +1037,7 @@ mod tests {
         let error = repository.backup_to(&destination).unwrap_err().to_string();
         assert!(error.contains("newer than supported"));
         assert!(!destination.exists());
+        assert_eq!(std::fs::read_dir(&directory).unwrap().count(), 0);
         std::fs::remove_dir_all(directory).unwrap();
     }
 
