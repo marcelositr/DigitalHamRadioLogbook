@@ -14,11 +14,12 @@ O MVP funcional inclui:
 - fluxo **Save & New** para registrar QSOs consecutivos sem duplicar o contato recém-gravado;
 - campos comuns e metadados específicos de DMR, FT8, D-STAR e YSF/System Fusion (`C4FM`);
 - filtros gerais, DMR, FT8, D-STAR e YSF;
-- importação ADIF transacional e exportação publicada por arquivo temporário seguro;
+- importação ADIF transacional, exportação completa e exportação de todos os resultados do filtro atual;
 - preservação de campos ADIF desconhecidos;
 - configuração local da estação;
 - links externos configuráveis para consulta de callsign e GridSquare;
-- backup consistente do banco;
+- backup consistente publicado somente após validação e verificação read-only de backups existentes;
+- health check local para integridade, schema, migrations e metadata por modo;
 - persistência entre execuções e operação sem serviços online.
 
 ## Requisitos
@@ -87,7 +88,9 @@ Antes de gravar, a importação apresenta um preview com o total de registros, n
 
 A importação ignora duplicados exatos, inclusive registros repetidos no mesmo arquivo. A identidade é composta por callsign normalizado, data/hora UTC inicial, frequência e modo normalizado. O QSO já existente é preservado sem mesclar ou sobrescrever metadados; a interface informa quantos registros foram importados e quantos duplicados foram ignorados. A criação e edição manual continuam permitindo QSOs com a mesma identidade quando isso for intencional.
 
-A interface permite criar um snapshot consistente para um caminho terminado em `.sqlite3`. O destino não pode existir, evitando sobrescrita acidental. Antes do sucesso, o snapshot é validado quanto à integridade SQLite, foreign keys e compatibilidade com o schema atual da aplicação.
+A interface permite criar um snapshot consistente para um caminho terminado em `.sqlite3`. O destino não pode existir, evitando sobrescrita acidental. O snapshot é criado em um temporário no mesmo diretório, validado em modo read-only, sincronizado e somente então publicado. **Verify backup** verifica um SQLite existente sem restaurar, migrar ou modificar o arquivo.
+
+**Export all QSOs** mantém a exportação completa. **Export current results** exporta todos os registros correspondentes à pesquisa ou filtro atual, atravessando todas as páginas; resultado vazio é informado sem criar arquivo. **Check data health** executa verificações read-only de SQLite, foreign keys, schema, migrations e consistência de metadata por modo.
 
 Também é possível fechar o aplicativo e copiar `logbook.sqlite3` manualmente. O banco contém os QSOs e metadados armazenados pelo aplicativo. Para restauração, corrupção, permissões e schema incompatível, siga `docs/DATA-RECOVERY.md`.
 
@@ -126,7 +129,7 @@ O menu superior separa as tarefas para manter todos os controles acessíveis mes
 
 - **Logbook**: pesquisa, filtros, tabela paginada e ações de edição/exclusão;
 - **New QSO**: formulário rolável para criar um contato;
-- **Tools**: importação/exportação ADIF e backup;
+- **Tools**: health check, importação/exportação ADIF, criação e verificação de backup;
 - **Settings**: configuração do callsign da estação local.
 
 O Logbook consulta até 100 QSOs por página diretamente no SQLite e mostra a faixa atual, o total e os controles **Previous/Next**. Busca e filtros DMR/FT8/D-STAR/YSF preservam seus critérios ao navegar entre páginas. Metadados DMR, FT8, D-STAR e YSF são carregados junto dos QSOs, evitando consultas adicionais por linha.
@@ -182,7 +185,7 @@ Erros operacionais comuns exibem orientação prática junto do detalhe técnico
 
 ## Integridade e recuperação
 
-A abertura do banco recusa schemas futuros, valida os objetos esperados e executa verificações SQLite de integridade e foreign keys. Backups passam pelas mesmas verificações. A configuração e a exportação ADIF são publicadas por temporário + rename, usam permissões privadas `0600` no Unix e reduzem o risco de arquivos parciais.
+A abertura do banco recusa schemas futuros, valida os objetos esperados e executa verificações SQLite de integridade e foreign keys. O health check e a verificação de backup abrem arquivos em modo read-only, não executam migrations e não alteram dados. Backups são publicados somente depois da validação, e configuração/exportação ADIF usam publicação atômica; arquivos privados usam `0600` no Unix.
 
 O procedimento seguro de restauração está em `docs/DATA-RECOVERY.md`. Nunca substitua o banco enquanto a aplicação estiver aberta.
 

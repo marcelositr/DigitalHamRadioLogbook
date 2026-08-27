@@ -10,6 +10,7 @@ A API externa continua centralizada em `QsoRepository`; consumidores não conhec
 
 ```text
 src/database/
+├── health.rs       inspeção read-only, relatório e invariantes de metadata
 ├── migrations.rs
 └── repository/
     ├── mod.rs      conexão, agregado QSO, CRUD e transações DMR/FT8/D-STAR/YSF
@@ -25,6 +26,7 @@ src/database/
 - Queries permanecem SQLite explícito e retornam os mesmos tipos públicos.
 - ADIF foi separado por possuir conversão, política de duplicidade e caminho de exportação próprios.
 - Backup foi separado por combinar snapshot SQLite, filesystem, validação e durabilidade.
+- Health check usa conexão read-only/query-only separada, não executa migrations e distingue schema atual, antigo migrável, futuro incompatível e arquivo inválido.
 - Migrations continuam isoladas e são executadas somente durante abertura do repository.
 
 ## Garantias
@@ -36,7 +38,8 @@ src/database/
 - ordenação da listagem: `datetime_start_utc DESC, id DESC`;
 - paginação atual usa `LIMIT/OFFSET`, preservada por não haver degradação relevante em 100 mil QSOs;
 - SQLite permanece a fonte de verdade;
-- schema atual permanece 7; os fluxos de `v0.7.0` não exigem migration, índice ou constraint `UNIQUE` nova.
+- schema atual permanece 7; os fluxos de `v0.8.0` não exigem migration ou índice novo.
+- `QsoSelection` transporta a busca/filtro atual para exportação ADIF sem paginação; metadata é carregada no SELECT principal e extras em uma segunda query restrita.
 
 ## Arquitetura de quatro modos
 
@@ -55,7 +58,8 @@ Consulte `docs/WHAT-ADDING-DSTAR-REQUIRED.md`, `docs/ADDING-A-DIGITAL-MODE.md` e
 - novo comportamento comum de persistência: `repository/mod.rs`;
 - listagem, pesquisa ou filtro: `repository/queries.rs`;
 - importação/exportação ADIF: `repository/adif.rs`;
-- backup e integridade operacional: `repository/backup.rs`;
+- backup e durabilidade: `repository/backup.rs`;
+- diagnóstico read-only e invariantes do acervo: `database/health.rs`;
 - evolução do schema: nova migration em `migrations.rs`, sem editar migrations publicadas.
 
 Os índices YSF são limitados a TX/RX DG-ID. `EXPLAIN QUERY PLAN` não demonstrou benefício para room e WIRES-X node, consultados por substring, portanto essas colunas permanecem sem índice.
