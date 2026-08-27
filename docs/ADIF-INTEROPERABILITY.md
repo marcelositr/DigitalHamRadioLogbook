@@ -116,7 +116,9 @@ rustup toolchain install nightly --profile minimal
 Execução usando as fixtures como seeds:
 
 ```sh
-cargo +nightly fuzz run adif_parser tests/fixtures/adif/valid tests/fixtures/adif/invalid -- -max_total_time=60
+mkdir -p fuzz/corpus/adif_parser
+cargo +nightly fuzz run adif_parser fuzz/corpus/adif_parser \
+  tests/fixtures/adif/valid tests/fixtures/adif/invalid -- -max_total_time=60
 ```
 
 O target aceita bytes arbitrários, envia somente UTF-8 válido ao parser e não acessa banco ou dados reais.
