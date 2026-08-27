@@ -1,4 +1,4 @@
-# Performance e stress — baseline v0.3.0, atualização v0.7.0
+# Performance e stress — baseline v0.3.0, atualização v0.8.0
 
 ## Objetivo e método
 
@@ -71,6 +71,18 @@ Tempos release em milissegundos; estes resultados atualizam os volumes mais rele
 | serializar ADIF | 17.727 | 153.598 |
 
 O dataset atual distribui cinco categorias (`DMR`, `FT8`, genérico, `DSTAR` e `C4FM`). Os números continuam sendo caracterização local, não SLA.
+
+## Saúde e exportação filtrada v0.8.0
+
+Medição release local em 100.000 QSOs, executada em 2026-08-27 no gerador determinístico existente:
+
+- health check read-only: `520.017 ms`;
+- exportação filtrada pequena: `51.072 ms`;
+- exportação filtrada ampla: `322.552 ms`;
+- exportação completa para domínio ADIF: `1164.705 ms`;
+- backup validado: `319.754 ms`.
+
+O health check permanece utilizável como ação explícita de Tools e não é executado continuamente. A exportação filtrada pequena evita materializar extras fora da seleção; a seleção ampla permanece significativamente abaixo da exportação completa. Nenhum índice ou migration foi adicionado.
 
 ## Verificação de duplicidade manual v0.7.0
 

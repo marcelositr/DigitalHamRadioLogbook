@@ -775,8 +775,9 @@ Versão `v0.2.1` publicada e verificada em https://github.com/marcelositr/Digita
 - [x] Manter restore assistido/documentado; não substituir banco com conexão ativa.
 - [x] Manter schema 7 e dependências atuais.
 - [x] Confirmar suíte atual: 175 testes ativos + 1 stress ignored.
-- [ ] Executar stress de health/export em 100k e QA visual/manual de Tools em 1050×680.
-- [ ] Executar gates finais, packaging, startup e migration matrix.
+- [x] Executar stress release 100k: health read-only 520.017 ms; export filtrado pequeno 51.072 ms; amplo 322.552 ms; completo 1164.705 ms.
+- [ ] Executar QA visual/manual de Tools em 1050×680.
+- [x] Executar gates cargo, packaging e migration matrix; startup/QA gráfico pendentes.
 
 ## Próxima ação exata
 
