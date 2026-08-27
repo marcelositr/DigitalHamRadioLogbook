@@ -14,7 +14,7 @@ use digital_ham_radio_logbook::config::{
 };
 use digital_ham_radio_logbook::database::{
     inspect_database, AdifImportPlan, AdifImportReport, DmrFilter, DstarFilter, Ft8Filter,
-    HealthReport, HealthStatus, QsoRepository, YsfFilter,
+    HealthReport, HealthStatus, QsoRepository, QsoSelection, YsfFilter,
 };
 use digital_ham_radio_logbook::domain::{
     CommonQsoFields, DStarMetadata, DStarMetadataInput, DmrMetadata, DmrMetadataInput, Ft8Metadata,

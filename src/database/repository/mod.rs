@@ -54,6 +54,16 @@ pub struct YsfFilter {
     pub dg_id: Option<u8>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum QsoSelection {
+    All,
+    General(String),
+    Dmr(DmrFilter),
+    Ft8(Ft8Filter),
+    Dstar(DstarFilter),
+    Ysf(YsfFilter),
+}
+
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct AdifImportReport {
     pub imported: usize,

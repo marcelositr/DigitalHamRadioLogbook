@@ -1,23 +1,31 @@
 use std::collections::{BTreeMap, HashSet};
 use std::error::Error;
 
-use rusqlite::{params, Connection, Result, Transaction};
+use rusqlite::{params, params_from_iter, Connection, Result, Transaction};
 
 use crate::adif::{
     domain_to_record, record_to_domain, AdifDocument, AdifField, AdifRecord, ImportedQso,
 };
 use crate::domain::{ModeMetadata, NewQso, Qso};
 
+use super::queries::{selection_sql, SELECTION_METADATA_JOINS};
 use super::{
     insert_dmr_metadata, insert_dstar_metadata, insert_ft8_metadata, insert_qso,
     insert_ysf_metadata, AdifImportPlan, AdifImportPreview, AdifImportReport, QsoIdentity,
-    QsoRepository,
+    QsoRepository, QsoSelection,
 };
 
 impl QsoRepository {
     pub fn export_adif(&self) -> std::result::Result<AdifDocument, Box<dyn Error>> {
-        let items = self.list_items()?;
-        let mut extra_fields = all_adif_extra_fields(&self.connection)?;
+        self.export_adif_selection(&QsoSelection::All)
+    }
+
+    pub fn export_adif_selection(
+        &self,
+        selection: &QsoSelection,
+    ) -> std::result::Result<AdifDocument, Box<dyn Error>> {
+        let items = self.selection_items(selection)?;
+        let mut extra_fields = selected_adif_extra_fields(&self.connection, selection)?;
         let mut records = Vec::with_capacity(items.len());
         for item in items {
             let qso_id = item.qso.id;
@@ -194,13 +202,21 @@ impl QsoRepository {
     }
 }
 
-fn all_adif_extra_fields(connection: &Connection) -> Result<BTreeMap<i64, Vec<AdifField>>> {
-    let mut statement = connection.prepare(
-        "SELECT qso_id, name, value, data_type
-         FROM adif_extra_fields
-         ORDER BY qso_id, field_order",
-    )?;
-    let rows = statement.query_map([], |row| {
+fn selected_adif_extra_fields(
+    connection: &Connection,
+    selection: &QsoSelection,
+) -> Result<BTreeMap<i64, Vec<AdifField>>> {
+    let selection = selection_sql(selection);
+    let mut statement = connection.prepare(&format!(
+        "SELECT e.qso_id, e.name, e.value, e.data_type
+         FROM adif_extra_fields e
+         JOIN qsos q ON q.id = e.qso_id
+         {SELECTION_METADATA_JOINS}
+         WHERE {}
+         ORDER BY e.qso_id, e.field_order",
+        selection.predicate
+    ))?;
+    let rows = statement.query_map(params_from_iter(selection.parameters.iter()), |row| {
         Ok((
             row.get::<_, i64>(0)?,
             AdifField {
@@ -291,6 +307,99 @@ mod tests {
     use super::*;
     use crate::adif::parse;
     use crate::domain::{DStarMetadata, DStarMetadataInput};
+
+    #[test]
+    fn filtered_export_includes_all_matches_across_pages_and_only_selected_extras() {
+        let repository = QsoRepository::in_memory().unwrap();
+        let mut selected_id = None;
+        for index in 0..100 {
+            let callsign = if index < 17 {
+                format!("FILTER{index:03}")
+            } else {
+                format!("OTHER{index:03}")
+            };
+            let qso = NewQso::new(&callsign, 1_700_000_000 + index, 145_500_000, "FM").unwrap();
+            let id = repository.insert(&qso, 1_700_001_000).unwrap();
+            if index == 0 {
+                selected_id = Some(id);
+            }
+        }
+        repository
+            .connection
+            .execute(
+                "INSERT INTO adif_extra_fields(qso_id, field_order, name, value, data_type)
+                 VALUES (?1, 0, 'APP_VENDOR_PRIVATE', 'preserved', 'S')",
+                [selected_id.unwrap()],
+            )
+            .unwrap();
+
+        let filtered = repository
+            .export_adif_selection(&QsoSelection::General("FILTER".into()))
+            .unwrap();
+        assert_eq!(filtered.records.len(), 17);
+        assert!(filtered
+            .records
+            .iter()
+            .any(|record| record.get("APP_VENDOR_PRIVATE") == Some("preserved")));
+        assert_eq!(repository.export_adif().unwrap().records.len(), 100);
+
+        let many = QsoRepository::in_memory().unwrap();
+        for index in 0..350 {
+            let qso = NewQso::new(
+                format!("MATCH{index:03}"),
+                1_700_000_000 + index,
+                145_500_000,
+                "FM",
+            )
+            .unwrap();
+            many.insert(&qso, 1_700_001_000).unwrap();
+        }
+        assert_eq!(
+            many.export_adif_selection(&QsoSelection::General("MATCH".into()))
+                .unwrap()
+                .records
+                .len(),
+            350
+        );
+    }
+
+    #[test]
+    fn filtered_export_preserves_each_specialized_mode_metadata() {
+        let repository = QsoRepository::in_memory().unwrap();
+        for fixture in [
+            "<CALL:6>PY2DMR<QSO_DATE:8>20260815<TIME_ON:6>120000<FREQ:7>438.500<MODE:3>DMR<APP_DHRL_CALL_TYPE:5>group<APP_DHRL_ACCESS_TYPE:7>simplex<APP_DHRL_TALKGROUP:3>724<EOR>",
+            "<CALL:6>PY2FT8<QSO_DATE:8>20260815<TIME_ON:6>120100<FREQ:6>14.074<MODE:3>FT8<SNR:3>-12<EOR>",
+            include_str!("../../../tests/fixtures/adif/valid/dstar-full.adi"),
+            include_str!("../../../tests/fixtures/adif/valid/ysf-full.adi"),
+        ] {
+            repository
+                .import_adif(&parse(fixture).unwrap(), 1_700_000_100)
+                .unwrap();
+        }
+
+        let selections = [
+            (
+                QsoSelection::Dmr(super::super::DmrFilter::default()),
+                "APP_DHRL_TALKGROUP",
+            ),
+            (QsoSelection::Ft8(super::super::Ft8Filter::default()), "SNR"),
+            (
+                QsoSelection::Dstar(super::super::DstarFilter::default()),
+                "APP_DHRL_DSTAR_REFLECTOR",
+            ),
+            (
+                QsoSelection::Ysf(super::super::YsfFilter::default()),
+                "APP_DHRL_YSF_ROOM",
+            ),
+        ];
+        for (selection, metadata_field) in selections {
+            let exported = repository.export_adif_selection(&selection).unwrap();
+            assert_eq!(exported.records.len(), 1, "{selection:?}");
+            let record = &exported.records[0];
+            assert!(record.get("MODE").is_some());
+            assert!(record.get(metadata_field).is_some(), "{metadata_field}");
+        }
+    }
 
     #[test]
     fn imports_exports_and_reimports_dstar_with_sqlite_metadata_and_unknowns() {

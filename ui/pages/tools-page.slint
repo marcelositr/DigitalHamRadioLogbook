@@ -27,6 +27,7 @@ export component ToolsPage inherits ScrollView {
     callback choose-backup-destination();
     callback confirm-adif-import();
     callback export-adif();
+    callback export-current-adif();
     callback invalidate-adif-preview();
     callback preview-adif();
     callback verify-backup();
@@ -120,11 +121,17 @@ export component ToolsPage inherits ScrollView {
                         activated => { root.preview-adif(); }
                     }
                     KeyboardAction {
-                        width: 112px;
-                        label: "Export ADIF";
-                        description: "Export logbook records to the selected ADIF path";
-                        primary: true;
+                        width: 132px;
+                        label: "Export all QSOs";
+                        description: "Export every logbook QSO to the selected ADIF path";
                         activated => { root.export-adif(); }
+                    }
+                    KeyboardAction {
+                        width: 164px;
+                        label: "Export current results";
+                        description: "Export every QSO matching the current search or filter, across all pages";
+                        primary: true;
+                        activated => { root.export-current-adif(); }
                     }
                 }
 
