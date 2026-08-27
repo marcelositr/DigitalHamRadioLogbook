@@ -1,6 +1,10 @@
 use super::*;
 
-pub(crate) fn connect_backup_handler(ui: &MainWindow, repository: &Rc<QsoRepository>) {
+pub(crate) fn connect_backup_handler(
+    ui: &MainWindow,
+    repository: &Rc<QsoRepository>,
+    database_path: PathBuf,
+) {
     let weak_ui = ui.as_weak();
     let repository = Rc::clone(repository);
     ui.on_backup_database(move || {
@@ -26,7 +30,68 @@ pub(crate) fn connect_backup_handler(ui: &MainWindow, repository: &Rc<QsoReposit
             }
         }
     });
+
+    let weak_ui = ui.as_weak();
+    ui.on_check_data_health(move || {
+        let Some(ui) = weak_ui.upgrade() else {
+            return;
+        };
+        let report = inspect_database(&database_path);
+        logging::info(&format!("data health check completed: {:?}", report.status));
+        present_health_report(&ui, "Active logbook health", &report);
+    });
+
+    let weak_ui = ui.as_weak();
+    ui.on_verify_backup(move || {
+        let Some(ui) = weak_ui.upgrade() else {
+            return;
+        };
+        let Some(path) = FileDialog::new()
+            .set_title("Select a database backup to verify")
+            .add_filter("SQLite database", &["sqlite3", "sqlite", "db"])
+            .pick_file()
+        else {
+            return;
+        };
+        let report = inspect_database(&path);
+        logging::info(&format!(
+            "backup verification completed: {:?}",
+            report.status
+        ));
+        present_health_report(&ui, "Backup verification", &report);
+    });
 }
+
+fn present_health_report(ui: &MainWindow, title: &str, report: &HealthReport) {
+    let (summary, kind) = match report.status {
+        HealthStatus::HealthyCurrent => (
+            "All checks passed. No data was modified.",
+            STATUS_SUCCESS,
+        ),
+        HealthStatus::HealthyMigratableOld => (
+            "This is a valid backup from an older supported schema. It will be migrated when restored. No data was modified.",
+            STATUS_WARNING,
+        ),
+        HealthStatus::FutureIncompatible => (
+            "This database uses a newer unsupported schema. No data was modified.",
+            STATUS_ERROR,
+        ),
+        HealthStatus::InvalidOrCorrupt => (
+            "A database consistency problem was found. No data was modified.",
+            STATUS_ERROR,
+        ),
+        HealthStatus::Unreadable => (
+            "The selected database could not be read. No data was modified.",
+            STATUS_ERROR,
+        ),
+    };
+    ui.set_database_report_title(title.into());
+    ui.set_database_report_text(format!("{summary}\n\n{}", report.diagnostic_text()).into());
+    ui.set_database_report_kind(kind);
+    ui.set_database_report_visible(true);
+    set_status(ui, summary, kind);
+}
+
 pub(crate) fn required_backup_path(input: &str) -> Result<&Path, Box<dyn Error>> {
     let input = input.trim();
     if input.is_empty() {

@@ -54,6 +54,16 @@ pub struct YsfFilter {
     pub dg_id: Option<u8>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum QsoSelection {
+    All,
+    General(String),
+    Dmr(DmrFilter),
+    Ft8(Ft8Filter),
+    Dstar(DstarFilter),
+    Ysf(YsfFilter),
+}
+
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct AdifImportReport {
     pub imported: usize,
@@ -143,6 +153,10 @@ impl QsoRepository {
 
     pub fn verify_integrity(&self) -> Result<()> {
         verify_connection_integrity(&self.connection)
+    }
+
+    pub fn health(&self) -> super::health::HealthReport {
+        super::health::inspect_connection(&self.connection)
     }
 
     pub fn find_qso_identity_match(
@@ -1012,6 +1026,7 @@ mod tests {
         let error = repository.backup_to(&destination).unwrap_err().to_string();
         assert!(error.contains("missing table adif_extra_fields"));
         assert!(!destination.exists());
+        assert_eq!(std::fs::read_dir(&directory).unwrap().count(), 0);
         std::fs::remove_dir_all(directory).unwrap();
     }
 
@@ -1032,6 +1047,7 @@ mod tests {
         let error = repository.backup_to(&destination).unwrap_err().to_string();
         assert!(error.contains("newer than supported"));
         assert!(!destination.exists());
+        assert_eq!(std::fs::read_dir(&directory).unwrap().count(), 0);
         std::fs::remove_dir_all(directory).unwrap();
     }
 

@@ -744,7 +744,7 @@ Versão `v0.2.1` publicada e verificada em https://github.com/marcelositr/Digita
 - [x] Atualizar versão fonte e documentação para `0.6.0`.
 - [x] Publicar a tag/release `v0.6.0`; `main` e a tag no commit `034996f`.
 
-## Marco 34 — Save & New e duplicidade manual v0.7.0 (PREPARADO LOCALMENTE, NÃO PUBLICADO)
+## Marco 34 — Save & New e duplicidade manual v0.7.0 (PUBLICADO)
 
 - [x] Adicionar **Save & New** somente ao fluxo de novo QSO.
 - [x] Executar validar → commit → refresh → limpeza integral → novo UTC fixo, sem criar um segundo QSO.
@@ -760,8 +760,25 @@ Versão `v0.2.1` publicada e verificada em https://github.com/marcelositr/Digita
 - [x] Medir duplicate lookup release em 100k, 200 iterações: hit 0.029352 ms; miss 0.028080 ms; self 0.028480 ms; collision 0.029927 ms.
 - [x] Confirmar plano por `idx_qsos_datetime_start` e decisão de não adicionar índice.
 - [x] Atualizar versão fonte e documentação para `0.7.0` sem publicar.
-- [ ] Executar checklist visual de Generic/DMR/FT8/D-STAR/YSF, **Save & New**, warning, dirty state, atalhos e `1050×680`; pendente, não aprovado.
+- [x] Publicar `v0.7.0`; `main` e tag no commit `a56a7d9`.
+
+## Marco 35 — Saúde do acervo e manutenção operacional v0.8.0 (EM DESENVOLVIMENTO)
+
+- [x] Auditar health, backup, restore, migrations, Tools, ADIF, filesystem, CI e baseline real da v0.7.0.
+- [x] Adicionar health check read-only com quick check, foreign keys, schema, migrations, objetos, contagens e invariantes de metadata.
+- [x] Distinguir schema atual, antigo migrável, futuro incompatível, inválido/corrompido e ilegível.
+- [x] Preservar privacidade do relatório: sem callsigns, nomes, QTH, notes ou paths completos.
+- [x] Publicar backup somente após temporário, validação read-only, permissões, sync e publicação sem overwrite.
+- [x] Adicionar verificação operacional read-only de backups existentes.
+- [x] Adicionar exportação ADIF de todos os resultados do filtro atual, sem paginação e sem N+1.
+- [x] Cobrir 17/100, 350 resultados, metadata DMR/FT8/D-STAR/YSF e unknown fields.
+- [x] Manter restore assistido/documentado; não substituir banco com conexão ativa.
+- [x] Manter schema 7 e dependências atuais.
+- [x] Confirmar suíte atual: 175 testes ativos + 1 stress ignored.
+- [x] Executar stress release 100k: health read-only 520.017 ms; export filtrado pequeno 51.072 ms; amplo 322.552 ms; completo 1164.705 ms.
+- [ ] Executar QA visual/manual de Tools em 1050×680.
+- [x] Executar gates cargo, packaging e migration matrix; startup/QA gráfico pendentes.
 
 ## Próxima ação exata
 
-Executar o checklist manual pendente de `docs/VISUAL-QA.md` em `1050×680`. A `v0.7.0` permanece somente preparada localmente; não integrar em `main`, criar tag ou publicar sem ação posterior explícita.
+Executar stress 100k, gates finais e checklist manual de Tools/recuperação. Não integrar em `main`, criar tag ou publicar sem autorização explícita.

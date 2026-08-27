@@ -1,6 +1,6 @@
 use rusqlite::{Connection, Error, Result};
 
-const CURRENT_SCHEMA_VERSION: i64 = 7;
+pub(super) const CURRENT_SCHEMA_VERSION: i64 = 7;
 
 const INITIAL_SCHEMA: &str = r#"
 CREATE TABLE IF NOT EXISTS schema_migrations (

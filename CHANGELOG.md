@@ -4,7 +4,27 @@ Este projeto segue [Semantic Versioning](https://semver.org/). As release notes 
 
 ## [Unreleased]
 
-## [0.7.0] - Não publicada
+## [0.8.0] - Não publicada
+
+### Added
+
+- **Check data health** read-only para integridade SQLite, foreign keys, schema, migrations, contagens e invariantes de metadata por modo;
+- verificação read-only de backups existentes, distinguindo schema atual, antigo migrável, futuro incompatível e arquivo inválido/corrompido;
+- **Export current results**, incluindo todos os QSOs da pesquisa/filtro atual e não somente a página visível.
+
+### Changed
+
+- backups são criados em temporário, validados read-only, sincronizados e publicados sem sobrescrever o destino;
+- Tools separa diagnóstico, ADIF e backup com relatório sem conteúdo pessoal de QSO;
+- recuperação permanece assistida/documentada: não existe troca destrutiva do banco enquanto a aplicação está aberta.
+
+### Compatibility
+
+- schema permanece na versão 7, sem migration ou índice novo;
+- SQLite backup continua sendo o backup nativo; ADIF permanece o formato de interoperabilidade;
+- nenhuma dependência de runtime foi adicionada.
+
+## [0.7.0] - Publicada
 
 ### Added
 
@@ -24,6 +44,8 @@ Este projeto segue [Semantic Versioning](https://semver.org/). As release notes 
 - duplicidade manual é somente um aviso: não mescla, não bloqueia e não adiciona restrição `UNIQUE`;
 - schema permanece na versão 7, sem migration ou índice novo;
 - medições release em 100 mil QSOs confirmaram o plano por `idx_qsos_datetime_start`; nenhum índice adicional foi adotado.
+
+A versão 0.7.0 foi publicada como tag/release; `main` e a tag estavam no commit `a56a7d9`.
 
 ## [0.6.0] - Publicada
 

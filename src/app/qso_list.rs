@@ -17,6 +17,19 @@ pub(crate) struct LogbookViewState {
     pub(crate) offset: usize,
 }
 
+impl LogbookQuery {
+    pub(crate) fn selection(&self) -> QsoSelection {
+        match self {
+            Self::General(query) if query.trim().is_empty() => QsoSelection::All,
+            Self::General(query) => QsoSelection::General(query.clone()),
+            Self::Dmr(filter) => QsoSelection::Dmr(filter.clone()),
+            Self::Ft8(filter) => QsoSelection::Ft8(filter.clone()),
+            Self::Dstar(filter) => QsoSelection::Dstar(filter.clone()),
+            Self::Ysf(filter) => QsoSelection::Ysf(filter.clone()),
+        }
+    }
+}
+
 impl Default for LogbookViewState {
     fn default() -> Self {
         Self {

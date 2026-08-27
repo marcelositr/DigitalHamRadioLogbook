@@ -1,4 +1,5 @@
-use rusqlite::{params, Result};
+use rusqlite::types::Value;
+use rusqlite::{params, params_from_iter, Result};
 
 use crate::domain::{
     DStarMetadata, DmrMetadata, Ft8Metadata, ModeMetadata, Qso, YsfAccessType, YsfMetadata,
@@ -6,18 +7,28 @@ use crate::domain::{
 
 use super::{
     map_qso, parse_stored_access_type, parse_stored_call_type, DmrFilter, DstarFilter, Ft8Filter,
-    QsoListItem, QsoPage, QsoRepository, YsfFilter,
+    QsoListItem, QsoPage, QsoRepository, QsoSelection, YsfFilter,
 };
 
+pub(super) struct SelectionSql {
+    pub(super) predicate: &'static str,
+    pub(super) parameters: Vec<Value>,
+}
+
 impl QsoRepository {
-    pub(super) fn list_items(&self) -> Result<Vec<QsoListItem>> {
+    pub(super) fn selection_items(&self, selection: &QsoSelection) -> Result<Vec<QsoListItem>> {
+        let selection = selection_sql(selection);
         let mut statement = self.connection.prepare(&format!(
-            "{LIST_ITEM_SELECT}\n             ORDER BY q.datetime_start_utc DESC, q.id DESC"
+            "{LIST_ITEM_SELECT}\n             WHERE {}\n             ORDER BY q.datetime_start_utc DESC, q.id DESC",
+            selection.predicate
         ))?;
         let items = statement
-            .query_map([], map_qso_list_item)?
-            .collect::<Result<Vec<_>>>()?;
-        Ok(items)
+            .query_map(
+                params_from_iter(selection.parameters.iter()),
+                map_qso_list_item,
+            )?
+            .collect();
+        items
     }
 
     pub fn search_page(&self, query: &str, offset: usize, limit: usize) -> Result<QsoPage> {
@@ -425,6 +436,103 @@ impl QsoRepository {
     }
 }
 
+pub(super) fn selection_sql(selection: &QsoSelection) -> SelectionSql {
+    match selection {
+        QsoSelection::All => SelectionSql {
+            predicate: "1 = 1",
+            parameters: Vec::new(),
+        },
+        QsoSelection::General(query) => SelectionSql {
+            predicate:
+                "(?1 IS NULL OR q.callsign LIKE ?1 COLLATE NOCASE OR q.mode LIKE ?1 COLLATE NOCASE)",
+            parameters: vec![trimmed_pattern(Some(query)).map_or(Value::Null, Value::Text)],
+        },
+        QsoSelection::Dmr(filter) => SelectionSql {
+            predicate: "d.qso_id IS NOT NULL
+               AND (?1 IS NULL OR d.remote_dmr_id = ?1 OR d.local_dmr_id = ?1)
+               AND (?2 IS NULL OR d.talkgroup = ?2)
+               AND (?3 IS NULL OR r.network LIKE ?3 COLLATE NOCASE)
+               AND (?4 IS NULL OR r.repeater_callsign LIKE ?4 COLLATE NOCASE)
+               AND (?5 IS NULL OR r.hotspot LIKE ?5 COLLATE NOCASE)
+               AND (?6 IS NULL OR d.timeslot = ?6)",
+            parameters: vec![
+                filter
+                    .dmr_id
+                    .map_or(Value::Null, |value| Value::Integer(i64::from(value))),
+                filter
+                    .talkgroup
+                    .map_or(Value::Null, |value| Value::Integer(i64::from(value))),
+                trimmed_value(filter.network.as_deref())
+                    .map(contains_pattern)
+                    .map_or(Value::Null, Value::Text),
+                trimmed_value(filter.repeater.as_deref())
+                    .map(contains_pattern)
+                    .map_or(Value::Null, Value::Text),
+                trimmed_value(filter.hotspot.as_deref())
+                    .map(contains_pattern)
+                    .map_or(Value::Null, Value::Text),
+                filter
+                    .timeslot
+                    .map_or(Value::Null, |value| Value::Integer(i64::from(value))),
+            ],
+        },
+        QsoSelection::Ft8(filter) => SelectionSql {
+            predicate: "f.qso_id IS NOT NULL
+               AND (?1 IS NULL OR q.callsign LIKE ?1 COLLATE NOCASE)
+               AND (?2 IS NULL OR q.grid_locator LIKE ?2 COLLATE NOCASE)
+               AND (?3 IS NULL OR q.band LIKE ?3 COLLATE NOCASE)
+               AND (?4 IS NULL OR f.snr_received_db >= ?4)
+               AND (?5 IS NULL OR f.snr_received_db <= ?5)
+               AND (?6 IS NULL OR q.datetime_start_utc >= ?6)
+               AND (?7 IS NULL OR q.datetime_start_utc <= ?7)",
+            parameters: vec![
+                trimmed_pattern(filter.callsign.as_deref()).map_or(Value::Null, Value::Text),
+                trimmed_pattern(filter.grid.as_deref()).map_or(Value::Null, Value::Text),
+                trimmed_pattern(filter.band.as_deref()).map_or(Value::Null, Value::Text),
+                filter
+                    .minimum_snr_received_db
+                    .map_or(Value::Null, |value| Value::Integer(i64::from(value))),
+                filter
+                    .maximum_snr_received_db
+                    .map_or(Value::Null, |value| Value::Integer(i64::from(value))),
+                filter.start_utc.map_or(Value::Null, Value::Integer),
+                filter.end_utc.map_or(Value::Null, Value::Integer),
+            ],
+        },
+        QsoSelection::Dstar(filter) => SelectionSql {
+            predicate: "ds.qso_id IS NOT NULL
+               AND (?1 IS NULL OR ds.reflector LIKE ?1 COLLATE NOCASE)
+               AND (?2 IS NULL OR ds.module LIKE ?2 COLLATE NOCASE)
+               AND (?3 IS NULL OR ds.rpt1 LIKE ?3 COLLATE NOCASE)",
+            parameters: vec![
+                trimmed_pattern(filter.reflector.as_deref()).map_or(Value::Null, Value::Text),
+                trimmed_pattern(filter.module.as_deref()).map_or(Value::Null, Value::Text),
+                trimmed_pattern(filter.rpt1.as_deref()).map_or(Value::Null, Value::Text),
+            ],
+        },
+        QsoSelection::Ysf(filter) => SelectionSql {
+            predicate: "y.qso_id IS NOT NULL
+               AND (?1 IS NULL OR y.room LIKE ?1 COLLATE NOCASE)
+               AND (?2 IS NULL OR y.wires_x_node LIKE ?2 COLLATE NOCASE)
+               AND (?3 IS NULL OR y.tx_dg_id = ?3 OR y.rx_dg_id = ?3)",
+            parameters: vec![
+                trimmed_pattern(filter.room.as_deref()).map_or(Value::Null, Value::Text),
+                trimmed_pattern(filter.wires_x_node.as_deref()).map_or(Value::Null, Value::Text),
+                filter
+                    .dg_id
+                    .map_or(Value::Null, |value| Value::Integer(i64::from(value))),
+            ],
+        },
+    }
+}
+
+pub(super) const SELECTION_METADATA_JOINS: &str = "
+    LEFT JOIN dmr_metadata d ON d.qso_id = q.id
+    LEFT JOIN digital_routes r ON r.qso_id = q.id
+    LEFT JOIN ft8_metadata f ON f.qso_id = q.id
+    LEFT JOIN dstar_metadata ds ON ds.qso_id = q.id
+    LEFT JOIN ysf_metadata y ON y.qso_id = q.id";
+
 fn trimmed_value(value: Option<&str>) -> Option<&str> {
     value.map(str::trim).filter(|value| !value.is_empty())
 }
@@ -609,7 +717,7 @@ mod tests {
         let generic = NewQso::new("PY2FM", 1_700_000_000, 145_500_000, "FM").unwrap();
         repository.insert(&generic, 1_700_000_010).unwrap();
 
-        let items = repository.list_items().unwrap();
+        let items = repository.selection_items(&QsoSelection::All).unwrap();
 
         assert_eq!(items.len(), 2);
         assert_eq!(items[0].qso.callsign, "PY2DSTAR");
@@ -623,7 +731,7 @@ mod tests {
         let repository = QsoRepository::in_memory().unwrap();
         let missing = NewQso::new("PY2MISS", 1_700_000_001, 14_074_000, "FT8").unwrap();
         repository.insert(&missing, 1_700_000_010).unwrap();
-        assert!(repository.list_items().is_err());
+        assert!(repository.selection_items(&QsoSelection::All).is_err());
 
         repository.delete(repository.list().unwrap()[0].id).unwrap();
         let generic = NewQso::new("PY2BAD", 1_700_000_002, 145_500_000, "FM").unwrap();
@@ -632,7 +740,7 @@ mod tests {
             .connection
             .execute("INSERT INTO ft8_metadata(qso_id) VALUES (?1)", [qso_id])
             .unwrap();
-        assert!(repository.list_items().is_err());
+        assert!(repository.selection_items(&QsoSelection::All).is_err());
 
         repository
             .connection
@@ -642,7 +750,7 @@ mod tests {
             .connection
             .execute("INSERT INTO dstar_metadata(qso_id) VALUES (?1)", [qso_id])
             .unwrap();
-        assert!(repository.list_items().is_err());
+        assert!(repository.selection_items(&QsoSelection::All).is_err());
     }
 
     #[test]
@@ -660,7 +768,7 @@ mod tests {
             )
             .unwrap();
 
-        let items = repository.list_items().unwrap();
+        let items = repository.selection_items(&QsoSelection::All).unwrap();
 
         assert_eq!(items.len(), 2);
         assert_eq!(items[0].metadata, ModeMetadata::Ysf(expected));

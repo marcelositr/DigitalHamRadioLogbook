@@ -96,6 +96,10 @@ export component MainWindow inherits Window {
     in-out property <string> ysf-filter-dg-id-text;
     in-out property <string> adif-path-text;
     in-out property <string> backup-path-text;
+    in-out property <bool> database-report-visible: false;
+    in-out property <string> database-report-title;
+    in-out property <string> database-report-text;
+    in-out property <int> database-report-kind: 0;
     in-out property <string> pending-delete-id;
     in-out property <string> pending-delete-label;
     in-out property <bool> adif-preview-visible: false;
@@ -129,9 +133,9 @@ export component MainWindow inherits Window {
     callback filter-ysf(); callback clear-ysf-filter();
     callback save-local-callsign(); callback save-external-links(); callback restore-external-link-defaults();
     callback open-callsign-lookup(string); callback open-grid-lookup(string);
-    callback preview-adif(); callback confirm-adif-import(); callback cancel-adif-import(); callback invalidate-adif-preview(); callback export-adif();
+    callback preview-adif(); callback confirm-adif-import(); callback cancel-adif-import(); callback invalidate-adif-preview(); callback export-adif(); callback export-current-adif();
     callback choose-adif-import(); callback choose-adif-export(); callback choose-backup-destination();
-    callback backup-database(); callback delete-qso(string); callback clear-editor();
+    callback backup-database(); callback check-data-health(); callback verify-backup(); callback delete-qso(string); callback clear-editor();
     callback request-page(int); callback confirm-discard-editor(); callback keep-editing(); callback editor-opened();
     callback continue-working(); callback discard-and-exit(); callback retry-exit(); callback exit-without-saving();
 
@@ -392,13 +396,20 @@ export component MainWindow inherits Window {
             adif-preview-total <=> root.adif-preview-total;
             adif-preview-visible <=> root.adif-preview-visible;
             backup-path-text <=> root.backup-path-text;
+            database-report-visible <=> root.database-report-visible;
+            database-report-title <=> root.database-report-title;
+            database-report-text <=> root.database-report-text;
+            database-report-kind <=> root.database-report-kind;
             backup-database => { root.backup-database(); }
+            check-data-health => { root.check-data-health(); }
+            verify-backup => { root.verify-backup(); }
             cancel-adif-import => { root.cancel-adif-import(); }
             choose-adif-export => { root.choose-adif-export(); }
             choose-adif-import => { root.choose-adif-import(); }
             choose-backup-destination => { root.choose-backup-destination(); }
             confirm-adif-import => { root.confirm-adif-import(); }
             export-adif => { root.export-adif(); }
+            export-current-adif => { root.export-current-adif(); }
             invalidate-adif-preview => { root.invalidate-adif-preview(); }
             preview-adif => { root.preview-adif(); }
         }

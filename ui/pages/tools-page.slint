@@ -15,15 +15,22 @@ export component ToolsPage inherits ScrollView {
     in-out property <int> adif-preview-total;
     in-out property <bool> adif-preview-visible;
     in-out property <string> backup-path-text;
+    in-out property <bool> database-report-visible;
+    in-out property <string> database-report-title;
+    in-out property <string> database-report-text;
+    in-out property <int> database-report-kind;
     callback backup-database();
+    callback check-data-health();
     callback cancel-adif-import();
     callback choose-adif-export();
     callback choose-adif-import();
     callback choose-backup-destination();
     callback confirm-adif-import();
     callback export-adif();
+    callback export-current-adif();
     callback invalidate-adif-preview();
     callback preview-adif();
+    callback verify-backup();
 
     vertical-stretch: 1;
 
@@ -114,11 +121,17 @@ export component ToolsPage inherits ScrollView {
                         activated => { root.preview-adif(); }
                     }
                     KeyboardAction {
-                        width: 112px;
-                        label: "Export ADIF";
-                        description: "Export logbook records to the selected ADIF path";
-                        primary: true;
+                        width: 132px;
+                        label: "Export all QSOs";
+                        description: "Export every logbook QSO to the selected ADIF path";
                         activated => { root.export-adif(); }
+                    }
+                    KeyboardAction {
+                        width: 164px;
+                        label: "Export current results";
+                        description: "Export every QSO matching the current search or filter, across all pages";
+                        primary: true;
+                        activated => { root.export-current-adif(); }
                     }
                 }
 
@@ -247,11 +260,69 @@ export component ToolsPage inherits ScrollView {
                     spacing: Theme.space-md;
                     VerticalBox {
                         spacing: Theme.space-2xs;
-                        SectionTitle { text: "DATABASE BACKUP"; }
-                        Text { text: "Consistent SQLite snapshot / destination must not exist"; color: Theme.text-muted; font-size: Theme.text-xs; }
+                        SectionTitle { text: "DATA HEALTH"; }
+                        Text { text: "Read-only integrity, schema and mode metadata checks"; color: Theme.text-muted; font-size: Theme.text-xs; }
                     }
                     Rectangle { horizontal-stretch: 1; }
-                    Tag { width: 92px; height: 23px; text: "SECONDARY"; }
+                    KeyboardAction {
+                        width: 152px;
+                        label: "Check data health";
+                        description: "Check the active logbook without modifying data";
+                        primary: true;
+                        activated => { root.check-data-health(); }
+                    }
+                }
+
+                Text {
+                    text: "Checks SQLite integrity, foreign keys, schema objects, migration history and mode metadata consistency. Diagnostic checks never repair or change records.";
+                    color: Theme.text-secondary;
+                    font-size: Theme.text-xs;
+                    wrap: word-wrap;
+                }
+            }
+        }
+
+        if root.database-report-visible : Panel {
+            raised: true;
+            VerticalBox {
+                padding: Theme.space-md;
+                spacing: Theme.space-sm;
+                Text {
+                    text: root.database-report-title;
+                    color: root.database-report-kind == 1 ? Theme.success : root.database-report-kind == 2 ? Theme.warning : root.database-report-kind == 3 ? Theme.danger : Theme.accent;
+                    font-size: Theme.text-md;
+                    font-weight: 700;
+                }
+                Rectangle { height: 1px; background: Theme.divider; }
+                Text {
+                    accessible-label: "Database diagnostic report";
+                    text: root.database-report-text;
+                    color: Theme.text-secondary;
+                    font-size: Theme.text-xs;
+                    wrap: word-wrap;
+                }
+            }
+        }
+
+        Panel {
+            VerticalBox {
+                padding: Theme.space-md;
+                spacing: Theme.space-sm;
+
+                HorizontalBox {
+                    spacing: Theme.space-md;
+                    VerticalBox {
+                        spacing: Theme.space-2xs;
+                        SectionTitle { text: "DATABASE BACKUP"; }
+                        Text { text: "Validated SQLite snapshot / destination must not exist"; color: Theme.text-muted; font-size: Theme.text-xs; }
+                    }
+                    Rectangle { horizontal-stretch: 1; }
+                    KeyboardAction {
+                        width: 128px;
+                        label: "Verify backup";
+                        description: "Select and check an existing backup without restoring it";
+                        activated => { root.verify-backup(); }
+                    }
                 }
 
                 VerticalBox {

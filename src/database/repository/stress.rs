@@ -7,7 +7,8 @@ use rusqlite::params;
 
 use crate::domain::NewQso;
 
-use super::{DmrFilter, DstarFilter, Ft8Filter, QsoRepository, YsfFilter};
+use super::{DmrFilter, DstarFilter, Ft8Filter, QsoRepository, QsoSelection, YsfFilter};
+use crate::database::{inspect_database, HealthStatus};
 
 #[test]
 #[ignore = "manual deterministic large-volume benchmark"]
@@ -42,6 +43,10 @@ fn run_benchmark(
     let opening = started.elapsed();
     print_query_plans(&repository)?;
     benchmark_identity_lookup(&repository, count)?;
+    let health = measure(|| Ok::<_, Box<dyn Error>>(inspect_database(database_path)))?;
+    if health.1.status != HealthStatus::HealthyCurrent || health.1.qso_count != Some(count as u64) {
+        return Err("health check did not report the generated database as healthy".into());
+    }
 
     let first_page = measure(|| repository.search_page("", 0, 100))?;
     let middle_offset = count.saturating_div(2).saturating_sub(50);
@@ -206,15 +211,23 @@ fn run_benchmark(
     }
     drop(backup_repository);
 
+    let filtered_small =
+        measure(|| repository.export_adif_selection(&QsoSelection::General("PY00042".into())))?;
+    let filtered_large =
+        measure(|| repository.export_adif_selection(&QsoSelection::General("DMR".into())))?;
     let export = measure(|| repository.export_adif())?;
     if export.1.records.len() != count {
         return Err("ADIF export record count differs from source".into());
+    }
+    if filtered_small.1.records.is_empty() || filtered_large.1.records.is_empty() {
+        return Err("filtered ADIF export returned no generated records".into());
     }
     let serialize = measure(|| Ok::<_, Box<dyn Error>>(crate::adif::export(&export.1)))?;
 
     println!("\nDHRL_STRESS_RESULT volume={count}");
     print_metric("generate", generation.0);
     print_metric("open_and_verify", opening);
+    print_metric("health_check_read_only", health.0);
     print_metric("first_page", first_page.0);
     print_metric("middle_page", middle_page.0);
     print_metric("final_page", final_page.0);
@@ -235,6 +248,8 @@ fn run_benchmark(
     print_metric("ft8_period", ft8_period.0);
     print_metric("ft8_snr", ft8_snr.0);
     print_metric("backup", backup.0);
+    print_metric("export_adif_filtered_small", filtered_small.0);
+    print_metric("export_adif_filtered_large", filtered_large.0);
     print_metric("export_adif_domain", export.0);
     print_metric("serialize_adif", serialize.0);
     println!("database_bytes={}", fs::metadata(database_path)?.len());

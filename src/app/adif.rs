@@ -138,11 +138,7 @@ pub(crate) fn connect_adif_handlers(
             let path_text = ui.get_adif_path_text();
             let path = required_adif_path(path_text.as_str())?;
             let document = export_repository.export_adif()?;
-            let count = document.records.len();
-            let contents = export_adif_text(&document);
-            write_new_file_atomically(path, contents.as_bytes())?;
-            logging::info(&format!("ADIF export completed: {count} record(s)"));
-            Ok(count)
+            write_adif_document(path, document)
         })();
         match result {
             Ok(count) => set_status(
@@ -160,6 +156,51 @@ pub(crate) fn connect_adif_handlers(
             }
         }
     });
+
+    let weak_ui = ui.as_weak();
+    let filtered_repository = Rc::clone(repository);
+    let filtered_state = Rc::clone(state);
+    ui.on_export_current_adif(move || {
+        let Some(ui) = weak_ui.upgrade() else {
+            return;
+        };
+        let result = (|| -> Result<usize, Box<dyn Error>> {
+            let path_text = ui.get_adif_path_text();
+            let path = required_adif_path(path_text.as_str())?;
+            let selection = filtered_state.borrow().query.selection();
+            let document = filtered_repository.export_adif_selection(&selection)?;
+            if document.records.is_empty() {
+                return Err("The current search or filter has no QSOs to export".into());
+            }
+            write_adif_document(path, document)
+        })();
+        match result {
+            Ok(count) => set_status(
+                &ui,
+                format!("Exported {count} matching QSO(s) to ADIF"),
+                STATUS_SUCCESS,
+            ),
+            Err(error) => {
+                logging::error(&format!("filtered ADIF export failed: {error}"));
+                set_status(
+                    &ui,
+                    actionable_error("Could not export current results", error.as_ref()),
+                    STATUS_ERROR,
+                );
+            }
+        }
+    });
+}
+
+fn write_adif_document(
+    path: &Path,
+    document: digital_ham_radio_logbook::adif::AdifDocument,
+) -> Result<usize, Box<dyn Error>> {
+    let count = document.records.len();
+    let contents = export_adif_text(&document);
+    write_new_file_atomically(path, contents.as_bytes())?;
+    logging::info(&format!("ADIF export completed: {count} record(s)"));
+    Ok(count)
 }
 
 fn format_distribution(distribution: &std::collections::BTreeMap<String, usize>) -> String {
