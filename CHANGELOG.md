@@ -44,7 +44,7 @@ Este projeto segue [Semantic Versioning](https://semver.org/). As release notes 
 
 - feature freeze: nenhuma funcionalidade, migration, índice ou dependência de runtime foi adicionada;
 - schema permanece na versão 7;
-- este é um release candidate e ainda requer QA manual e validação do artefato exato antes da versão final.
+- o release candidate teve QA manual e artefato exato validados em `develop`, mas não foi integrado, tagueado ou publicado como release final.
 
 ## [0.8.0] - Não publicada
 

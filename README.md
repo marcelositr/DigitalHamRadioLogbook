@@ -6,6 +6,8 @@ Aplicativo desktop local e offline para registrar contatos de radioamador realiz
 
 ## Estado atual
 
+O checkpoint de desenvolvimento atual é `0.10.0-rc.1`, uma consolidação pré-1.0 sob feature freeze. Ele não é `1.0.0` nem declara prontidão para essa versão; o objetivo atual é acumular evidência de uso cotidiano e compatibilidade sem ampliar funcionalidades.
+
 O MVP funcional inclui:
 
 - interface Slint desktop-first com identidade técnica própria, alta legibilidade e operação confortável em `1050×680`;

@@ -776,8 +776,8 @@ Versão `v0.2.1` publicada e verificada em https://github.com/marcelositr/Digita
 - [x] Manter schema 7 e dependências atuais.
 - [x] Confirmar suíte atual: 175 testes ativos + 1 stress ignored.
 - [x] Executar stress release 100k: health read-only 520.017 ms; export filtrado pequeno 51.072 ms; amplo 322.552 ms; completo 1164.705 ms.
-- [ ] Executar QA visual/manual de Tools em 1050×680.
-- [x] Executar gates cargo, packaging e migration matrix; startup/QA gráfico pendentes.
+- [x] QA de Tools e fluxos gráficos coberto posteriormente pela regressão manual aprovada de `0.9.0-rc.1` em `1050×680`.
+- [x] Executar gates cargo, packaging, migration matrix e startup; QA gráfico consolidado na regressão posterior.
 - [x] Integrar em `main` no commit `5b47ade`; a tag e a GitHub Release `v0.8.0` não foram publicadas.
 
 ## Marco 36 — Feature freeze e regressão v0.9.0 (EM DESENVOLVIMENTO)
@@ -817,7 +817,9 @@ Versão `v0.2.1` publicada e verificada em https://github.com/marcelositr/Digita
 - [x] Confirmar que builds concorrentes excedem os recursos deste host e que a execução serial com `CARGO_BUILD_JOBS=1` passa.
 - [x] Gerar uma única vez o artefato `0.10.0-rc.1`: SHA-256 `2ee764dd25358da91a7c6b33c42ceeae4614dfc8a66ad751e7a81188c514d9a0`.
 - [x] Validar o artefato exato em checksum, conteúdo, `ldd`, instalação, upgrade schema 5→7, segunda abertura, restore com cinco modos/extras, desinstalação dupla e preservação por hash.
-- [ ] Acumular uso cotidiano prolongado sem dados pessoais versionados; uma sessão automatizada não satisfaz esse critério.
+- [x] Publicar `develop` e confirmar todos os jobs da CI no run `33206057929`.
+- [x] Executar inspeção interativa isolada do RC: startup, importação sintética de 10.003 QSOs e encerramento normal, sem problema reportado pelo mantenedor.
+- [ ] Acumular uso cotidiano prolongado sem dados pessoais versionados; uma inspeção isolada não satisfaz esse critério.
 
 ## Próxima ação exata
 

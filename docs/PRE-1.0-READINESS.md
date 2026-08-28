@@ -180,6 +180,7 @@ Do not record callsigns, QTH, notes or other personal QSO content here. For each
 ### Evidence accumulated
 
 - v0.9.0: mixed-mode manual regression at `1050×680`, including keyboard, mouse, focus, clipboard and operational flows, approved by the maintainer on 2026-08-28.
+- v0.10.0-rc.1: exact isolated artifact started, imported 10,003 synthetic QSOs through the UI workflow and stopped normally during maintainer inspection on 2026-08-28; no problem was reported. This is an isolated inspection, not prolonged real-world use.
 
 ### Evidence still needed
 
