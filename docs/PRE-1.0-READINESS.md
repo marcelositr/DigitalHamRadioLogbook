@@ -94,7 +94,7 @@ Automatic downgrade is not supported. A database opened by an application with a
 
 ### Confirmed
 
-- 10k and 100k release baselines remained stable during v0.9.0.
+- 10k and 100k release baselines remained stable during v0.9.0; the v0.10.0 100k checkpoint remained within the same historical range.
 - 100k remains comfortable for normal operations on the measured host.
 - No index or optimization is justified without a measured regression.
 
@@ -139,6 +139,19 @@ Automatic downgrade is not supported. A database opened by an application with a
 ### Limitation
 
 A physical network namespace block could not be reproduced in the existing environment; source/dependency audits found no HTTP client used by core functionality.
+
+## Dependency and security audit
+
+### Confirmed
+
+- Runtime dependencies remain unchanged for `0.10.0-rc.1`.
+- `Cargo.lock` and the fuzz lockfile are versioned and resolve offline/locked.
+- No HTTP client, telemetry, token or credential storage was identified in the v0.9.0 source/dependency audit.
+
+### Limitation
+
+- `cargo-audit` is not installed and no trusted local RustSec database is available, so this checkpoint cannot claim a current RustSec vulnerability scan. The dependency tree was reviewed without updating crates; duplicate transitive versions originate primarily from the existing Slint/desktop stack.
+- Slint licensing terms applicable to distribution still require maintainer confirmation before a future maturity declaration.
 
 ## Known issues and blockers
 

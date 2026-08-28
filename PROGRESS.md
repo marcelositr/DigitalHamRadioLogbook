@@ -811,7 +811,10 @@ Versão `v0.2.1` publicada e verificada em https://github.com/marcelositr/Digita
 - [x] Criar `docs/RELEASE-CHECKLIST.md` com processo reproduzível e gate de autorização.
 - [x] Corrigir o checklist visual antigo que ainda marcava a regressão aprovada como pendente.
 - [x] Definir `0.10.0-rc.1` como checkpoint de convivência, sem mudança de schema ou funcionalidade.
-- [ ] Reexecutar migrations, ADIF, backup/restore, performance e packaging para o RC.
+- [x] Reexecutar gates Cargo, migration matrix 0–7, corpus/round-trip ADIF, restore com cinco modos/extras e packaging smoke.
+- [x] Medir 100k em release sem regressão relevante: health 530.088 ms; página final 143.066 ms; backup 327.005 ms; ADIF completo 1190.914 ms.
+- [x] Registrar que `cargo-audit` não está instalado e que não há base RustSec local; nenhuma vulnerabilidade foi alegada.
+- [x] Confirmar que builds concorrentes excedem os recursos deste host e que a execução serial com `CARGO_BUILD_JOBS=1` passa.
 - [ ] Gerar e validar uma única vez o artefato exato `0.10.0-rc.1`.
 - [ ] Iniciar registro de uso cotidiano prolongado sem dados pessoais versionados.
 

@@ -105,6 +105,27 @@ Medição release local executada em 2026-08-28 durante o feature freeze, no mes
 
 Os resultados permanecem compatíveis com as medições históricas de v0.6.0 e v0.8.0. Não foi identificada regressão que justificasse otimização ou índice novo. O stress de 1 milhão não foi repetido neste checkpoint: a execução histórica já caracteriza paginação profunda acima de um segundo e exportação completa de aproximadamente 10,6 minutos com forte pressão de memória neste host de 7,7 GiB.
 
+## Consolidação pré-1.0 v0.10.0
+
+Medição release local de 100.000 QSOs executada em 2026-08-28 para `0.10.0-rc.1`:
+
+| Operação | 100k (ms) |
+|---|---:|
+| gerar dataset | 1953.697 |
+| abrir + validar | 189.189 |
+| health check read-only | 530.088 |
+| primeira página | 7.564 |
+| página intermediária | 74.321 |
+| página final | 143.066 |
+| busca callsign | 74.428 |
+| backup | 327.005 |
+| exportação filtrada pequena | 53.165 |
+| exportação filtrada ampla | 324.572 |
+| montar ADIF completo | 1190.914 |
+| serializar ADIF | 161.497 |
+
+Os planos permaneceram estáveis e os tempos ficaram dentro da variação das medições v0.8.0/v0.9.0. Não foi identificada regressão significativa; nenhuma otimização, migration ou índice foi introduzido. O build release deve ser executado serialmente neste host de 7,7 GiB: builds Rust concorrentes durante a auditoria disputaram memória e foram mortos, enquanto a mesma matriz com `CARGO_BUILD_JOBS=1` passou integralmente.
+
 ## Verificação de duplicidade manual v0.7.0
 
 Medição em build release, banco determinístico de 100 mil QSOs e 200 iterações por caso. Tempos médios em milissegundos:
