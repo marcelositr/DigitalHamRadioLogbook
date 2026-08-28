@@ -815,9 +815,10 @@ Versão `v0.2.1` publicada e verificada em https://github.com/marcelositr/Digita
 - [x] Medir 100k em release sem regressão relevante: health 530.088 ms; página final 143.066 ms; backup 327.005 ms; ADIF completo 1190.914 ms.
 - [x] Registrar que `cargo-audit` não está instalado e que não há base RustSec local; nenhuma vulnerabilidade foi alegada.
 - [x] Confirmar que builds concorrentes excedem os recursos deste host e que a execução serial com `CARGO_BUILD_JOBS=1` passa.
-- [ ] Gerar e validar uma única vez o artefato exato `0.10.0-rc.1`.
-- [ ] Iniciar registro de uso cotidiano prolongado sem dados pessoais versionados.
+- [x] Gerar uma única vez o artefato `0.10.0-rc.1`: SHA-256 `2ee764dd25358da91a7c6b33c42ceeae4614dfc8a66ad751e7a81188c514d9a0`.
+- [x] Validar o artefato exato em checksum, conteúdo, `ldd`, instalação, upgrade schema 5→7, segunda abertura, restore com cinco modos/extras, desinstalação dupla e preservação por hash.
+- [ ] Acumular uso cotidiano prolongado sem dados pessoais versionados; uma sessão automatizada não satisfaz esse critério.
 
 ## Próxima ação exata
 
-Sincronizar lockfiles para `0.10.0-rc.1`, validar os documentos e executar a matriz técnica do RC. Não integrar em `main`, criar tag ou GitHub Release sem autorização explícita.
+Publicar o checkpoint RC em `develop`, confirmar CI e iniciar convivência real com o artefato validado. Registrar somente evidência operacional não sensível; não integrar em `main`, criar tag ou GitHub Release sem autorização explícita.

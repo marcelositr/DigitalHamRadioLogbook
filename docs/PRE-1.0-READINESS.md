@@ -109,6 +109,7 @@ Automatic downgrade is not supported. A database opened by an application with a
 - The package is a user-local Linux x86-64 tarball with SHA-256.
 - Packaging checks content, checksum publication, install/reinstall and idempotent uninstall.
 - The exact `0.9.0-rc.1` artifact passed install, real upgrade, startup, restore and uninstall checks.
+- The exact `0.10.0-rc.1` artifact (`SHA-256 2ee764dd25358da91a7c6b33c42ceeae4614dfc8a66ad751e7a81188c514d9a0`) passed checksum/content/`ldd`, install, schema-5→7 upgrade, repeated startup, five-mode restore and double uninstall without data/config hash changes.
 
 ### Not yet proven
 

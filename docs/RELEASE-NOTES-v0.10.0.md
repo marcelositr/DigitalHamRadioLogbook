@@ -31,4 +31,4 @@ A deterministic 100,000-QSO release run remained within the historical v0.8.0/v0
 
 ## Release-candidate status
 
-`0.10.0-rc.1` begins a period of observation and normal use. Prolonged real-world evidence and repeated stable release/RC cycles are deliberately still marked as not proven. The appropriate next activity after technical RC validation is continued use on the `0.x` line, not an automatic move to `1.0.0`.
+`0.10.0-rc.1` begins a period of observation and normal use. The exact Linux artifact (`SHA-256 2ee764dd25358da91a7c6b33c42ceeae4614dfc8a66ad751e7a81188c514d9a0`) passed checksum, dependency, installation, real schema-5 upgrade, repeated startup, five-mode recovery and uninstall checks. Prolonged real-world evidence and repeated stable release/RC cycles are deliberately still marked as not proven. The appropriate next activity after technical RC validation is continued use on the `0.x` line, not an automatic move to `1.0.0`.
