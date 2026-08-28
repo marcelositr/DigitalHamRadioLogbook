@@ -16,6 +16,16 @@ The project now maintains `docs/PRE-1.0-READINESS.md`, separating demonstrated g
 
 `docs/RELEASE-CHECKLIST.md` records the complete process from locked Cargo gates and schemas 0–7 through real upgrades, ADIF, recovery, packaging, exact-artifact validation, manual regression and maintainer authorization. An artifact validated for publication must not be silently rebuilt afterward.
 
+### Linux packages
+
+The pre-release provides three x86-64 formats built around the same validated binary:
+
+- the existing user-local `tar.gz`;
+- a Debian/Ubuntu `amd64` package;
+- an AppImage for direct execution.
+
+Every asset has an individual SHA-256 file. The Debian package and AppImage include desktop integration, the application icon and AppStream metadata. RPM is deliberately not published because an RPM build/runtime toolchain was not available for validation; unsupported artifacts are not labeled as releases.
+
 ### Compatibility and recovery
 
 - Database schema remains version 7.

@@ -11,6 +11,7 @@ Este projeto segue [Semantic Versioning](https://semver.org/). As release notes 
 - criado registro factual de maturidade pré-1.0, sem declarar o projeto pronto para `1.0.0`;
 - documentadas as categorias primary, tested, best effort e not tested para ambientes e contratos suportados;
 - consolidado checklist reproduzível de release, upgrade, ADIF, recuperação, artefato exato e autorização;
+- adicionados pacotes `.deb` e AppImage, com metadata AppStream e checksums, derivados do mesmo binário validado do tarball;
 - corrigido o checklist visual que ainda apresentava a regressão já aprovada como pendente.
 
 ### Compatibility

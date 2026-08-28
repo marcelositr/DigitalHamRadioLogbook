@@ -39,11 +39,13 @@ cargo build
 
 ## Distribuição Linux
 
-Para gerar um pacote release user-local:
+Para gerar o pacote release user-local (`tar.gz`):
 
 ```sh
 packaging/linux/make-release.sh
 ```
+
+A pre-release também fornece `.deb` e AppImage produzidos do mesmo binário validado. O `.deb` integra o aplicativo ao sistema Debian/Ubuntu; o AppImage pode ser executado diretamente. Consulte `docs/LINUX-DISTRIBUTION.md` para comandos, dependências e limites de portabilidade.
 
 Depois de validar o arquivo `.sha256`, extraia o `tar.gz` e execute:
 

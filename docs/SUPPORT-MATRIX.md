@@ -6,8 +6,8 @@ This document distinguishes tested environments from support intent. â€œTestedâ€
 
 | Environment | Status | Evidence / limitation |
 |---|---|---|
-| GNU/Linux x86-64 | Primary | Official user-local tarball format and CI build target |
-| Ubuntu 24.04 build environment | Tested | GitHub Actions quality and migration jobs |
+| GNU/Linux x86-64 | Primary | User-local tarball, Debian `amd64` package and x86-64 AppImage |
+| Ubuntu 24.04 build environment | Tested | GitHub Actions quality and migration jobs; Debian package is intended for Debian/Ubuntu |
 | Debian-family local host | Tested | Build, package, install, startup, upgrade, restore and uninstall drills |
 | X11 / i3 at `1050Ã—680` | Tested | Repeated visual and keyboard QA through v0.9.0 |
 | Wayland | Best effort | Native dependencies are installed in CI, but no formal visual/runtime QA recorded |
@@ -17,7 +17,7 @@ This document distinguishes tested environments from support intent. â€œTestedâ€
 | Windows | Not supported by current distribution | No package or QA |
 | macOS | Not supported by current distribution | No package or QA |
 
-The Linux artifact dynamically links to native system libraries. Passing `ldd` on the build/test host does not guarantee compatibility with every glibc or desktop stack.
+The Linux binary dynamically links to native system libraries. Passing `ldd` on the build/test host does not guarantee compatibility with every glibc or desktop stack, including when the binary is wrapped as AppImage. RPM is not currently produced or claimed as tested.
 
 ## Display and interaction
 

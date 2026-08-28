@@ -14,6 +14,14 @@ O arquivo de release contém somente:
 
 O app ID usado na integração desktop é `io.github.marcelositr.DigitalHamRadioLogbook`.
 
+## Formatos distribuídos
+
+- `tar.gz` + SHA-256: formato user-local primário, com instalador e desinstalador próprios;
+- `.deb` + SHA-256: pacote Debian/Ubuntu `amd64`, instalado pelo gerenciador do sistema;
+- AppImage + SHA-256: executável portátil x86-64 sem instalação.
+
+Os três formatos da mesma release devem conter exatamente o mesmo binário. `.rpm` não é produzido atualmente porque o ambiente de release não possui toolchain RPM validada; não é publicado um pacote não testado apenas para ampliar a lista de assets.
+
 ## Compatibilidade
 
 O pacote é específico para a arquitetura indicada no nome do arquivo. Ele usa bibliotecas compartilhadas do sistema exigidas pelo binário e pelo backend gráfico do Slint. Não há garantia de compatibilidade entre distribuições com versões incompatíveis da glibc ou de outras bibliotecas nativas.
@@ -69,6 +77,48 @@ cd digital-ham-radio-logbook-*-linux-*
 ```
 
 Evite executar pacotes cuja origem ou checksum não sejam confiáveis.
+
+## Pacote Debian/Ubuntu
+
+Valide o checksum e inspecione os metadados antes de instalar:
+
+```sh
+sha256sum -c digital-ham-radio-logbook_*_amd64.deb.sha256
+dpkg-deb --info digital-ham-radio-logbook_*_amd64.deb
+```
+
+Instalação e remoção usam o gerenciador do sistema:
+
+```sh
+sudo apt install ./digital-ham-radio-logbook_*_amd64.deb
+sudo apt remove digital-ham-radio-logbook
+```
+
+O pacote instala binário, desktop entry, ícone, licença e metadata AppStream. Remover o pacote não remove o banco/configuração XDG do usuário.
+
+## AppImage
+
+Após validar o checksum:
+
+```sh
+sha256sum -c digital-ham-radio-logbook-*.AppImage.sha256
+chmod +x digital-ham-radio-logbook-*.AppImage
+./digital-ham-radio-logbook-*.AppImage
+```
+
+O AppImage contém o aplicativo, desktop entry, ícone e metadata AppStream, mas não promete independência de glibc e de todas as bibliotecas nativas do host. Ele foi executado no ambiente Debian-family usado para a release; outras distribuições permanecem best effort até haver teste concreto. Em sistemas sem FUSE, `APPIMAGE_EXTRACT_AND_RUN=1` pode ser usado como fallback suportado pelo runtime AppImage.
+
+## Gerar formatos adicionais do mesmo binário
+
+O script não compila nem modifica o executável recebido:
+
+```sh
+APPIMAGETOOL=/path/to/appimagetool \
+  packaging/linux/make-additional-packages.sh \
+  /path/to/validated/digital-ham-radio-logbook artifacts
+```
+
+Requisitos: `dpkg-deb`, `sha256sum` e `appimagetool`. O versionamento Debian converte `0.10.0-rc.1` para `0.10.0~rc1`, garantindo ordenação anterior a `0.10.0`.
 
 ## Instalação user-local
 
@@ -132,7 +182,7 @@ sh -n packaging/linux/*.sh
 packaging/linux/smoke-test.sh
 ```
 
-A CI executa essas verificações em um job pequeno e independente do build Rust.
+A CI executa essas verificações em um job pequeno e independente do build Rust. Também valida a sintaxe de `make-additional-packages.sh`; a geração real de `.deb`/AppImage é um gate de release porque requer `dpkg-deb` e `appimagetool`.
 
 ## Solução de problemas
 

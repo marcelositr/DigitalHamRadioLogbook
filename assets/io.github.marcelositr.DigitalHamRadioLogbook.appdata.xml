@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.marcelositr.DigitalHamRadioLogbook</id>
+  <name>Digital Ham Radio Logbook</name>
+  <summary>Local and offline logbook for digital amateur radio contacts</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <description>
+    <p>
+      Digital Ham Radio Logbook stores amateur radio contacts locally in SQLite,
+      with specialized metadata for DMR, FT8, D-STAR and YSF/C4FM and ADIF
+      import/export interoperability.
+    </p>
+  </description>
+  <launchable type="desktop-id">io.github.marcelositr.DigitalHamRadioLogbook.desktop</launchable>
+  <url type="homepage">https://github.com/marcelositr/DigitalHamRadioLogbook</url>
+  <provides>
+    <binary>digital-ham-radio-logbook</binary>
+  </provides>
+  <categories>
+    <category>Network</category>
+    <category>HamRadio</category>
+  </categories>
+  <releases>
+    <release version="0.10.0-rc.1" date="2026-08-28" type="development"/>
+  </releases>
+</component>

@@ -819,6 +819,9 @@ Versão `v0.2.1` publicada e verificada em https://github.com/marcelositr/Digita
 - [x] Validar o artefato exato em checksum, conteúdo, `ldd`, instalação, upgrade schema 5→7, segunda abertura, restore com cinco modos/extras, desinstalação dupla e preservação por hash.
 - [x] Publicar `develop` e confirmar todos os jobs da CI no run `33206057929`.
 - [x] Executar inspeção interativa isolada do RC: startup, importação sintética de 10.003 QSOs e encerramento normal, sem problema reportado pelo mantenedor.
+- [x] Adicionar packaging `.deb` e AppImage a partir do mesmo binário validado, sem rebuild; incluir desktop, ícone, AppStream e SHA-256.
+- [x] Validar conteúdo, metadata, igualdade do binário e startup isolado de `.deb` e AppImage.
+- [x] Não produzir `.rpm` sem `rpmbuild`/ambiente RPM disponível e validado.
 - [ ] Acumular uso cotidiano prolongado sem dados pessoais versionados; uma inspeção isolada não satisfaz esse critério.
 
 ## Próxima ação exata
