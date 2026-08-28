@@ -35,6 +35,7 @@ case $(uname -m) in
     *) printf 'Unsupported package architecture: %s\n' "$(uname -m)" >&2; exit 1 ;;
 esac
 DEB_VERSION=$(printf '%s' "$VERSION" | sed 's/-rc\./~rc/')
+DEB_FILE_VERSION=$(printf '%s' "$VERSION" | sed 's/-rc\./.rc/')
 APPIMAGETOOL=${APPIMAGETOOL:-appimagetool}
 command -v dpkg-deb >/dev/null 2>&1 || { printf 'Required tool not found: dpkg-deb\n' >&2; exit 1; }
 command -v "$APPIMAGETOOL" >/dev/null 2>&1 || { printf 'Required tool not found: %s\n' "$APPIMAGETOOL" >&2; exit 1; }
@@ -83,7 +84,9 @@ EOF
 find "$DEB_ROOT" -type d -exec chmod 755 {} +
 find "$DEB_ROOT" -type f -exec chmod 644 {} +
 chmod 755 "$DEB_ROOT/usr/bin/$PACKAGE"
-DEB_FILE=$OUTPUT_DIR/${PACKAGE}_${DEB_VERSION}_${DEB_ARCH}.deb
+# GitHub release assets sanitize '~' in filenames. Keep Debian's '~rc' inside
+# package metadata, but use a stable '.rc' asset filename whose checksum remains valid.
+DEB_FILE=$OUTPUT_DIR/${PACKAGE}_${DEB_FILE_VERSION}_${DEB_ARCH}.deb
 dpkg-deb --root-owner-group --build "$DEB_ROOT" "$DEB_FILE"
 
 mkdir -p -- "$APPDIR/usr/bin" "$APPDIR/usr/share/applications" \

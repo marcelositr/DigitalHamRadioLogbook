@@ -118,7 +118,7 @@ APPIMAGETOOL=/path/to/appimagetool \
   /path/to/validated/digital-ham-radio-logbook artifacts
 ```
 
-Requisitos: `dpkg-deb`, `sha256sum` e `appimagetool`. O versionamento Debian converte `0.10.0-rc.1` para `0.10.0~rc1`, garantindo ordenação anterior a `0.10.0`.
+Requisitos: `dpkg-deb`, `sha256sum` e `appimagetool`. O campo interno de versão Debian converte `0.10.0-rc.1` para `0.10.0~rc1`, garantindo ordenação anterior a `0.10.0`. O nome do asset usa `0.10.0.rc1`, pois o GitHub sanitiza `~` em nomes de assets; assim o arquivo `.sha256` continua verificável após o upload.
 
 ## Instalação user-local
 

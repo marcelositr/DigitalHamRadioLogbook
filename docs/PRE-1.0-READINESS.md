@@ -110,7 +110,7 @@ Automatic downgrade is not supported. A database opened by an application with a
 - Packaging checks content, checksum publication, install/reinstall and idempotent uninstall.
 - The exact `0.9.0-rc.1` artifact passed install, real upgrade, startup, restore and uninstall checks.
 - The exact `0.10.0-rc.1` tarball (`SHA-256 2ee764dd25358da91a7c6b33c42ceeae4614dfc8a66ad751e7a81188c514d9a0`) passed checksum/content/`ldd`, install, schema-5→7 upgrade, repeated startup, five-mode restore and double uninstall without data/config hash changes.
-- Debian package `digital-ham-radio-logbook_0.10.0~rc1_amd64.deb` (`SHA-256 86c0a4732449382876abf6d2e726da3aec527389d55425349e4a81ebdaaffe25`) and AppImage (`SHA-256 133e647974df642b9df589642cad8ab6471aab5647faef5a23a0944d353d1f22`) contain the identical validated binary and passed isolated startup.
+- Debian package `digital-ham-radio-logbook_0.10.0.rc1_amd64.deb` (internal Debian version `0.10.0~rc1`) (`SHA-256 27b55161e965d3a50a94f3ecd01351a0ac195c34120d50a3ab842d37e1105eb9`) and AppImage (`SHA-256 557c6147be692c5e1f03edd328553b5ce5c0d1bfcf04f72fc06843d4418a4d4a`) contain the identical validated binary and passed isolated startup.
 
 ### Not yet proven
 
