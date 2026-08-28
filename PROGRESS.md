@@ -1,6 +1,6 @@
 # Progresso de implementação
 
-Última atualização: 2026-08-26
+Última atualização: 2026-08-28
 
 Este arquivo é o checkpoint persistente do projeto. Ao retomar o trabalho, ler `SPEC.md` e este arquivo antes de modificar código.
 
@@ -762,7 +762,7 @@ Versão `v0.2.1` publicada e verificada em https://github.com/marcelositr/Digita
 - [x] Atualizar versão fonte e documentação para `0.7.0` sem publicar.
 - [x] Publicar `v0.7.0`; `main` e tag no commit `a56a7d9`.
 
-## Marco 35 — Saúde do acervo e manutenção operacional v0.8.0 (EM DESENVOLVIMENTO)
+## Marco 35 — Saúde do acervo e manutenção operacional v0.8.0 (INTEGRADO)
 
 - [x] Auditar health, backup, restore, migrations, Tools, ADIF, filesystem, CI e baseline real da v0.7.0.
 - [x] Adicionar health check read-only com quick check, foreign keys, schema, migrations, objetos, contagens e invariantes de metadata.
@@ -778,7 +778,28 @@ Versão `v0.2.1` publicada e verificada em https://github.com/marcelositr/Digita
 - [x] Executar stress release 100k: health read-only 520.017 ms; export filtrado pequeno 51.072 ms; amplo 322.552 ms; completo 1164.705 ms.
 - [ ] Executar QA visual/manual de Tools em 1050×680.
 - [x] Executar gates cargo, packaging e migration matrix; startup/QA gráfico pendentes.
+- [x] Integrar em `main` no commit `5b47ade`; a tag e a GitHub Release `v0.8.0` não foram publicadas.
+
+## Marco 36 — Feature freeze e regressão v0.9.0 (EM DESENVOLVIMENTO)
+
+- [x] Auditar documentação, migrations, CI, packaging, ADIF, recovery, panics, dependências e baseline real da v0.8.0.
+- [x] Executar gates baseline: fmt, check, clippy estrito, 175 testes ativos e build locked.
+- [x] Restaurar fuzzing ADIF reproduzível com `fuzz/Cargo.lock` locked/offline e corpus mutável separado das fixtures.
+- [x] Executar fuzzing por 60 segundos: 3.622.542 execuções e zero crashes.
+- [x] Adicionar regressões determinísticas para virada UTC, leap day e datas/horas inválidas; suíte atual com 176 testes ativos + 1 stress ignored.
+- [x] Executar upgrade sequencial real v0.4.0 → v0.5.0 → v0.6.0 → v0.7.0 → baseline v0.8.0, preservando cinco modos, extras ADIF, config e integridade.
+- [x] Executar upgrades diretos reais de v0.4.0 para v0.6.0, v0.7.0 e baseline v0.8.0.
+- [x] Validar artefatos públicos v0.4.0–v0.7.0, checksums e dependências compartilhadas no host.
+- [x] Validar tarball baseline v0.8.0, instalação limpa, dois startups, desinstalação dupla e preservação de banco/config por hash.
+- [x] Registrar stress release 10k e 100k; sem regressão relevante contra o histórico.
+- [x] Não repetir 1M neste checkpoint devido ao custo histórico de ~10,6 minutos e alta pressão de memória no host de 7,7 GiB.
+- [x] Executar a suíte locked três vezes consecutivas, sem flakiness: 176 testes ativos em cada execução.
+- [x] Reexecutar migration matrix 0–7 com o comando exato da CI.
+- [x] Reexecutar smoke de packaging e drill automatizado de backup/restore com cinco modos e extras ADIF.
+- [x] Preparar uma única vez o artefato `0.9.0-rc.1`: SHA-256 `2ac5ffd8585981eafc60a07eb94c1ee4e4967706cedeed170fc20e595dad73e0`.
+- [x] Validar o artefato exato em checksum, conteúdo, dependências, instalação, upgrade schema 5→7, dois startups, disaster drill, desinstalação dupla e preservação por hash.
+- [ ] Executar QA manual de 50 QSOs, teclado/mouse/foco/clipboard e 1050×680.
 
 ## Próxima ação exata
 
-Executar stress 100k, gates finais e checklist manual de Tools/recuperação. Não integrar em `main`, criar tag ou publicar sem autorização explícita.
+Executar QA manual de 50 QSOs mistos em `1050×680`, incluindo teclado, mouse, foco, clipboard, dirty state, Save & New, duplicidade, ADIF, backup e health check. Não reconstruir o artefato RC, integrar em `main`, criar tag final ou publicar sem autorização explícita.

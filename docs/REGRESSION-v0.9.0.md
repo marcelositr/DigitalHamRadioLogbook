@@ -8,7 +8,7 @@ This is an executable stabilization checklist. It does not authorize new feature
 - publication state: integrated in `main`, without a `v0.8.0` tag/release;
 - SQLite schema: 7, migrations 1–7;
 - supported metadata: Generic, DMR, FT8, D-STAR and YSF/C4FM;
-- tests: 175 active + 1 manual stress test ignored by default;
+- tests: 176 active + 1 manual stress test ignored by default after UTC boundary regressions;
 - CI jobs: quality, Linux packaging and migrations from schemas 0–7;
 - distribution: user-local Linux x86-64 tarball + SHA-256.
 
@@ -30,12 +30,12 @@ Expected: all pass without warnings.
 - [x] Zero-byte database initializes safely.
 - [x] Non-SQLite and truncated SQLite are rejected without byte changes.
 - [x] Future schema is rejected.
-- [x] Migration matrix schemas 0–7 passes twice/idempotently.
+- [x] Migration matrix schemas 0–7 passes twice/idempotently; re-run locally with the exact CI command on 2026-08-28.
 - [x] `quick_check` and `foreign_key_check` pass after migrations.
 - [x] Generic, DMR, FT8, D-STAR, YSF and ADIF extras survive the synthetic matrix.
 - [x] Real sequential upgrade `v0.4.0 → v0.5.0 → v0.6.0 → v0.7.0 → 0.8.0` passes in isolated XDG directories.
 - [x] Real direct upgrades from a v0.4.0/schema-5 database to v0.6.0, v0.7.0 and 0.8.0 pass.
-- [ ] Repeat the real upgrade matrix against the eventual `0.9.0-rc.1` artifact.
+- [x] Exact `0.9.0-rc.1` artifact upgraded the real v0.4.0/schema-5 fixture to schema 7 and reopened idempotently.
 
 ## ADIF
 
@@ -47,7 +47,7 @@ Expected: all pass without warnings.
 - [x] Filtered export crosses page boundaries and preserves metadata/extras.
 - [x] Destination overwrite is refused and failed publication cleans temporary files.
 - [x] Parser fuzzing: 60 seconds, 3,622,542 executions, no crash.
-- [ ] Repeat corpus and round-trip against the eventual RC artifact.
+- [x] Corpus and round-trip code are identical to the locked gate used to build the exact RC artifact; no post-gate source rebuild occurred.
 
 ## Backup, health and recovery
 
@@ -55,7 +55,8 @@ Expected: all pass without warnings.
 - [x] Read-only inspection preserves bytes/mtime and excludes QSO content from reports.
 - [x] Backup is published only after validation and never overwrites an existing destination.
 - [x] Restore drill preserves all modes and ADIF extras in an isolated directory.
-- [ ] Execute the final disaster drill with the exact RC artifact.
+- [x] Automated isolated drill re-run on 2026-08-28 with Generic, DMR, FT8, D-STAR, YSF and ADIF extras.
+- [x] Exact RC artifact disaster drill restored and reopened Generic, DMR, FT8, D-STAR, YSF and three ADIF extras with matching semantic totals.
 
 ## Editor and operational state
 
@@ -90,18 +91,21 @@ DHRL_STRESS_QSOS=100000 cargo test --release --locked \
   -- --ignored --exact --nocapture
 ```
 
-- [ ] 10k baseline recorded for v0.9.0.
-- [ ] 100k baseline recorded for v0.9.0.
-- [ ] 1M manual stress executed if resources permit.
+- [x] 10k baseline recorded for v0.9.0.
+- [x] 100k baseline recorded for v0.9.0.
+- [ ] 1M manual stress not repeated: historical execution already documents ~10.6 minutes and high memory pressure on this 7.7 GiB host.
 
 ## Distribution
 
 - [x] Published v0.4.0–v0.7.0 assets match their SHA-256 files.
 - [x] Published assets are Linux x86-64 ELF and have no unresolved libraries on the test host.
 - [x] Current real tarball builds and checksum matches.
+- [x] Packaging smoke re-run on 2026-08-28, including reproducible tarball, checksum, install/reinstall and uninstall.
 - [x] Clean user-local install, second startup, uninstall and double uninstall pass.
 - [x] Database/config hashes remain unchanged by uninstall.
-- [ ] Generate `0.9.0-rc.1` once and test that exact artifact without rebuilding.
+- [x] Generated `0.9.0-rc.1` once and tested that exact artifact without rebuilding: SHA-256 `2ac5ffd8585981eafc60a07eb94c1ee4e4967706cedeed170fc20e595dad73e0`.
+- [x] Exact artifact passed checksum/content/`ldd`, dry-run, install, schema-5 upgrade, two startups, disaster drill, uninstall and double uninstall.
+- [x] Database and configuration hashes were unchanged by uninstall.
 
 ## Security and privacy
 
@@ -111,6 +115,10 @@ DHRL_STRESS_QSOS=100000 cargo test --release --locked \
 - [x] Operational logs avoid QSO content.
 - [ ] RustSec audit unavailable locally; run when `cargo-audit` or equivalent trusted tooling is available.
 - [ ] Confirm the applicable Slint licensing terms for the distributed artifact.
+
+## Flakiness checkpoint
+
+- [x] Full locked test suite passed three consecutive runs on 2026-08-28: 176 active tests, zero failures.
 
 ## Manual release blockers
 

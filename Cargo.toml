@@ -1,6 +1,6 @@
 [package]
 name = "digital-ham-radio-logbook"
-version = "0.8.0"
+version = "0.9.0-rc.1"
 edition = "2021"
 description = "Local and offline desktop logbook for digital amateur radio contacts"
 license = "MIT"

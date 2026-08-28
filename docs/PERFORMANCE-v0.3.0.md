@@ -84,6 +84,27 @@ Medição release local em 100.000 QSOs, executada em 2026-08-27 no gerador dete
 
 O health check permanece utilizável como ação explícita de Tools e não é executado continuamente. A exportação filtrada pequena evita materializar extras fora da seleção; a seleção ampla permanece significativamente abaixo da exportação completa. Nenhum índice ou migration foi adicionado.
 
+## Regressão de performance v0.9.0
+
+Medição release local executada em 2026-08-28 durante o feature freeze, no mesmo gerador determinístico. Tempos em milissegundos:
+
+| Operação | 10k | 100k |
+|---|---:|---:|
+| gerar dataset | 157.585 | 1993.582 |
+| abrir + validar | 18.352 | 192.596 |
+| health check read-only | 51.861 | 540.741 |
+| primeira página | 1.424 | 7.977 |
+| página intermediária | 6.861 | 75.016 |
+| página final | 12.728 | 144.773 |
+| busca callsign | 6.458 | 75.576 |
+| backup | 38.177 | 331.083 |
+| exportação filtrada pequena | 4.884 | 54.129 |
+| exportação filtrada ampla | 29.685 | 349.397 |
+| montar ADIF completo | 118.913 | 1206.397 |
+| serializar ADIF | 18.546 | 164.172 |
+
+Os resultados permanecem compatíveis com as medições históricas de v0.6.0 e v0.8.0. Não foi identificada regressão que justificasse otimização ou índice novo. O stress de 1 milhão não foi repetido neste checkpoint: a execução histórica já caracteriza paginação profunda acima de um segundo e exportação completa de aproximadamente 10,6 minutos com forte pressão de memória neste host de 7,7 GiB.
+
 ## Verificação de duplicidade manual v0.7.0
 
 Medição em build release, banco determinístico de 100 mil QSOs e 200 iterações por caso. Tempos médios em milissegundos:

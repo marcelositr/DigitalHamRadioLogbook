@@ -4,6 +4,28 @@ Este projeto segue [Semantic Versioning](https://semver.org/). As release notes 
 
 ## [Unreleased]
 
+## [0.9.0-rc.1] - 2026-08-28
+
+### Fixed
+
+- restaurada a reprodução locked/offline do target de fuzz ADIF após a evolução da versão do pacote;
+- corpus mutável do libFuzzer separado das fixtures ADIF versionadas, evitando que execuções de regressão poluam o corpus permanente;
+- documentação do corpus corrigida para refletir as 22 fixtures válidas existentes.
+
+### Validation
+
+- upgrades reais sequenciais de v0.4.0 até a baseline v0.8.0 e upgrades diretos preservaram schema, cinco modos, extras ADIF, configuração e integridade;
+- fuzzing ADIF executou 3.622.542 entradas em 60 segundos sem crash;
+- regressões de virada UTC, leap day e datas/horas inválidas adicionadas;
+- suíte locked passou três vezes consecutivas com 176 testes ativos, além da matriz de migrations 0–7, packaging e disaster drill automatizado;
+- baselines release de 10 mil e 100 mil QSOs não mostraram regressão relevante.
+
+### Compatibility
+
+- feature freeze: nenhuma funcionalidade, migration, índice ou dependência de runtime foi adicionada;
+- schema permanece na versão 7;
+- este é um release candidate e ainda requer QA manual e validação do artefato exato antes da versão final.
+
 ## [0.8.0] - Não publicada
 
 ### Added
