@@ -76,6 +76,20 @@ mod tests {
     }
 
     #[test]
+    fn handles_utc_day_boundary_leap_day_and_invalid_dates() {
+        let before_midnight = parse_utc_datetime("2028-02-28 23:59:59 UTC").unwrap();
+        let leap_day = parse_utc_datetime("2028-02-29 00:00:00 UTC").unwrap();
+        assert_eq!(leap_day - before_midnight, 1);
+        assert_eq!(
+            format_utc_datetime(leap_day).unwrap(),
+            "2028-02-29 00:00:00 UTC"
+        );
+        assert!(parse_utc_datetime("2027-02-29 00:00:00 UTC").is_err());
+        assert!(parse_utc_datetime("2028-02-30 00:00:00 UTC").is_err());
+        assert!(parse_utc_datetime("2028-02-29 24:00:00 UTC").is_err());
+    }
+
+    #[test]
     fn parses_mhz_without_floating_point() {
         assert_eq!(parse_mhz_to_hz("438.500").unwrap(), 438_500_000);
         assert_eq!(parse_mhz_to_hz("14,074").unwrap(), 14_074_000);

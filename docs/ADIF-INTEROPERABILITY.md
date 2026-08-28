@@ -98,7 +98,7 @@ Duplicados já existentes ou repetidos no mesmo arquivo são ignorados e contabi
 
 Fixtures sintéticas e sem dados pessoais estão em `tests/fixtures/adif/`:
 
-- 16 válidas;
+- 22 válidas;
 - 8 inválidas;
 - QSO comum, DMR, FT8, múltiplos modos, Unicode, unknown/APP fields, tipos, caixa mista, whitespace, CRLF e estruturas truncadas.
 
