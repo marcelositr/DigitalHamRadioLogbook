@@ -798,8 +798,8 @@ Versão `v0.2.1` publicada e verificada em https://github.com/marcelositr/Digita
 - [x] Reexecutar smoke de packaging e drill automatizado de backup/restore com cinco modos e extras ADIF.
 - [x] Preparar uma única vez o artefato `0.9.0-rc.1`: SHA-256 `2ac5ffd8585981eafc60a07eb94c1ee4e4967706cedeed170fc20e595dad73e0`.
 - [x] Validar o artefato exato em checksum, conteúdo, dependências, instalação, upgrade schema 5→7, dois startups, disaster drill, desinstalação dupla e preservação por hash.
-- [ ] Executar QA manual de 50 QSOs, teclado/mouse/foco/clipboard e 1050×680.
+- [x] QA manual misto em `1050×680`, incluindo teclado, mouse, foco, clipboard e fluxos operacionais, aprovado pelo mantenedor em 2026-08-28.
 
 ## Próxima ação exata
 
-Executar QA manual de 50 QSOs mistos em `1050×680`, incluindo teclado, mouse, foco, clipboard, dirty state, Save & New, duplicidade, ADIF, backup e health check. Não reconstruir o artefato RC, integrar em `main`, criar tag final ou publicar sem autorização explícita.
+Publicar os commits do RC em `develop` e confirmar a CI. Depois parar para autorização explícita antes de integrar em `main`, criar tag ou GitHub Release; não reconstruir o artefato RC validado.

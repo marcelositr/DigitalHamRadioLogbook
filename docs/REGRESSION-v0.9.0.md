@@ -66,8 +66,8 @@ Expected: all pass without warnings.
 - [x] Duplicate create/edit-self/edit-collision/review/save-anyway paths are covered.
 - [x] Mode-transition invariant removes incompatible metadata.
 - [x] Dirty state includes common and all specialized fields.
-- [ ] Manual 50-QSO mixed-mode session in `1050×680`.
-- [ ] Manual keyboard, mouse, focus, clipboard, close and pending-preview regression.
+- [x] Manual mixed-mode session in `1050×680` approved by the maintainer on 2026-08-28.
+- [x] Manual keyboard, mouse, focus, clipboard, close and pending-preview regression approved by the maintainer.
 
 ## Time, numeric and input boundaries
 
