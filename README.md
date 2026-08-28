@@ -69,6 +69,8 @@ cargo build --locked
 
 O workflow `.github/workflows/ci.yml` executa esses controles em `main`, `develop`, pull requests e manualmente. Jobs adicionais testam em paralelo a migração dos schemas 0–7 e o contrato do pacote Linux, incluindo instalação e desinstalação em XDG isolado.
 
+O caminho factual até uma possível versão `1.0.0` está em `docs/PRE-1.0-READINESS.md`; ele não define prazo nem declara prontidão. Ambientes efetivamente testados e limitações estão em `docs/SUPPORT-MATRIX.md`, e o processo reproduzível de release está em `docs/RELEASE-CHECKLIST.md`.
+
 Testes pesados são ignorados por padrão. Consulte `docs/PERFORMANCE-v0.3.0.md` para gerar datasets determinísticos de 1 mil a 1 milhão de QSOs e reproduzir as medições. A organização interna da persistência está resumida em `docs/ARCHITECTURE.md`.
 
 ## Localização dos dados
@@ -187,7 +189,7 @@ Erros operacionais comuns exibem orientação prática junto do detalhe técnico
 
 A abertura do banco recusa schemas futuros, valida os objetos esperados e executa verificações SQLite de integridade e foreign keys. O health check e a verificação de backup abrem arquivos em modo read-only, não executam migrations e não alteram dados. Backups são publicados somente depois da validação, e configuração/exportação ADIF usam publicação atômica; arquivos privados usam `0600` no Unix.
 
-O procedimento seguro de restauração está em `docs/DATA-RECOVERY.md`. Nunca substitua o banco enquanto a aplicação estiver aberta.
+O procedimento seguro de restauração está em `docs/DATA-RECOVERY.md`. Nunca substitua o banco enquanto a aplicação estiver aberta. Downgrade automático não é suportado: um banco aberto por uma versão com schema mais novo deve ser usado com uma aplicação compatível ou substituído por um backup anterior compatível enquanto o aplicativo estiver fechado.
 
 O contrato de campos, normalizações, corpus e limitações ADIF está em `docs/ADIF-INTEROPERABILITY.md`. As extensões privadas compatíveis estão em `docs/ADIF-EXTENSIONS.md`. Para implementar outro modo, consulte `docs/ADDING-A-DIGITAL-MODE.md`; a decisão de manter a arquitetura explícita de quatro modos está em `docs/FOUR-MODE-ARCHITECTURE-REVIEW.md`.
 

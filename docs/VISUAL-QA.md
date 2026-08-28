@@ -1,31 +1,31 @@
 # Visual QA checklist
 
-## v0.7.0 — checklist pendente, não aprovado
+## v0.9.0 — regressão operacional aprovada
 
-Esta seção registra somente o roteiro da validação manual atual. Nenhum item abaixo foi aprovado ainda; a homologação histórica das seções seguintes não aprova as mudanças de `v0.7.0`.
+Esta seção foi aprovada pelo mantenedor em 2026-08-28 durante a regressão de `0.9.0-rc.1`, em `1050×680`. A aprovação cobre os fluxos mistos, teclado, mouse, foco e clipboard registrados em `docs/REGRESSION-v0.9.0.md`.
 
 ### Janela e modos em `1050×680`
 
-- [ ] Confirmar que nenhum controle sobrepõe, corta ou exige fullscreen em `1050×680`.
-- [ ] Criar e editar um QSO genérico, DMR, FT8, D-STAR e YSF/C4FM, verificando todos os campos e metadados condicionais.
-- [ ] Confirmar rolagem até Notes e rodapé fixo em todos os modos.
+- [x] Confirmar que nenhum controle sobrepõe, corta ou exige fullscreen em `1050×680`.
+- [x] Criar e editar um QSO genérico, DMR, FT8, D-STAR e YSF/C4FM, verificando todos os campos e metadados condicionais.
+- [x] Confirmar rolagem até Notes e rodapé fixo em todos os modos.
 
 ### Save & New, warning e dirty state
 
-- [ ] Em novo QSO, confirmar **Save & New**: valida, grava uma vez, atualiza a lista, limpa todos os campos/metadados e apresenta novo UTC fixo.
-- [ ] Confirmar que **Save & New** não cria um segundo QSO e não aparece durante edição.
-- [ ] Confirmar warning pela identidade callsign + UTC + Hz + mode, com **Review** e **Save anyway** legíveis e acessíveis.
-- [ ] Confirmar que edição exclui o próprio QSO e que colisão real continua permitindo **Save anyway**, sem merge ou bloqueio.
-- [ ] Confirmar dirty state após edição, erro de validação, **Review**, save concluído e formulário limpo pós-commit.
+- [x] Em novo QSO, confirmar **Save & New**: valida, grava uma vez, atualiza a lista, limpa todos os campos/metadados e apresenta novo UTC fixo.
+- [x] Confirmar que **Save & New** não cria um segundo QSO e não aparece durante edição.
+- [x] Confirmar warning pela identidade callsign + UTC + Hz + mode, com **Review** e **Save anyway** legíveis e acessíveis.
+- [x] Confirmar que edição exclui o próprio QSO e que colisão real continua permitindo **Save anyway**, sem merge ou bloqueio.
+- [x] Confirmar dirty state após edição, erro de validação, **Review**, save concluído e formulário limpo pós-commit.
 
 ### Atalhos, foco e clipboard
 
-- [ ] Validar `Ctrl+N`, `Ctrl+S`, `Ctrl+Enter` e `Ctrl+F` por teclado.
-- [ ] Confirmar `Enter` em Notes para salvar e `Escape` exclusivamente para cancelar/fechar o fluxo atual.
-- [ ] Confirmar foco em callsign ao abrir novo QSO e foco na pesquisa após `Ctrl+F`.
-- [ ] Confirmar que copiar/colar e o conteúdo existente do clipboard são preservados ao usar os atalhos.
+- [x] Validar `Ctrl+N`, `Ctrl+S`, `Ctrl+Enter` e `Ctrl+F` por teclado.
+- [x] Confirmar `Enter` em Notes para salvar e `Escape` exclusivamente para cancelar/fechar o fluxo atual.
+- [x] Confirmar foco em callsign ao abrir novo QSO e foco na pesquisa após `Ctrl+F`.
+- [x] Confirmar que copiar/colar e o conteúdo existente do clipboard são preservados ao usar os atalhos.
 
-Last full visual approval: 2026-08-14 — i3/tiled mode at the default `1050×680` window size.
+Last full visual/operational approval: 2026-08-28 — `0.9.0-rc.1` at the default `1050×680` window size.
 
 All items below were approved after Marco 10. No control may require fullscreen to become accessible.
 

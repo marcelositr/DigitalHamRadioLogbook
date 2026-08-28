@@ -800,6 +800,21 @@ Versão `v0.2.1` publicada e verificada em https://github.com/marcelositr/Digita
 - [x] Validar o artefato exato em checksum, conteúdo, dependências, instalação, upgrade schema 5→7, dois startups, disaster drill, desinstalação dupla e preservação por hash.
 - [x] QA manual misto em `1050×680`, incluindo teclado, mouse, foco, clipboard e fluxos operacionais, aprovado pelo mantenedor em 2026-08-28.
 
+## Marco 37 — Consolidação pré-1.0 v0.10.0 (EM DESENVOLVIMENTO)
+
+- [x] Confirmar baseline real em `develop`: `0.9.0-rc.1`, schema 7, 176 testes ativos + 1 stress ignored e CI verde.
+- [x] Registrar a lacuna de publicação: última release pública `v0.7.0`; `v0.8.0` integrada sem tag e `0.9.0-rc.1` validada somente em `develop`.
+- [x] Confirmar ausência de issues abertas e de TODO/FIXME relevantes.
+- [x] Executar baseline completa: fmt, check, clippy estrito, testes e build locked.
+- [x] Criar `docs/PRE-1.0-READINESS.md` com critérios objetivos, evidências confirmadas e itens ainda não comprovados.
+- [x] Criar `docs/SUPPORT-MATRIX.md` distinguindo primary, tested, best effort e not tested.
+- [x] Criar `docs/RELEASE-CHECKLIST.md` com processo reproduzível e gate de autorização.
+- [x] Corrigir o checklist visual antigo que ainda marcava a regressão aprovada como pendente.
+- [x] Definir `0.10.0-rc.1` como checkpoint de convivência, sem mudança de schema ou funcionalidade.
+- [ ] Reexecutar migrations, ADIF, backup/restore, performance e packaging para o RC.
+- [ ] Gerar e validar uma única vez o artefato exato `0.10.0-rc.1`.
+- [ ] Iniciar registro de uso cotidiano prolongado sem dados pessoais versionados.
+
 ## Próxima ação exata
 
-Publicar os commits do RC em `develop` e confirmar a CI. Depois parar para autorização explícita antes de integrar em `main`, criar tag ou GitHub Release; não reconstruir o artefato RC validado.
+Sincronizar lockfiles para `0.10.0-rc.1`, validar os documentos e executar a matriz técnica do RC. Não integrar em `main`, criar tag ou GitHub Release sem autorização explícita.

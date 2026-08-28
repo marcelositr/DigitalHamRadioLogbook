@@ -4,6 +4,26 @@ Este projeto segue [Semantic Versioning](https://semver.org/). As release notes 
 
 ## [Unreleased]
 
+## [0.10.0-rc.1] - 2026-08-28
+
+### Changed
+
+- criado registro factual de maturidade pré-1.0, sem declarar o projeto pronto para `1.0.0`;
+- documentadas as categorias primary, tested, best effort e not tested para ambientes e contratos suportados;
+- consolidado checklist reproduzível de release, upgrade, ADIF, recuperação, artefato exato e autorização;
+- corrigido o checklist visual que ainda apresentava a regressão já aprovada como pendente.
+
+### Compatibility
+
+- feature freeze permanece ativo: nenhuma funcionalidade, migration, índice ou dependência foi adicionada;
+- schema permanece na versão 7 e downgrade automático continua não suportado;
+- o checkpoint deriva de `0.9.0-rc.1` validado em `develop`; `v0.8.0` e `v0.9.0` não tiveram release pública.
+
+### Maturity
+
+- não existe declaração de prontidão para `1.0.0`;
+- uso cotidiano prolongado, múltiplos ciclos estáveis e cobertura adicional de ambientes permanecem evidências ainda necessárias.
+
 ## [0.9.0-rc.1] - 2026-08-28
 
 ### Fixed
