@@ -1,5 +1,5 @@
 import { LineEdit, ScrollView, VerticalBox, HorizontalBox } from "std-widgets.slint";
-import { Theme, DataLabel, KeyboardAction, PageTitle, Panel, SectionTitle, Tag } from "../design-system.slint";
+import { Theme, DataLabel, KeyboardAction, Panel, SectionTitle, Tag } from "../design-system.slint";
 
 export component ToolsPage inherits ScrollView {
     accessible-role: main;
@@ -39,18 +39,15 @@ export component ToolsPage inherits ScrollView {
         spacing: Theme.space-md;
 
         HorizontalBox {
-            spacing: Theme.space-md;
-            VerticalBox {
-                spacing: Theme.space-2xs;
-                PageTitle { text: "Tools"; }
-                Text {
-                    text: "DATA EXCHANGE / DATABASE MAINTENANCE";
-                    color: Theme.text-muted;
-                    font-size: Theme.text-xs;
-                    font-weight: 700;
-                }
+            height: 28px;
+            spacing: Theme.space-sm;
+            Text {
+                text: "Interoperability, integrity diagnostics and native SQLite backup in one local workspace.";
+                color: Theme.text-muted;
+                font-size: Theme.text-xs;
+                vertical-alignment: center;
+                horizontal-stretch: 1;
             }
-            Rectangle { horizontal-stretch: 1; }
             Tag { width: 84px; height: 23px; text: "LOCAL DATA"; accent: true; }
         }
 
@@ -264,6 +261,7 @@ export component ToolsPage inherits ScrollView {
                         Text { text: "Read-only integrity, schema and mode metadata checks"; color: Theme.text-muted; font-size: Theme.text-xs; }
                     }
                     Rectangle { horizontal-stretch: 1; }
+                    Tag { width: 78px; height: 22px; text: "READ ONLY"; }
                     KeyboardAction {
                         width: 152px;
                         label: "Check data health";
@@ -317,6 +315,7 @@ export component ToolsPage inherits ScrollView {
                         Text { text: "Validated SQLite snapshot / destination must not exist"; color: Theme.text-muted; font-size: Theme.text-xs; }
                     }
                     Rectangle { horizontal-stretch: 1; }
+                    Tag { width: 74px; height: 22px; text: "SQLITE"; }
                     KeyboardAction {
                         width: 128px;
                         label: "Verify backup";
@@ -346,6 +345,7 @@ export component ToolsPage inherits ScrollView {
                             width: 112px;
                             label: "Create backup";
                             description: "Create a database backup at the selected destination";
+                            primary: true;
                             activated => { root.backup-database(); }
                         }
                     }
