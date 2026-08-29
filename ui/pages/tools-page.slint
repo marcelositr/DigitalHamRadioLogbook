@@ -1,9 +1,9 @@
-import { LineEdit, ScrollView, VerticalBox, HorizontalBox } from "std-widgets.slint";
-import { Theme, DataLabel, KeyboardAction, Panel, SectionTitle, Tag } from "../design-system.slint";
+import { Button, GroupBox, HorizontalBox, LineEdit, ScrollView, StyleMetrics, VerticalBox } from "std-widgets.slint";
 
 export component ToolsPage inherits ScrollView {
     accessible-role: main;
     accessible-label: "Tools";
+
     in-out property <string> adif-path-text;
     in-out property <int> adif-preview-duplicates;
     in-out property <int> adif-preview-invalid;
@@ -19,6 +19,7 @@ export component ToolsPage inherits ScrollView {
     in-out property <string> database-report-title;
     in-out property <string> database-report-text;
     in-out property <int> database-report-kind;
+
     callback backup-database();
     callback check-data-health();
     callback cancel-adif-import();
@@ -35,317 +36,256 @@ export component ToolsPage inherits ScrollView {
     vertical-stretch: 1;
 
     VerticalBox {
-        padding: Theme.space-lg;
-        spacing: Theme.space-lg;
+        padding: StyleMetrics.layout-padding;
+        spacing: StyleMetrics.layout-spacing;
 
-        HorizontalBox {
-            height: 26px;
-            spacing: Theme.space-sm;
+        VerticalBox {
+            spacing: 2px;
             Text {
-                text: "Import and export ADIF, inspect data integrity and manage local backups.";
-                color: Theme.text-muted;
-                font-size: Theme.text-sm;
-                vertical-alignment: center;
-                horizontal-stretch: 1;
+                text: "Tools";
+                font-size: 20px;
+                font-weight: 600;
             }
-            Tag { width: 76px; height: 24px; text: "Local data"; accent: true; }
+            Text {
+                text: "Import and export ADIF, inspect data health, and manage SQLite backups.";
+                opacity: 0.7;
+                wrap: word-wrap;
+            }
         }
 
-        Panel {
-            raised: true;
+        GroupBox {
+            title: "ADIF import and export";
+            vertical-stretch: 0;
+
             VerticalBox {
-                padding: Theme.space-lg;
-                spacing: Theme.space-md;
-
-                HorizontalBox {
-                    spacing: Theme.space-md;
-                    VerticalBox {
-                        spacing: Theme.space-2xs;
-                        SectionTitle { text: "ADIF import and export"; }
-                        Text {
-                            text: "Primary interchange workflow for logbook records";
-                            color: Theme.text-muted;
-                            font-size: Theme.text-xs;
-                        }
-                    }
-                    Rectangle { horizontal-stretch: 1; }
-                    Tag { width: 64px; height: 24px; text: "Primary"; accent: true; }
+                Text {
+                    text: "ADIF is the interoperability format for exchanging logbook records.";
+                    wrap: word-wrap;
+                    opacity: 0.8;
                 }
 
-                Rectangle { height: 1px; background: Theme.divider; }
+                Text { text: "ADIF file"; }
 
-                VerticalBox {
-                    spacing: Theme.space-xs;
-                    DataLabel { text: "ADIF file path"; }
-                    HorizontalBox {
-                        spacing: Theme.space-sm;
-                        LineEdit {
-                            accessible-label: "ADIF import or export path";
-                            text <=> root.adif-path-text;
-                            placeholder-text: "/path/to/logbook.adi";
-                            horizontal-stretch: 1;
-                            edited => { root.invalidate-adif-preview(); }
+                HorizontalBox {
+                    LineEdit {
+                        accessible-label: "ADIF import or export path";
+                        text <=> root.adif-path-text;
+                        placeholder-text: "/path/to/logbook.adi";
+                        horizontal-stretch: 1;
+                        edited => { root.invalidate-adif-preview(); }
+                    }
+
+                    Button {
+                        text: "Select import";
+                        clicked => {
+                            root.invalidate-adif-preview();
+                            root.choose-adif-import();
                         }
-                        KeyboardAction {
-                            width: 112px;
-                            label: "Select import";
-                            description: "Choose an ADIF file to import";
-                            activated => { root.invalidate-adif-preview(); root.choose-adif-import(); }
-                        }
-                        KeyboardAction {
-                            width: 112px;
-                            label: "Select export";
-                            description: "Choose a destination for ADIF export";
-                            activated => { root.invalidate-adif-preview(); root.choose-adif-export(); }
+                    }
+
+                    Button {
+                        text: "Select export";
+                        clicked => {
+                            root.invalidate-adif-preview();
+                            root.choose-adif-export();
                         }
                     }
                 }
 
                 HorizontalBox {
-                    spacing: Theme.space-sm;
                     Text {
                         text: "Import is transactional. Export never overwrites an existing file.";
-                        color: Theme.text-muted;
-                        font-size: Theme.text-xs;
+                        horizontal-stretch: 1;
                         vertical-alignment: center;
+                        wrap: word-wrap;
+                        opacity: 0.7;
+                    }
+
+                    Button {
+                        text: "Preview import";
+                        clicked => { root.preview-adif(); }
+                    }
+
+                    Button {
+                        text: "Export all QSOs";
+                        clicked => { root.export-adif(); }
+                    }
+
+                    Button {
+                        text: "Export current results";
+                        primary: true;
+                        clicked => { root.export-current-adif(); }
+                    }
+                }
+
+                if root.adif-preview-visible : VerticalBox {
+                    spacing: StyleMetrics.layout-spacing;
+
+                    Text {
+                        text: "Import preview";
+                        font-size: 16px;
+                        font-weight: 600;
+                    }
+
+                    Text {
+                        text: "Preview only. The database has not been changed.";
+                        opacity: 0.7;
+                    }
+
+                    HorizontalBox {
+                        VerticalBox {
+                            horizontal-stretch: 1;
+                            Text { text: "Total"; opacity: 0.7; }
+                            Text { text: root.adif-preview-total; font-size: 18px; font-weight: 600; }
+                        }
+
+                        VerticalBox {
+                            horizontal-stretch: 1;
+                            Text { text: "New"; opacity: 0.7; }
+                            Text { text: root.adif-preview-new; font-size: 18px; font-weight: 600; }
+                        }
+
+                        VerticalBox {
+                            horizontal-stretch: 1;
+                            Text { text: "Duplicates"; opacity: 0.7; }
+                            Text { text: root.adif-preview-duplicates; font-size: 18px; font-weight: 600; }
+                        }
+
+                        VerticalBox {
+                            horizontal-stretch: 1;
+                            Text { text: "Invalid"; opacity: 0.7; }
+                            Text { text: root.adif-preview-invalid; font-size: 18px; font-weight: 600; }
+                        }
+                    }
+
+                    VerticalBox {
+                        Text { text: "Modes"; font-weight: 600; }
+                        Text { text: root.adif-preview-modes; wrap: word-wrap; }
+                    }
+
+                    VerticalBox {
+                        Text { text: "Bands"; font-weight: 600; }
+                        Text { text: root.adif-preview-bands; wrap: word-wrap; }
+                    }
+
+                    VerticalBox {
+                        Text { text: "UTC range"; font-weight: 600; }
+                        Text { text: root.adif-preview-date-range; wrap: word-wrap; }
+                    }
+
+                    Text {
+                        text: "Duplicate rule: same normalized callsign + start UTC + frequency + mode. Existing QSOs and later repetitions in the same file are skipped.";
+                        wrap: word-wrap;
+                        opacity: 0.7;
+                    }
+
+                    if root.adif-preview-invalid > 0 : VerticalBox {
+                        Text {
+                            text: "Invalid records will not be imported";
+                            font-weight: 600;
+                        }
+
+                        Text {
+                            text: root.adif-preview-invalid-details;
+                            wrap: word-wrap;
+                        }
+                    }
+
+                    HorizontalBox {
+                        Text {
+                            text: root.adif-preview-new > 0
+                                ? root.adif-preview-new + " QSO(s) ready to import"
+                                : "No new QSOs available to import";
+                            horizontal-stretch: 1;
+                            vertical-alignment: center;
+                        }
+
+                        Button {
+                            text: "Cancel";
+                            clicked => { root.cancel-adif-import(); }
+                        }
+
+                        Button {
+                            text: "Import " + root.adif-preview-new + " QSO(s)";
+                            primary: true;
+                            enabled: root.adif-preview-new > 0;
+                            clicked => { root.confirm-adif-import(); }
+                        }
+                    }
+                }
+            }
+        }
+
+        GroupBox {
+            title: "Data health";
+            vertical-stretch: 0;
+
+            HorizontalBox {
+                Text {
+                    text: "Read-only checks for SQLite integrity, foreign keys, schema objects, migration history, and mode metadata consistency.";
+                    horizontal-stretch: 1;
+                    vertical-alignment: center;
+                    wrap: word-wrap;
+                }
+
+                Button {
+                    text: "Check data health";
+                    primary: true;
+                    clicked => { root.check-data-health(); }
+                }
+            }
+        }
+
+        if root.database-report-visible : GroupBox {
+            title: root.database-report-title;
+            vertical-stretch: 0;
+
+            Text {
+                accessible-label: "Database diagnostic report";
+                text: root.database-report-text;
+                wrap: word-wrap;
+            }
+        }
+
+        GroupBox {
+            title: "Database backup";
+            vertical-stretch: 0;
+
+            VerticalBox {
+                Text {
+                    text: "Create a validated SQLite snapshot, or verify an existing backup without restoring it.";
+                    wrap: word-wrap;
+                    opacity: 0.8;
+                }
+
+                Text { text: "Backup destination"; }
+
+                HorizontalBox {
+                    LineEdit {
+                        accessible-label: "Database backup destination";
+                        text <=> root.backup-path-text;
+                        placeholder-text: "/path/to/logbook-backup.sqlite3";
                         horizontal-stretch: 1;
                     }
-                    KeyboardAction {
-                        width: 112px;
-                        label: "Preview import";
-                        description: "Scan the selected ADIF file before importing";
-                        activated => { root.preview-adif(); }
+
+                    Button {
+                        text: "Select destination";
+                        clicked => { root.choose-backup-destination(); }
                     }
-                    KeyboardAction {
-                        width: 132px;
-                        label: "Export all QSOs";
-                        description: "Export every logbook QSO to the selected ADIF path";
-                        activated => { root.export-adif(); }
-                    }
-                    KeyboardAction {
-                        width: 164px;
-                        label: "Export current results";
-                        description: "Export every QSO matching the current search or filter, across all pages";
+
+                    Button {
+                        text: "Create backup";
                         primary: true;
-                        activated => { root.export-current-adif(); }
+                        clicked => { root.backup-database(); }
                     }
                 }
-
-                if root.adif-preview-visible : Rectangle {
-                    accessible-role: region;
-                    accessible-label: "ADIF import preview";
-                    background: Theme.surface;
-                    border-width: 1px;
-                    border-color: root.adif-preview-invalid > 0 ? Theme.warning : Theme.border-subtle;
-                    border-radius: Theme.radius-md;
-
-                    VerticalBox {
-                        padding: Theme.space-md;
-                        spacing: Theme.space-md;
-
-                        HorizontalBox {
-                            spacing: Theme.space-sm;
-                            VerticalBox {
-                                spacing: Theme.space-2xs;
-                                Text { text: "Import preview"; color: Theme.text-primary; font-size: Theme.text-sm; font-weight: 600; }
-                                Text { text: "Preview only. The database has not been changed."; color: Theme.text-muted; font-size: Theme.text-xs; }
-                            }
-                            Rectangle { horizontal-stretch: 1; }
-                            Tag { width: 92px; height: 24px; text: root.adif-preview-invalid > 0 ? "Review needed" : "Ready"; accent: root.adif-preview-invalid == 0; }
-                        }
-
-                        Rectangle { height: 1px; background: Theme.divider; }
-
-                        HorizontalBox {
-                            spacing: Theme.space-xs;
-                            Rectangle {
-                                height: 48px; horizontal-stretch: 1; background: Theme.surface-raised; border-width: 0px; border-radius: Theme.radius-sm;
-                                VerticalBox { padding: Theme.space-sm; spacing: Theme.space-2xs; DataLabel { text: "Total"; } Text { text: root.adif-preview-total; color: Theme.text-primary; font-size: Theme.text-md; font-weight: 600; } }
-                            }
-                            Rectangle {
-                                height: 48px; horizontal-stretch: 1; background: Theme.success-surface; border-width: 0px; border-radius: Theme.radius-sm;
-                                VerticalBox { padding: Theme.space-sm; spacing: Theme.space-2xs; DataLabel { text: "New"; } Text { text: root.adif-preview-new; color: Theme.success; font-size: Theme.text-md; font-weight: 600; } }
-                            }
-                            Rectangle {
-                                height: 48px; horizontal-stretch: 1; background: Theme.surface-raised; border-width: 0px; border-radius: Theme.radius-sm;
-                                VerticalBox { padding: Theme.space-sm; spacing: Theme.space-2xs; DataLabel { text: "Duplicates"; } Text { text: root.adif-preview-duplicates; color: Theme.text-secondary; font-size: Theme.text-md; font-weight: 600; } }
-                            }
-                            Rectangle {
-                                height: 48px; horizontal-stretch: 1; background: root.adif-preview-invalid > 0 ? Theme.warning-surface : Theme.surface-raised; border-width: 0px; border-radius: Theme.radius-sm;
-                                VerticalBox { padding: Theme.space-sm; spacing: Theme.space-2xs; DataLabel { text: "Invalid"; } Text { text: root.adif-preview-invalid; color: root.adif-preview-invalid > 0 ? Theme.warning : Theme.text-secondary; font-size: Theme.text-md; font-weight: 600; } }
-                            }
-                        }
-
-                        Rectangle {
-                            background: Theme.background;
-                            border-width: 0px;
-                            border-radius: Theme.radius-sm;
-                            VerticalBox {
-                                padding: Theme.space-sm;
-                                spacing: Theme.space-xs;
-                                HorizontalBox { spacing: Theme.space-md; DataLabel { text: "Modes"; width: 76px; } Text { text: root.adif-preview-modes; color: Theme.text-secondary; wrap: word-wrap; horizontal-stretch: 1; } }
-                                HorizontalBox { spacing: Theme.space-md; DataLabel { text: "Bands"; width: 76px; } Text { text: root.adif-preview-bands; color: Theme.text-secondary; wrap: word-wrap; horizontal-stretch: 1; } }
-                                HorizontalBox { spacing: Theme.space-md; DataLabel { text: "UTC range"; width: 76px; } Text { text: root.adif-preview-date-range; color: Theme.text-secondary; wrap: word-wrap; horizontal-stretch: 1; } }
-                            }
-                        }
-
-                        HorizontalBox {
-                            spacing: Theme.space-md;
-                            DataLabel { text: "Duplicate rule"; width: 112px; }
-                            Text {
-                                text: "Same normalized callsign + start UTC + frequency + mode. Existing QSOs and later repetitions in this file are skipped.";
-                                color: Theme.text-muted;
-                                font-size: Theme.text-xs;
-                                wrap: word-wrap;
-                                horizontal-stretch: 1;
-                            }
-                        }
-
-                        if root.adif-preview-invalid > 0 : Rectangle {
-                            background: Theme.warning-surface;
-                            border-width: 1px;
-                            border-color: Theme.warning;
-                            border-radius: Theme.radius-sm;
-                            VerticalBox {
-                                padding: Theme.space-sm;
-                                spacing: Theme.space-xs;
-                                Text { text: "Invalid records · not imported"; color: Theme.warning; font-size: Theme.text-xs; font-weight: 600; }
-                                Text { text: root.adif-preview-invalid-details; color: Theme.text-secondary; wrap: word-wrap; }
-                            }
-                        }
-
-                        HorizontalBox {
-                            spacing: Theme.space-sm;
-                            Text {
-                                text: root.adif-preview-new > 0 ? root.adif-preview-new + " QSO(s) ready for commit" : "No new QSOs available to import";
-                                color: root.adif-preview-new > 0 ? Theme.success : Theme.text-muted;
-                                font-size: Theme.text-xs;
-                                font-weight: 600;
-                                vertical-alignment: center;
-                                horizontal-stretch: 1;
-                            }
-                            KeyboardAction {
-                                width: 76px;
-                                compact: true;
-                                label: "Cancel";
-                                description: "Cancel the ADIF import preview";
-                                activated => { root.cancel-adif-import(); }
-                            }
-                            KeyboardAction {
-                                width: 156px;
-                                compact: true;
-                                label: "Import " + root.adif-preview-new + " QSO(s)";
-                                description: "Import the new QSOs shown in the ADIF preview";
-                                primary: true;
-                                enabled: root.adif-preview-new > 0;
-                                activated => { root.confirm-adif-import(); }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        Panel {
-            VerticalBox {
-                padding: Theme.space-md;
-                spacing: Theme.space-sm;
 
                 HorizontalBox {
-                    spacing: Theme.space-md;
-                    VerticalBox {
-                        spacing: Theme.space-2xs;
-                        SectionTitle { text: "Data health"; }
-                        Text { text: "Read-only integrity, schema and mode metadata checks"; color: Theme.text-muted; font-size: Theme.text-xs; }
-                    }
                     Rectangle { horizontal-stretch: 1; }
-                    Tag { width: 76px; height: 22px; text: "Read only"; }
-                    KeyboardAction {
-                        width: 152px;
-                        label: "Check data health";
-                        description: "Check the active logbook without modifying data";
-                        primary: true;
-                        activated => { root.check-data-health(); }
-                    }
-                }
 
-                Text {
-                    text: "Checks SQLite integrity, foreign keys, schema objects, migration history and mode metadata consistency. Diagnostic checks never repair or change records.";
-                    color: Theme.text-secondary;
-                    font-size: Theme.text-xs;
-                    wrap: word-wrap;
-                }
-            }
-        }
-
-        if root.database-report-visible : Panel {
-            raised: true;
-            VerticalBox {
-                padding: Theme.space-md;
-                spacing: Theme.space-sm;
-                Text {
-                    text: root.database-report-title;
-                    color: root.database-report-kind == 1 ? Theme.success : root.database-report-kind == 2 ? Theme.warning : root.database-report-kind == 3 ? Theme.danger : Theme.text-primary;
-                    font-size: Theme.text-md;
-                    font-weight: 600;
-                }
-                Rectangle { height: 1px; background: Theme.divider; }
-                Text {
-                    accessible-label: "Database diagnostic report";
-                    text: root.database-report-text;
-                    color: Theme.text-secondary;
-                    font-size: Theme.text-xs;
-                    wrap: word-wrap;
-                }
-            }
-        }
-
-        Panel {
-            VerticalBox {
-                padding: Theme.space-md;
-                spacing: Theme.space-sm;
-
-                HorizontalBox {
-                    spacing: Theme.space-md;
-                    VerticalBox {
-                        spacing: Theme.space-2xs;
-                        SectionTitle { text: "Database backup"; }
-                        Text { text: "Validated SQLite snapshot · destination must not exist"; color: Theme.text-muted; font-size: Theme.text-xs; }
-                    }
-                    Rectangle { horizontal-stretch: 1; }
-                    Tag { width: 68px; height: 22px; text: "SQLite"; }
-                    KeyboardAction {
-                        width: 128px;
-                        label: "Verify backup";
-                        description: "Select and check an existing backup without restoring it";
-                        activated => { root.verify-backup(); }
-                    }
-                }
-
-                VerticalBox {
-                    spacing: Theme.space-xs;
-                    DataLabel { text: "Backup destination"; }
-                    HorizontalBox {
-                        spacing: Theme.space-sm;
-                        LineEdit {
-                            accessible-label: "Database backup destination";
-                            text <=> root.backup-path-text;
-                            placeholder-text: "/path/to/logbook-backup.sqlite3";
-                            horizontal-stretch: 1;
-                        }
-                        KeyboardAction {
-                            width: 136px;
-                            label: "Select destination";
-                            description: "Choose the database backup destination";
-                            activated => { root.choose-backup-destination(); }
-                        }
-                        KeyboardAction {
-                            width: 112px;
-                            label: "Create backup";
-                            description: "Create a database backup at the selected destination";
-                            primary: true;
-                            activated => { root.backup-database(); }
-                        }
+                    Button {
+                        text: "Verify existing backup";
+                        clicked => { root.verify-backup(); }
                     }
                 }
             }
