@@ -1,5 +1,5 @@
 import { LineEdit, ScrollView, VerticalBox, HorizontalBox } from "std-widgets.slint";
-import { Theme, DataLabel, KeyboardAction, PageTitle, Panel, SectionTitle, Tag } from "../design-system.slint";
+import { Theme, DataLabel, KeyboardAction, Panel, SectionTitle, Tag } from "../design-system.slint";
 
 export component SettingsPage inherits ScrollView {
     accessible-role: main;
@@ -17,18 +17,15 @@ export component SettingsPage inherits ScrollView {
         spacing: Theme.space-md;
 
         HorizontalBox {
-            spacing: Theme.space-md;
-            VerticalBox {
-                spacing: Theme.space-2xs;
-                PageTitle { text: "Settings"; }
-                Text {
-                    text: "STATION IDENTITY / EXTERNAL SERVICES";
-                    color: Theme.text-muted;
-                    font-size: Theme.text-xs;
-                    font-weight: 700;
-                }
+            height: 28px;
+            spacing: Theme.space-sm;
+            Text {
+                text: "Station identity and optional external lookups. Configuration remains local to this device.";
+                color: Theme.text-muted;
+                font-size: Theme.text-xs;
+                vertical-alignment: center;
+                horizontal-stretch: 1;
             }
-            Rectangle { horizontal-stretch: 1; }
             Tag { text: "LOCAL CONFIG"; accent: true; width: 96px; height: 24px; }
         }
 
@@ -60,7 +57,7 @@ export component SettingsPage inherits ScrollView {
                 Rectangle { height: 1px; background: Theme.divider; }
 
                 Text {
-                    text: "Identify this station in the application header. The callsign is stored in the local XDG configuration directory.";
+                    text: "Identify this station throughout the application shell. The callsign is stored in the local XDG configuration directory.";
                     color: Theme.text-secondary;
                     font-size: Theme.text-sm;
                 }
@@ -118,7 +115,7 @@ export component SettingsPage inherits ScrollView {
                     spacing: Theme.space-sm;
                     Rectangle { width: 3px; background: Theme.warning; }
                     Text {
-                        text: "Opening a lookup sends the selected callsign or grid locator to the configured external website.";
+                        text: "Opening a lookup sends only the selected callsign or grid locator to the configured external website.";
                         color: Theme.warning;
                         font-size: Theme.text-xs;
                         vertical-alignment: center;
