@@ -37,7 +37,6 @@ export component DesktopMenuBar inherits Rectangle {
     callback toggle-sidebar();
     callback open-tools();
     callback open-settings();
-    callback toggle-theme();
 
     accessible-role: navigation;
     accessible-label: "Application menu";
@@ -63,7 +62,7 @@ export component DesktopMenuBar inherits Rectangle {
         ShellMenuItem { label: "Tools"; description: "Open data tools"; activated => { root.open-tools(); } }
         ShellMenuItem { label: "Settings"; description: "Open application settings"; activated => { root.open-settings(); } }
         Rectangle { horizontal-stretch: 1; }
-        ShellMenuItem { label: Theme.dark-mode ? "Light" : "Dark"; description: "Toggle the application color theme"; activated => { root.toggle-theme(); } }
+        Text { text: "LOCAL-FIRST / OFFLINE"; color: Theme.text-muted; font-size: 9px; font-weight: 800; vertical-alignment: center; }
     }
 }
 
