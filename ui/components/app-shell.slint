@@ -181,6 +181,8 @@ export component ContextBar inherits Rectangle {
     in property <string> title;
     in property <string> meta;
     in property <string> callsign;
+    in property <string> primary-label;
+    callback primary-action();
 
     accessible-role: banner;
     accessible-label: root.section + " " + root.title;
@@ -206,6 +208,14 @@ export component ContextBar inherits Rectangle {
             font-size: Theme.text-xs;
             font-weight: 650;
             vertical-alignment: center;
+        }
+        if root.primary-label != "" : KeyboardAction {
+            width: 104px;
+            compact: true;
+            primary: true;
+            label: root.primary-label;
+            description: root.primary-label;
+            activated => { root.primary-action(); }
         }
         StationBadge { width: root.callsign == "" ? 150px : 138px; callsign: root.callsign; }
     }
