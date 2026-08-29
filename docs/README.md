@@ -13,6 +13,7 @@ A documentação do Digital Ham Radio Logbook é organizada por responsabilidade
 | Consultar extensões `APP_DHRL_*` | [`data/ADIF-EXTENSIONS.md`](data/ADIF-EXTENSIONS.md) |
 | Fazer backup, diagnóstico ou recuperação | [`data/DATA-RECOVERY.md`](data/DATA-RECOVERY.md) |
 | Instalar, empacotar ou distribuir no Linux | [`operations/LINUX-DISTRIBUTION.md`](operations/LINUX-DISTRIBUTION.md) |
+| Entender CI, segurança e release automation | [`operations/CI-CD.md`](operations/CI-CD.md) |
 | Ver ambientes testados e limites de suporte | [`operations/SUPPORT-MATRIX.md`](operations/SUPPORT-MATRIX.md) |
 | Executar o QA visual atual da v0.11 | [`quality/VISUAL-QA-v0.11.md`](quality/VISUAL-QA-v0.11.md) |
 | Consultar performance e stress | [`quality/PERFORMANCE-v0.3.0.md`](quality/PERFORMANCE-v0.3.0.md) |
@@ -43,10 +44,11 @@ Contratos de dados, interoperabilidade e preservação.
 
 ### `operations/`
 
-Documentação para executar e distribuir o aplicativo no ambiente suportado.
+Documentação para executar, distribuir e automatizar o ciclo de engenharia do aplicativo.
 
-- distribuição GNU/Linux;
-- matriz factual de ambientes testados e limites de suporte.
+- `LINUX-DISTRIBUTION.md`: distribuição GNU/Linux;
+- `SUPPORT-MATRIX.md`: ambientes testados e limites de suporte;
+- `CI-CD.md`: arquitetura de CI, migrations, documentação, segurança, Dependabot e release candidate.
 
 ### `quality/`
 
@@ -85,7 +87,7 @@ Release notes, checkpoints de hardening, regressões antigas e o histórico de p
 - documentação de versão deve carregar a versão no nome quando for um snapshot histórico;
 - mudanças de arquitetura vigente devem atualizar `architecture/`;
 - mudanças de contratos de dados devem atualizar `data/`;
-- mudanças de distribuição/suporte devem atualizar `operations/`;
+- mudanças de distribuição/suporte/automação devem atualizar `operations/`;
 - evidências de testes e regressões devem ficar em `quality/`;
 - notas e processos de publicação devem ficar em `releases/`;
 - decisões de projeto que precisam ser preservadas, mas não são documentação operacional corrente, devem ficar em `project/` ou `architecture/decisions/`.

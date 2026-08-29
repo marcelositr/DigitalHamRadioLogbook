@@ -2,6 +2,8 @@
 
 This checklist is executable release discipline, not a declaration that a version is ready. Record exact commands, commit, artifact hash and manual approvals in the version-specific regression/readiness document.
 
+The repository automation is documented in [`../operations/CI-CD.md`](../operations/CI-CD.md). The manual `Release candidate` workflow may generate candidate assets, but it never merges, tags, or publishes a GitHub Release.
+
 ## 1. Scope and branch
 
 - [ ] Confirm the working branch follows the existing `develop` → `main` process.
@@ -20,7 +22,7 @@ This checklist is executable release discipline, not a declaration that a versio
 
 ## 3. Cargo quality gates
 
-Run with constrained build jobs when required by the host:
+The CI uses the Rust toolchain pinned in `rust-toolchain.toml`.
 
 ```sh
 cargo fmt --check
@@ -39,7 +41,7 @@ cargo build --locked
 
 ## 4. Database and migrations
 
-For every schema 0–7, use the exact CI test:
+For every schema 0–7, use the exact migration preservation test used by `.github/workflows/migrations.yml`:
 
 ```sh
 MIGRATION_SOURCE_VERSION=N cargo test --locked \
@@ -109,14 +111,27 @@ packaging/linux/smoke-test.sh
 
 ## 10. Generate the exact RC artifact once
 
+Preferred automated path:
+
+1. open **Actions → Release candidate**;
+2. choose the exact branch/commit ref;
+3. enter the exact version from `Cargo.toml`;
+4. run the workflow;
+5. download the resulting Actions artifact.
+
+The workflow compiles the release binary exactly once, creates the tarball, derives `.deb` and AppImage from that same binary, proves the packaged binaries are byte-identical, verifies sidecar hashes, and records `BUILD-METADATA.txt` plus `SHA256SUMS`.
+
+Equivalent manual tarball path remains:
+
 ```sh
 packaging/linux/make-release.sh /isolated/output
 ```
 
-After this step, do not rebuild and publish a different binary.
+After the exact candidate is generated, do not rebuild and publish a different binary.
 
-- [ ] Record artifact filename, size and SHA-256.
-- [ ] Verify checksum from its published sidecar.
+- [ ] Record commit, artifact filename, size and SHA-256.
+- [ ] Preserve the workflow `BUILD-METADATA.txt` when automation was used.
+- [ ] Verify aggregate `SHA256SUMS` and individual sidecars.
 - [ ] Verify exact archive contents and permissions.
 - [ ] Run `ldd` and confirm no `not found` dependency.
 - [ ] Install without sudo in isolated HOME/XDG.
@@ -127,7 +142,7 @@ After this step, do not rebuild and publish a different binary.
 
 ## 11. Manual regression
 
-- [ ] Validate `1050×680` using `../quality/VISUAL-QA.md`.
+- [ ] Validate `1050×680` using `../quality/VISUAL-QA-v0.11.md` for the v0.11 line.
 - [ ] Exercise Generic, DMR, FT8, D-STAR and YSF/C4FM.
 - [ ] Exercise Save, Save & New, duplicate Review/Save anyway and mode transitions.
 - [ ] Exercise edit, delete, search, filters and pagination.
@@ -139,11 +154,12 @@ After this step, do not rebuild and publish a different binary.
 ## 12. CI and publication gate
 
 - [ ] Push the prepared commit to `develop`.
-- [ ] Confirm all quality, packaging and schema 0–7 jobs pass.
+- [ ] Confirm `Quality`, `Tests and build`, `Linux packaging smoke`, `Historical schemas 0-7`, and `Documentation integrity` pass.
+- [ ] Confirm the scheduled/dependency-sensitive RustSec audit has no unresolved applicable advisory.
 - [ ] Confirm no Critical or High integrity blocker is known.
 - [ ] Obtain explicit maintainer authorization before `main`, final tag or GitHub Release.
 - [ ] Fast-forward/merge using the established repository policy.
-- [ ] Confirm CI on `main`.
+- [ ] Confirm required CI on `main`.
 - [ ] Create the authorized annotated tag.
 - [ ] Publish the already validated artifact and checksum; do not rebuild.
 - [ ] Download release assets and verify checksum and byte equality.

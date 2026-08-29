@@ -1,0 +1,200 @@
+name: Release candidate
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Exact Cargo package version to validate, for example 0.11.0-rc.1
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-candidate-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  release-candidate:
+    name: Build exact Linux release candidate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Check out exact ref
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Rust and Linux dependencies
+        uses: ./.github/actions/setup-rust-linux
+        with:
+          cache-key: release
+
+      - name: Validate requested version and release notes
+        env:
+          EXPECTED_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          actual_version=$(sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | sed -n '1p')
+          test -n "$actual_version"
+          test "$actual_version" = "$EXPECTED_VERSION" || {
+            printf 'Requested version %s does not match Cargo.toml version %s\n' "$EXPECTED_VERSION" "$actual_version" >&2
+            exit 1
+          }
+          base_version=${actual_version%%-*}
+          test -f "docs/releases/notes/RELEASE-NOTES-v${base_version}.md" || {
+            printf 'Missing release notes for %s\n' "$base_version" >&2
+            exit 1
+          }
+          printf 'Release candidate version: %s\n' "$actual_version"
+          printf 'Commit: %s\n' "$(git rev-parse HEAD)"
+
+      - name: Run locked quality gates
+        run: |
+          set -euo pipefail
+          cargo fmt --check
+          cargo check --locked
+          cargo clippy --locked --all-targets --all-features -- -D warnings
+          cargo test --locked
+
+      - name: Validate historical schemas 0-7
+        run: |
+          set -euo pipefail
+          for version in 0 1 2 3 4 5 6 7; do
+            printf '\n== Schema v%s -> current ==\n' "$version"
+            MIGRATION_SOURCE_VERSION="$version" cargo test --locked \
+              database::migrations::tests::migrates_every_supported_schema_version_without_losing_data \
+              -- --exact
+          done
+
+      - name: Validate packaging contract
+        run: |
+          set -euo pipefail
+          sh -n packaging/linux/*.sh
+          packaging/linux/smoke-test.sh
+
+      - name: Install release packaging tools
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends curl dpkg-dev
+
+      - name: Install pinned AppImage tooling
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 \
+            --output /tmp/appimagetool.AppImage \
+            https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-x86_64.AppImage
+          echo "ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0  /tmp/appimagetool.AppImage" | sha256sum -c -
+
+          curl --fail --location --retry 3 \
+            --output /tmp/appimage-runtime-x86_64 \
+            https://github.com/AppImage/type2-runtime/releases/download/20251108/runtime-x86_64
+          echo "2fca8b443c92510f1483a883f60061ad09b46b978b2631c807cd873a47ec260d  /tmp/appimage-runtime-x86_64" | sha256sum -c -
+
+          chmod +x /tmp/appimagetool.AppImage
+          (
+            cd /tmp
+            rm -rf squashfs-root appimagetool-root
+            ./appimagetool.AppImage --appimage-extract >/dev/null
+            mv squashfs-root appimagetool-root
+          )
+
+          cat >/tmp/appimagetool-pinned <<'EOF'
+          #!/bin/sh
+          set -eu
+          exec /tmp/appimagetool-root/AppRun \
+            --runtime-file /tmp/appimage-runtime-x86_64 "$@"
+          EOF
+          chmod +x /tmp/appimagetool-pinned
+
+      - name: Build exact release binary and tarball once
+        run: |
+          set -euo pipefail
+          rm -rf dist
+          source_date_epoch=$(git show -s --format=%ct HEAD)
+          SOURCE_DATE_EPOCH="$source_date_epoch" packaging/linux/make-release.sh dist
+          sha256sum target/release/digital-ham-radio-logbook > dist/BINARY-SHA256.txt
+
+      - name: Build deb and AppImage from the exact binary
+        env:
+          APPIMAGETOOL: /tmp/appimagetool-pinned
+        run: |
+          set -euo pipefail
+          packaging/linux/make-additional-packages.sh \
+            target/release/digital-ham-radio-logbook dist
+
+      - name: Verify sidecar checksums
+        run: |
+          set -euo pipefail
+          (
+            cd dist
+            for checksum in *.sha256; do
+              sha256sum -c "$checksum"
+            done
+          )
+
+      - name: Prove packages contain the exact validated binary
+        run: |
+          set -euo pipefail
+          binary=target/release/digital-ham-radio-logbook
+          rm -rf /tmp/dhrl-tar /tmp/dhrl-deb /tmp/dhrl-appimage
+          mkdir -p /tmp/dhrl-tar /tmp/dhrl-deb /tmp/dhrl-appimage
+
+          tarball=$(find dist -maxdepth 1 -type f -name 'digital-ham-radio-logbook-*-linux-*.tar.gz' -print -quit)
+          test -n "$tarball"
+          tar -xzf "$tarball" -C /tmp/dhrl-tar
+          tar_binary=$(find /tmp/dhrl-tar -type f -path '*/bin/digital-ham-radio-logbook' -print -quit)
+          test -n "$tar_binary"
+          cmp "$binary" "$tar_binary"
+
+          deb=$(find dist -maxdepth 1 -type f -name 'digital-ham-radio-logbook_*.deb' -print -quit)
+          test -n "$deb"
+          dpkg-deb -x "$deb" /tmp/dhrl-deb
+          cmp "$binary" /tmp/dhrl-deb/usr/bin/digital-ham-radio-logbook
+
+          appimage=$(find dist -maxdepth 1 -type f -name 'digital-ham-radio-logbook-*.AppImage' -print -quit)
+          test -n "$appimage"
+          chmod +x "$appimage"
+          (
+            cd /tmp/dhrl-appimage
+            "$GITHUB_WORKSPACE/$appimage" --appimage-extract >/dev/null
+          )
+          cmp "$binary" /tmp/dhrl-appimage/squashfs-root/usr/bin/digital-ham-radio-logbook
+
+      - name: Write release manifest
+        env:
+          EXPECTED_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          {
+            printf 'version=%s\n' "$EXPECTED_VERSION"
+            printf 'commit=%s\n' "$(git rev-parse HEAD)"
+            printf 'source_date_epoch=%s\n' "$(git show -s --format=%ct HEAD)"
+            printf 'rustc=%s\n' "$(rustc --version)"
+            printf 'cargo=%s\n' "$(cargo --version)"
+            printf 'runner=%s\n' "$(lsb_release -ds 2>/dev/null || cat /etc/os-release | grep '^PRETTY_NAME=' | cut -d= -f2-)"
+            printf 'appimagetool=1.9.1 sha256:ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0\n'
+            printf 'appimage_runtime=20251108 sha256:2fca8b443c92510f1483a883f60061ad09b46b978b2631c807cd873a47ec260d\n'
+          } > dist/BUILD-METADATA.txt
+
+          (
+            cd dist
+            find . -maxdepth 1 -type f ! -name SHA256SUMS -printf '%f\n' \
+              | LC_ALL=C sort \
+              | xargs sha256sum > SHA256SUMS
+          )
+
+      - name: Upload release candidate artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: digital-ham-radio-logbook-${{ inputs.version }}-${{ github.sha }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
