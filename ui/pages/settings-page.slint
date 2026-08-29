@@ -1,4 +1,5 @@
-import { Button, GroupBox, HorizontalBox, LineEdit, ScrollView, StyleMetrics, VerticalBox } from "std-widgets.slint";
+import { Button, ComboBox, GroupBox, HorizontalBox, LineEdit, ScrollView, StyleMetrics, VerticalBox } from "std-widgets.slint";
+import { Appearance } from "../appearance.slint";
 
 export component SettingsPage inherits ScrollView {
     accessible-role: main;
@@ -26,9 +27,50 @@ export component SettingsPage inherits ScrollView {
                 font-weight: 600;
             }
             Text {
-                text: "Station identity and optional external lookup services.";
+                text: "Appearance, station identity and optional external lookup services.";
                 opacity: 0.7;
                 wrap: word-wrap;
+            }
+        }
+
+        GroupBox {
+            title: "Appearance";
+            vertical-stretch: 0;
+
+            VerticalBox {
+                Text {
+                    text: "The application uses the Fluent style. Choose whether its colors follow the desktop or stay light or dark.";
+                    wrap: word-wrap;
+                    opacity: 0.8;
+                }
+
+                HorizontalBox {
+                    Text {
+                        text: "Color scheme";
+                        vertical-alignment: center;
+                        horizontal-stretch: 1;
+                    }
+
+                    ComboBox {
+                        accessible-label: "Application color scheme";
+                        model: ["System", "Light", "Dark"];
+                        current-index <=> Appearance.color-scheme-index;
+                        horizontal-stretch: 0;
+                        selected(value) => {
+                            Appearance.color-scheme-selected(self.current-index);
+                        }
+                    }
+                }
+
+                Text {
+                    text: Appearance.color-scheme-index == 0
+                        ? "System follows the light or dark preference reported by the desktop."
+                        : Appearance.color-scheme-index == 1
+                            ? "Light keeps the application in light mode regardless of the desktop setting."
+                            : "Dark keeps the application in dark mode regardless of the desktop setting.";
+                    wrap: word-wrap;
+                    opacity: 0.7;
+                }
             }
         }
 
