@@ -72,7 +72,7 @@ A consulta de possível duplicidade usa callsign normalizado, UTC inicial, frequ
 
 ## Arquitetura da interface v0.11
 
-A refatoração v0.11 preserva Slint e o contrato público consumido pelo Rust, mas reorganiza a superfície gráfica em um shell desktop persistente.
+A v0.11 preserva Slint e o contrato público consumido pelo Rust, mas reconstrói a superfície gráfica a partir de princípios Slint-native. A implementação anterior não é usada como referência visual.
 
 ```text
 ui/
@@ -88,16 +88,28 @@ ui/
     └── settings-page.slint
 ```
 
-`ui/main.slint` continua sendo o contrato público compilado por `build.rs`. Ele mantém os mesmos callbacks e properties usados por `src/app/*`; a mudança é de composição visual, não de domínio ou persistência.
+`ui/main.slint` continua sendo o contrato público compilado por `build.rs`. Ele mantém os callbacks e properties usados por `src/app/*`; a mudança permanece restrita à composição visual.
 
-O shell passa a ser composto por:
+O shell é composto por:
 
-- menu superior compacto para comandos globais e acessos secundários;
-- sidebar recolhível com grupos **Operation**, **Data** e **System**;
-- barra contextual com seção, página atual, metadata curta e callsign local;
-- workspace central ocupado por exatamente uma das quatro páginas;
+- `MenuBar`, `Menu`, `MenuItem` e `MenuSeparator` nativos para comandos globais e secundários;
+- sidebar recolhível simples com Logbook, New QSO, Tools e Settings;
+- workspace central ocupado por uma das quatro páginas;
 - barra de status global fora do conteúdo rolável.
 
-A identidade visual permanece própria do DHRL. `ui/design-system.slint` continua centralizando superfícies escuras, accent ciano, estados semânticos discretos, tipografia compacta, foco visível e geometria técnica. A arquitetura de interação pode compartilhar padrões com outros aplicativos de gestão, mas a paleta e a linguagem de instrumentação de rádio não são substituídas.
+Não existe barra contextual, menu superior simulado nem categorização visual `Operation`, `Data` ou `System`.
 
-Detalhes, restrições e gate da refatoração ficam em `docs/UI-ARCHITECTURE-v0.11.md` e `docs/VISUAL-QA-v0.11.md`. A homologação visual anterior não é automaticamente herdada pelo novo shell; o novo layout precisa de regressão manual em `1050×680` antes de ser considerado aprovado.
+`ui/design-system.slint` deixa de representar um tema proprietário. Ele contém somente primitivas semânticas pequenas que faltam em `std-widgets.slint`, como `FormField`, `TextAction`, `EmptyState` e `StatusBar`. Essas primitivas usam `Palette` e `StyleMetrics`, permitindo que a aparência acompanhe o style selecionado pelo Slint.
+
+As páginas priorizam widgets padrão e layouts naturais:
+
+- Logbook é um workspace de dados em linhas/colunas, sem cards individuais por QSO;
+- editor usa `GroupBox` para Contact, Station and report, Notes e metadata condicional de modo;
+- Tools usa grupos para ADIF, Data health e Database backup;
+- Settings usa grupos para Local station e External lookup links.
+
+Dimensionamento deve preferir conteúdo, `preferred-*`, `min-*` e stretch. Medidas fixas são reservadas a casos estruturais previsíveis, como largura da sidebar e alinhamento de colunas da listagem.
+
+A mesma implementação deve ser comparada em `fluent-dark`, `material-dark`, `cupertino-dark` e `cosmic-dark` antes da escolha final do style. Clipping, sobreposição, separador atravessando input, botão truncado ou conteúdo essencial inacessível são falhas de QA.
+
+Detalhes, restrições e gate da reconstrução ficam em `docs/UI-ARCHITECTURE-v0.11.md` e `docs/VISUAL-QA-v0.11.md`. A homologação visual anterior não é herdada; o novo layout exige regressão manual em `1050×680` antes de ser considerado aprovado.
