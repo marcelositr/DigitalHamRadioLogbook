@@ -1,0 +1,89 @@
+name: Prepare v0.11.0 RC1
+
+on:
+  push:
+    branches: [feat/v0.11-ui-product-refactor]
+    paths:
+      - .github/workflows/prepare-v011-rc1.yml
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    name: Prepare release candidate metadata
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: true
+
+      - name: Set package version
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('Cargo.toml')
+          s = p.read_text()
+          old = 'version = "0.10.0-rc.1"'
+          new = 'version = "0.11.0-rc.1"'
+          if old not in s:
+              raise SystemExit('expected old Cargo version not found')
+          p.write_text(s.replace(old, new, 1))
+          PY
+          cargo update -p digital-ham-radio-logbook
+
+      - name: Prepare RC1 release documentation
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          src = Path('docs/releases/notes/RELEASE-NOTES-v0.11.0.md')
+          dst = Path('docs/releases/notes/RELEASE-NOTES-v0.11.0-RC1.md')
+          text = src.read_text()
+          text = text.replace('# Digital Ham Radio Logbook v0.11.0', '# Digital Ham Radio Logbook v0.11.0-RC1', 1)
+          old = '> **Status:** draft / unreleased. This document describes the current v0.11 product-refactor line. It does not declare a published release, tag, merge to `main`, or final visual approval.'
+          new = '> **Status:** pre-release / release candidate. `v0.11.0-RC1` is intended for evaluation and validation. It is not a stable release, does not claim production readiness, and may still contain functional or visual regressions.'
+          if old not in text:
+              raise SystemExit('release-note status marker not found')
+          text = text.replace(old, new, 1)
+          text = text.replace('Version 0.11.0 is a product-interface reconstruction.', 'Version 0.11.0-RC1 is the first public release candidate of the product-interface reconstruction.', 1)
+          start = text.index('## Release status')
+          text = text[:start] + '''## Release status\n\n`v0.11.0-RC1` is a **pre-release candidate**, not a stable release. It exists so the rebuilt interface, packaging, migration compatibility, documentation, and real-world desktop behavior can be evaluated before any later v0.11 candidate or stable milestone.\n\nUsers should expect that additional release candidates may supersede RC1. Compatibility defects, visual regressions, packaging issues, or usability problems discovered during evaluation are grounds for a new candidate rather than silently redefining RC1.\n\nThe release remains subject to manual visual QA at `1050×680` in System, Light, and Dark, representative package testing, and maintainer review. Publication as a GitHub **Pre-release** must not be interpreted as a declaration that the project is complete, production-ready, or final.\n'''
+          dst.write_text(text)
+
+          changelog = Path('docs/releases/CHANGELOG.md')
+          c = changelog.read_text()
+          c = c.replace('## [Unreleased]\n\nRelease notes detalhadas da linha v0.11: [`notes/RELEASE-NOTES-v0.11.0.md`](notes/RELEASE-NOTES-v0.11.0.md).', '## [0.11.0-rc.1] - 2026-08-29\n\n**Pre-release:** candidato público para avaliação; não representa release estável nem declaração de prontidão.\n\nRelease notes: [`notes/RELEASE-NOTES-v0.11.0-RC1.md`](notes/RELEASE-NOTES-v0.11.0-RC1.md).', 1)
+          changelog.write_text(c)
+
+          readme = Path('README.md')
+          r = readme.read_text()
+          old_status = 'O projeto permanece em desenvolvimento pré-1.0. O checkpoint empacotado de referência é `0.10.0-rc.1`, enquanto a reconstrução da interface v0.11 segue em desenvolvimento e revisão.'
+          new_status = 'O projeto permanece em desenvolvimento pré-1.0. A linha v0.11 está em **release candidate** (`0.11.0-rc.1`) e continua em avaliação; este candidato não representa uma release estável ou uma declaração de prontidão final.'
+          if old_status not in r:
+              raise SystemExit('README status marker not found')
+          readme.write_text(r.replace(old_status, new_status, 1))
+          PY
+
+      - name: Verify release metadata
+        run: |
+          set -euo pipefail
+          grep -F 'version = "0.11.0-rc.1"' Cargo.toml
+          grep -F 'version = "0.11.0-rc.1"' Cargo.lock
+          test -f docs/releases/notes/RELEASE-NOTES-v0.11.0-RC1.md
+          grep -F 'pre-release / release candidate' docs/releases/notes/RELEASE-NOTES-v0.11.0-RC1.md
+          grep -F '0.11.0-rc.1' README.md
+
+      - name: Commit RC1 metadata and remove temporary workflow
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/prepare-v011-rc1.yml
+          git add Cargo.toml Cargo.lock README.md docs/releases/CHANGELOG.md docs/releases/notes/RELEASE-NOTES-v0.11.0-RC1.md
+          git commit -m 'release: prepare v0.11.0-rc.1'
+          git push origin HEAD:feat/v0.11-ui-product-refactor
