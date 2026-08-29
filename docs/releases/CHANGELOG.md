@@ -1,6 +1,6 @@
 # Changelog
 
-Este projeto segue [Semantic Versioning](https://semver.org/). As release notes de cada versão permanecem em `docs/RELEASE-NOTES-v*.md`.
+Este projeto segue [Semantic Versioning](https://semver.org/). As release notes de cada versão permanecem em [`notes/`](notes/).
 
 ## [Unreleased]
 
@@ -12,7 +12,8 @@ Este projeto segue [Semantic Versioning](https://semver.org/). As release notes 
 - Logbook reconstruído como workspace de dados; editor de QSO, Tools e Settings foram reescritos com layouts e widgets nativos sem alterar regras de domínio ou persistência SQLite;
 - **Fluent** definido como style oficial do produto em `build.rs`;
 - Settings passa a oferecer **System / Light / Dark** em Appearance, aplicados imediatamente via `Palette.color-scheme` e persistidos de forma retrocompatível no `config.toml`, com `System` como padrão;
-- adicionados `docs/UI-ARCHITECTURE-v0.11.md` e `docs/VISUAL-QA-v0.11.md` para documentar a arquitetura e o novo gate de regressão manual;
+- adicionados `../architecture/UI-ARCHITECTURE-v0.11.md` e `../quality/VISUAL-QA-v0.11.md` para documentar a arquitetura e o novo gate de regressão manual;
+- documentação reorganizada por responsabilidade em `docs/architecture/`, `docs/data/`, `docs/operations/`, `docs/quality/`, `docs/releases/` e `docs/project/`, com `docs/README.md` como índice técnico;
 - testes estruturais passaram a proteger a arquitetura Slint-native, o style Fluent e o contrato de aparência System/Light/Dark.
 
 ### Compatibility
@@ -200,19 +201,19 @@ A versão 0.4.0 foi concluída e publicada como release final.
 ## [0.2.2] - 2026-08-15
 
 - hardening de banco, migrations, backup, configuração, XDG, ADIF e transações;
-- detalhes completos em `docs/RELEASE-NOTES-v0.2.2.md`.
+- detalhes completos em [`notes/RELEASE-NOTES-v0.2.2.md`](notes/RELEASE-NOTES-v0.2.2.md).
 
 ## [0.2.1] - 2026-08-14
 
 - redesign visual completo e homologação em i3/`1050×680`;
-- detalhes completos em `docs/RELEASE-NOTES-v0.2.1.md`.
+- detalhes completos em [`notes/RELEASE-NOTES-v0.2.1.md`](notes/RELEASE-NOTES-v0.2.1.md).
 
 ## [0.2.0]
 
 - links externos configuráveis, testes de escala, paginação e refinamentos de distribuição;
-- detalhes completos em `docs/RELEASE-NOTES-v0.2.0.md`.
+- detalhes completos em [`notes/RELEASE-NOTES-v0.2.0.md`](notes/RELEASE-NOTES-v0.2.0.md).
 
 ## [0.1.0]
 
 - primeira release funcional;
-- detalhes completos em `docs/RELEASE-NOTES-v0.1.0.md`.
+- detalhes completos em [`notes/RELEASE-NOTES-v0.1.0.md`](notes/RELEASE-NOTES-v0.1.0.md).
