@@ -6,7 +6,9 @@ Aplicativo desktop local e offline para registrar contatos de radioamador realiz
 
 ## Estado atual
 
-O checkpoint de desenvolvimento atual é `0.10.0-rc.1`, uma consolidação pré-1.0 sob feature freeze. Ele não é `1.0.0` nem declara prontidão para essa versão; o objetivo atual é acumular evidência de uso cotidiano e compatibilidade sem ampliar funcionalidades.
+O checkpoint funcional de referência continua sendo `0.10.0-rc.1`, uma consolidação pré-1.0. A branch de interface v0.11 abre um ciclo separado de refatoração gráfica: nenhuma funcionalidade de domínio, schema, migration, ADIF ou persistência é adicionada por esse trabalho.
+
+O objetivo da v0.11 é reorganizar a experiência desktop em um shell persistente com menu superior, sidebar recolhível, barra contextual, workspace e status global, mantendo Slint e a identidade técnica de instrumentação de rádio do projeto. A especificação da nova camada visual está em `docs/UI-ARCHITECTURE-v0.11.md`; o novo gate manual está em `docs/VISUAL-QA-v0.11.md`.
 
 O MVP funcional inclui:
 
@@ -106,7 +108,8 @@ Também é possível fechar o aplicativo e copiar `logbook.sqlite3` manualmente.
 - `src/database/`: migrations e acesso ao SQLite;
 - `src/app/`: handlers e serviços de apresentação separados por fluxo — editor, lista, filtros, ADIF, backup, configuração, arquivos e fechamento;
 - `src/main.rs`: composition root enxuto, responsável apenas por criar dependências, inicializar a janela e conectar os módulos;
-- `ui/main.slint`: contrato público e shell global da janela;
+- `ui/main.slint`: contrato público e composição do shell global;
+- `ui/components/app-shell.slint`: menu superior, sidebar recolhível e barra contextual da arquitetura v0.11;
 - `ui/pages/`: páginas independentes de Logbook, editor, Tools e Settings;
 - `ui/models/`: tipos Slint compartilhados entre páginas;
 - `ui/design-system.slint`: tokens e componentes reutilizáveis da identidade visual técnica.
@@ -123,20 +126,27 @@ A interface usa uma linguagem própria inspirada em instrumentos de rádio e sof
 - foco visível, ações consistentes e dimensões adequadas ao uso por teclado;
 - raios pequenos, divisores discretos e bordas usadas com moderação.
 
-O Logbook prioriza a lista operacional em duas linhas por QSO, com callsign, horário, modo e frequência em primeiro plano e rota, grid e ações no nível secundário. Editor, Tools e Settings compartilham a mesma grade, cabeçalhos técnicos, painéis compactos e hierarquia de ações.
+A v0.11 preserva essa identidade e muda a arquitetura de interação. A janela passa a usar uma moldura desktop persistente, com menu superior compacto, sidebar, contexto da página e barra de status. O Logbook continua priorizando a lista operacional em duas linhas por QSO; editor, Tools e Settings continuam usando painéis densos e hierarquia técnica própria.
 
-Cores, espaçamentos, dimensões e componentes reutilizáveis ficam centralizados em `ui/design-system.slint`. A interface foi homologada no i3 em `1050×680`, sem exigir fullscreen.
+A nova arquitetura não copia a paleta visual de outro produto. Ela reaproveita conceitos de organização de software operacional enquanto mantém o DHRL reconhecível como ferramenta de radioamadorismo.
 
-Após mudanças de interface, use o checklist persistente em `docs/VISUAL-QA.md` para validar a janela padrão de `1050×680`, conteúdo longo, estados vazios, filtros, mensagens e navegação por teclado.
+Cores, espaçamentos, dimensões e componentes básicos continuam centralizados em `ui/design-system.slint`. A interface anterior foi homologada no i3 em `1050×680`; o shell v0.11 exige nova aprovação manual usando `docs/VISUAL-QA-v0.11.md`.
 
 ## Navegação da interface
 
-O menu superior separa as tarefas para manter todos os controles acessíveis mesmo em gerenciadores de janela tiled, como i3:
+A moldura v0.11 organiza a navegação em duas camadas complementares:
 
-- **Logbook**: pesquisa, filtros, tabela paginada e ações de edição/exclusão;
+- menu superior para acessos globais e comandos secundários;
+- sidebar recolhível agrupada em **Operation**, **Data** e **System**.
+
+As quatro áreas funcionais permanecem as mesmas:
+
+- **Logbook**: pesquisa, filtros, lista paginada e ações de edição/exclusão;
 - **New QSO**: formulário rolável para criar um contato;
 - **Tools**: health check, importação/exportação ADIF, criação e verificação de backup;
-- **Settings**: configuração do callsign da estação local.
+- **Settings**: configuração do callsign da estação local e links externos.
+
+A barra contextual mostra a seção e a página ativa, além de manter o callsign local visível. Trocar a moldura não altera os contratos de navegação, dirty state ou confirmação existentes.
 
 O Logbook consulta até 100 QSOs por página diretamente no SQLite e mostra a faixa atual, o total e os controles **Previous/Next**. Busca e filtros DMR/FT8/D-STAR/YSF preservam seus critérios ao navegar entre páginas. Metadados DMR, FT8, D-STAR e YSF são carregados junto dos QSOs, evitando consultas adicionais por linha.
 
@@ -146,23 +156,23 @@ Para YSF/System Fusion, o modo interno é `C4FM`; a UI também aceita os aliases
 
 Esses são os subconjuntos suportados pelo aplicativo, não uma promessa de suporte integral aos protocolos, equipamentos ou dialetos ADIF. `digital_routes` continua específico de DMR.
 
-Ao editar um registro pela tabela, o mesmo formulário é aberto preenchido. As ações de salvar e cancelar permanecem fixas no rodapé enquanto os campos podem ser rolados. Ao abrir um novo QSO, o foco vai para callsign.
+Ao editar um registro pela lista, o mesmo formulário é aberto preenchido. As ações de salvar e cancelar permanecem fixas no rodapé enquanto os campos podem ser rolados. Ao abrir um novo QSO, o foco vai para callsign.
 
 No fluxo de criação, **Save & New** valida e grava o QSO, atualiza a listagem, limpa todos os campos comuns, metadados de modo e metadata do editor e prepara um formulário novo com outro UTC fixo. A ação não cria um segundo QSO e não aparece na edição. Uma proteção contra double-submit impede duas gravações concorrentes, e o snapshot de estado limpo é atualizado somente depois do commit bem-sucedido.
 
 Antes de criar ou editar manualmente, o aplicativo procura uma possível duplicidade pela identidade exata callsign normalizado + data/hora UTC inicial + frequência em Hz + modo normalizado. Na edição, o próprio registro é excluído da consulta. O aviso oferece **Review** ou **Save anyway**: nunca mescla registros, nunca bloqueia a gravação e não depende de constraint `UNIQUE`.
 
-A interface pode ser percorrida por `Tab`. A navegação superior e os links de callsign/GridSquare aceitam `Enter` ou `Space`, campos e botões seguem a ordem visual, `Enter` executa a pesquisa ou salva a partir de Notes, e `Escape` cancela o fluxo atual. Regiões principais, campos essenciais, ações personalizadas e mensagens de status também expõem semântica para tecnologias assistivas.
+A interface pode ser percorrida por `Tab`. Navegação e links de callsign/GridSquare aceitam `Enter` ou `Space`, campos e botões seguem a ordem visual, `Enter` executa a pesquisa ou salva a partir de Notes, e `Escape` cancela o fluxo atual. Regiões principais, campos essenciais, ações personalizadas e mensagens de status também expõem semântica para tecnologias assistivas.
 
-Ao criar ou editar um QSO, sair do formulário por uma aba, pelo botão **Cancel** ou por `Esc` exige confirmação quando houver alterações não salvas. **Continue editing** preserva o formulário atual e **Discard changes** limpa o editor e conclui a navegação solicitada. Formulários sem mudanças não exibem aviso, e rascunhos não são persistidos em disco.
+Ao criar ou editar um QSO, sair do formulário pela navegação, pelo botão **Cancel** ou por `Esc` exige confirmação quando houver alterações não salvas. **Continue editing** preserva o formulário atual e **Discard changes** limpa o editor e conclui a navegação solicitada. Formulários sem mudanças não exibem aviso, e rascunhos não são persistidos em disco.
 
-No encerramento normal, o aplicativo lembra a última aba, o tipo de filtro selecionado e se o painel de filtros estava expandido. Pesquisa, valores preenchidos nos filtros, indicador de filtro aplicado e conteúdo parcial de QSO não são persistidos.
+No encerramento normal, o aplicativo lembra a última página, o tipo de filtro selecionado e se o painel de filtros estava expandido. Pesquisa, valores preenchidos nos filtros, indicador de filtro aplicado e conteúdo parcial de QSO não são persistidos.
 
 Fechar a janela pelo gerenciador de janelas é interceptado quando há edição de QSO ou preview ADIF pendente. **Continue working** mantém a janela e o estado atual; **Discard and exit** descarta somente o trabalho não confirmado, salva as preferências operacionais e encerra. Se a configuração não puder ser salva, a aplicação permanece aberta e oferece nova tentativa ou saída explícita sem salvar preferências. Término forçado do processo (`SIGKILL`) e queda de energia não podem ser interceptados.
 
 ## Consultas externas
 
-Na tabela do Logbook, clicar em um callsign ou GridSquare abre o navegador padrão usando os templates configurados em **Settings**.
+Na lista do Logbook, clicar em um callsign ou GridSquare abre o navegador padrão usando os templates configurados em **Settings**.
 
 Padrões:
 
@@ -206,7 +216,6 @@ Desenvolvido por [Marcelo Trindade](https://github.com/marcelositr) e distribuí
 - a configuração atual da estação local contém apenas o callsign; o `MYCALL` D-STAR pode ser informado por QSO;
 - o backup exige que o diretório de destino já exista;
 - o backup recusa sobrescrever arquivo existente;
-
 - não há integração automática com WSJT-X, rádios ou serviços online;
 - a exportação ADIF recusa sobrescrever um arquivo existente;
 - os seletores gráficos no Linux dependem de um XDG Desktop Portal funcional; os campos de caminho permanecem disponíveis como alternativa.
