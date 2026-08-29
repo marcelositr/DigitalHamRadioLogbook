@@ -7,7 +7,7 @@ on:
       - .github/workflows/readme-screenshot.yml
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   screenshot:
@@ -18,7 +18,7 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
-          persist-credentials: false
+          persist-credentials: true
 
       - name: Set up Rust and Linux dependencies
         uses: ./.github/actions/setup-rust-linux
@@ -127,10 +127,14 @@ jobs:
           kill "$app_pid" 2>/dev/null || true
           kill "$xvfb_pid" 2>/dev/null || true
 
-      - name: Upload screenshot artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: readme-logbook-screenshot
-          path: readme-artifact/logbook-demo.png
-          if-no-files-found: error
-          retention-days: 1
+      - name: Publish screenshot and remove temporary workflow
+        run: |
+          set -euo pipefail
+          mkdir -p docs/assets
+          cp readme-artifact/logbook-demo.png docs/assets/logbook-v0.11.png
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/readme-screenshot.yml
+          git add docs/assets/logbook-v0.11.png
+          git commit -m 'docs: add v0.11 logbook screenshot'
+          git push origin HEAD:feat/v0.11-ui-product-refactor
