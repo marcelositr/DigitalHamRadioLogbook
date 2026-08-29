@@ -40,9 +40,16 @@ jobs:
           export HOME="$RUNNER_TEMP/dhrl-home"
           export XDG_DATA_HOME="$RUNNER_TEMP/dhrl-data"
           export XDG_CONFIG_HOME="$RUNNER_TEMP/dhrl-config"
-          mkdir -p "$HOME" "$XDG_DATA_HOME" "$XDG_CONFIG_HOME"
+          mkdir -p "$HOME" "$XDG_DATA_HOME" "$XDG_CONFIG_HOME/digital-ham-log"
+          cat >"$XDG_CONFIG_HOME/digital-ham-log/config.toml" <<'TOML'
+          [station]
+          callsign = "PY2OMT"
 
-          Xvfb :99 -screen 0 1200x800x24 >/tmp/dhrl-xvfb.log 2>&1 &
+          [appearance]
+          color_scheme = "light"
+          TOML
+
+          Xvfb :99 -screen 0 1440x900x24 >/tmp/dhrl-xvfb.log 2>&1 &
           xvfb_pid=$!
           export DISPLAY=:99
           export SLINT_BACKEND=winit-software
@@ -93,7 +100,7 @@ jobs:
           export SLINT_BACKEND=winit-software
 
           mkdir -p readme-artifact
-          Xvfb :99 -screen 0 1200x800x24 >/tmp/dhrl-xvfb.log 2>&1 &
+          Xvfb :99 -screen 0 1440x900x24 >/tmp/dhrl-xvfb.log 2>&1 &
           xvfb_pid=$!
           sleep 1
           ./target/debug/digital-ham-radio-logbook >/tmp/dhrl-app.log 2>&1 &
@@ -111,6 +118,8 @@ jobs:
             exit 1
           fi
 
+          xdotool windowsize "$window" 1280 760
+          xdotool windowmove "$window" 20 20
           sleep 2
           import -window "$window" readme-artifact/logbook-demo.png
           identify readme-artifact/logbook-demo.png
