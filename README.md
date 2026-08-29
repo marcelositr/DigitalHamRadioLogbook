@@ -6,13 +6,14 @@ Aplicativo desktop local e offline para registrar contatos de radioamador realiz
 
 ## Estado atual
 
-O checkpoint funcional de referência continua sendo `0.10.0-rc.1`, uma consolidação pré-1.0. A branch de interface v0.11 abre um ciclo separado de reconstrução gráfica: nenhuma funcionalidade de domínio, schema, migration, ADIF ou persistência é adicionada por esse trabalho.
+O checkpoint funcional de referência continua sendo `0.10.0-rc.1`, uma consolidação pré-1.0. A branch de interface v0.11 abre um ciclo separado de reconstrução gráfica: nenhuma funcionalidade de domínio, schema, migration, ADIF ou persistência SQLite é adicionada por esse trabalho.
 
-A v0.11 reconstrói a interface a partir dos contratos funcionais usando uma arquitetura **Slint-native**, inspirada na organização da Slint Widgets Gallery. A UI usa widgets e layouts padrão, `MenuBar` real, sidebar simples, workspace e status global; `Palette` e `StyleMetrics` substituem o antigo tema visual proprietário. A especificação está em `docs/UI-ARCHITECTURE-v0.11.md` e o novo gate manual em `docs/VISUAL-QA-v0.11.md`.
+A v0.11 reconstrói a interface a partir dos contratos funcionais usando uma arquitetura **Slint-native**, inspirada na organização da Slint Widgets Gallery. A UI usa widgets e layouts padrão, `MenuBar` real, sidebar simples, workspace e status global; `Palette` e `StyleMetrics` substituem o antigo tema visual proprietário. **Fluent** é o style oficial do produto, com **System / Light / Dark** configuráveis em runtime. A especificação está em `docs/UI-ARCHITECTURE-v0.11.md` e o novo gate manual em `docs/VISUAL-QA-v0.11.md`.
 
 O MVP funcional inclui:
 
 - interface Slint desktop-first baseada em widgets nativos, com alta legibilidade e operação confortável em `1050×680`;
+- style Fluent fixo, com esquema de cores System, Light ou Dark persistido na configuração local;
 - banco SQLite local com migrations versionadas;
 - listagem, pesquisa, criação, edição e exclusão confirmada de QSOs;
 - fluxo **Save & New** para registrar QSOs consecutivos sem duplicar o contato recém-gravado;
@@ -64,14 +65,13 @@ A instalação não exige `sudo`; atualização e desinstalação preservam banc
 cargo run
 ```
 
-A reconstrução v0.11 deve ser comparada nos styles candidatos do Slint antes da escolha visual final:
+O aplicativo é compilado com o style **Fluent**. Em **Settings → Appearance**, o esquema de cores pode ser alterado sem reiniciar:
 
-```sh
-SLINT_STYLE=fluent-dark cargo run --locked
-SLINT_STYLE=material-dark cargo run --locked
-SLINT_STYLE=cupertino-dark cargo run --locked
-SLINT_STYLE=cosmic-dark cargo run --locked
-```
+- **System**: padrão; acompanha a preferência claro/escuro reportada pelo desktop;
+- **Light**: força o modo claro;
+- **Dark**: força o modo escuro.
+
+A escolha é salva no `config.toml`. Configurações antigas sem essa preferência continuam válidas e usam **System**.
 
 ## Testes e qualidade
 
@@ -118,6 +118,7 @@ Também é possível fechar o aplicativo e copiar `logbook.sqlite3` manualmente.
 - `src/app/`: handlers e serviços de apresentação separados por fluxo — editor, lista, filtros, ADIF, backup, configuração, arquivos e fechamento;
 - `src/main.rs`: composition root enxuto, responsável apenas por criar dependências, inicializar a janela e conectar os módulos;
 - `ui/main.slint`: contrato público, `MenuBar` nativo e composição do shell global;
+- `ui/appearance.slint`: ligação runtime entre a preferência System/Light/Dark e `Palette.color-scheme`;
 - `ui/components/app-shell.slint`: sidebar recolhível baseada em layouts e estados do Slint;
 - `ui/pages/`: páginas independentes de Logbook, editor, Tools e Settings;
 - `ui/models/`: tipos Slint compartilhados entre páginas;
@@ -127,7 +128,7 @@ A interface não executa SQL e a camada de banco não depende de Slint.
 
 ## Interface Slint-native
 
-A v0.11 não tenta reproduzir manualmente um design system externo. A camada visual é construída para acompanhar o style selecionado pelo próprio Slint.
+A v0.11 não tenta reproduzir manualmente um design system externo. A camada visual usa o **Fluent** do próprio Slint, fixado em `build.rs`, e permite apenas variar o esquema de cores em runtime.
 
 Os princípios são:
 
@@ -138,7 +139,7 @@ Os princípios são:
 - medidas fixas somente quando justificadas por estrutura previsível, como a sidebar e colunas tabulares;
 - nenhuma borda decorativa deve atravessar inputs, nenhum botão essencial pode ser truncado e nenhum conteúdo necessário pode ficar inacessível.
 
-A UI anterior foi homologada no i3 em `1050×680`; essa aprovação não é herdada. A reconstrução v0.11 exige nova validação usando `docs/VISUAL-QA-v0.11.md`, inclusive comparação de `fluent-dark`, `material-dark`, `cupertino-dark` e `cosmic-dark`.
+A UI anterior foi homologada no i3 em `1050×680`; essa aprovação não é herdada. A reconstrução v0.11 exige nova validação usando `docs/VISUAL-QA-v0.11.md` nos esquemas **System**, **Light** e **Dark**.
 
 ## Navegação da interface
 
@@ -152,7 +153,7 @@ As áreas funcionais são:
 - **Logbook**: pesquisa, filtros, lista paginada e ações de edição/exclusão;
 - **New QSO**: formulário rolável para criar um contato;
 - **Tools**: health check, importação/exportação ADIF, criação e verificação de backup;
-- **Settings**: configuração do callsign da estação local e links externos.
+- **Settings**: aparência, configuração do callsign da estação local e links externos.
 
 O callsign local permanece visível na sidebar quando expandida. Não existem categorias decorativas `Operation`, `Data` ou `System`, nem barra contextual duplicando o título da página.
 
@@ -174,7 +175,7 @@ A interface pode ser percorrida por `Tab`. Navegação e links de callsign/GridS
 
 Ao criar ou editar um QSO, sair do formulário pela navegação, pelo botão **Cancel** ou por `Esc` exige confirmação quando houver alterações não salvas. **Continue editing** preserva o formulário atual e **Discard changes** limpa o editor e conclui a navegação solicitada. Formulários sem mudanças não exibem aviso, e rascunhos não são persistidos em disco.
 
-No encerramento normal, o aplicativo lembra a última página, o tipo de filtro selecionado e se o painel de filtros estava expandido. Pesquisa, valores preenchidos nos filtros, indicador de filtro aplicado e conteúdo parcial de QSO não são persistidos.
+No encerramento normal, o aplicativo lembra a última página, o tipo de filtro selecionado e se o painel de filtros estava expandido. A aparência é salva imediatamente quando alterada em Settings. Pesquisa, valores preenchidos nos filtros, indicador de filtro aplicado e conteúdo parcial de QSO não são persistidos.
 
 Fechar a janela pelo gerenciador de janelas é interceptado quando há edição de QSO ou preview ADIF pendente. **Continue working** mantém a janela e o estado atual; **Discard and exit** descarta somente o trabalho não confirmado, salva as preferências operacionais e encerra. Se a configuração não puder ser salva, a aplicação permanece aberta e oferece nova tentativa ou saída explícita sem salvar preferências. Término forçado do processo (`SIGKILL`) e queda de energia não podem ser interceptados.
 
