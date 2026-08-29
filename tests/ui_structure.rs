@@ -1,5 +1,7 @@
+const BUILD: &str = include_str!("../build.rs");
 const MAIN: &str = include_str!("../ui/main.slint");
 const FOUNDATION: &str = include_str!("../ui/design-system.slint");
+const APPEARANCE: &str = include_str!("../ui/appearance.slint");
 const SHELL: &str = include_str!("../ui/components/app-shell.slint");
 const LOGBOOK: &str = include_str!("../ui/pages/logbook-page.slint");
 const EDITOR: &str = include_str!("../ui/pages/qso-editor-page.slint");
@@ -27,6 +29,17 @@ fn visual_foundation_uses_slint_style_instead_of_parallel_theme() {
     assert!(!FOUNDATION.contains("export global Theme"));
     assert!(!FOUNDATION.contains("accent-strong"));
     assert!(!FOUNDATION.contains("surface-raised"));
+}
+
+#[test]
+fn appearance_uses_fixed_fluent_style_with_runtime_color_scheme() {
+    assert!(BUILD.contains("with_style(\"fluent\".to_owned())"));
+    assert!(!BUILD.contains("fluent-dark"));
+    assert!(APPEARANCE.contains("Palette.color-scheme"));
+    assert!(APPEARANCE.contains("ColorScheme.unknown"));
+    assert!(APPEARANCE.contains("ColorScheme.light"));
+    assert!(APPEARANCE.contains("ColorScheme.dark"));
+    assert!(SETTINGS.contains("model: [\"System\", \"Light\", \"Dark\"]"));
 }
 
 #[test]
@@ -106,6 +119,7 @@ fn tools_remains_split_by_interoperability_health_and_backup() {
 
 #[test]
 fn settings_keeps_local_identity_primary_and_external_links_explicit() {
+    assert!(SETTINGS.contains("Appearance"));
     assert!(SETTINGS.contains("Local station"));
     assert!(SETTINGS.contains("External lookup links"));
     assert!(SETTINGS.contains("External websites open only after an explicit lookup action"));
