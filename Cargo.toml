@@ -11,7 +11,7 @@ categories = ["gui", "database"]
 [dependencies]
 chrono = { version = "0.4", default-features = false, features = ["std"] }
 rfd = "0.15"
-rusqlite = { version = "0.32", features = ["bundled"] }
+rusqlite = { version = "0.40", features = ["bundled"] }
 serde = { version = "1", features = ["derive"] }
 slint = "1.9"
 toml = "0.8"
