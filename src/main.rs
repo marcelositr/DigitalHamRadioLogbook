@@ -7,6 +7,7 @@ use std::rc::Rc;
 use digital_ham_radio_logbook::config;
 use digital_ham_radio_logbook::database::{AdifImportPlan, QsoRepository};
 use digital_ham_radio_logbook::logging;
+use slint::ComponentHandle;
 
 slint::include_modules!();
 
@@ -28,7 +29,8 @@ use app::qso_list::{
     LogbookViewState,
 };
 use app::settings_close::{
-    connect_close_handlers, connect_external_link_handlers, connect_station_config_handler,
+    connect_appearance_handler, connect_close_handlers, connect_external_link_handlers,
+    connect_station_config_handler,
 };
 use app::status::{set_status, STATUS_WARNING};
 
@@ -41,6 +43,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     logging::info("database opened and migrations completed");
     let ui = MainWindow::new()?;
 
+    ui.global::<Appearance>()
+        .set_color_scheme_index(app_config.borrow().appearance.color_scheme_index());
     ui.set_local_callsign_text(app_config.borrow().station.callsign.clone().into());
     ui.set_callsign_url_text(
         app_config
@@ -62,6 +66,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     refresh_qso_list(&ui, &repository, &logbook_state)?;
     let editor_baseline = Rc::new(RefCell::new(editor_snapshot(&ui)));
     let pending_adif_plan = Rc::new(RefCell::new(None::<AdifImportPlan>));
+    connect_appearance_handler(&ui, &app_config, config_path.clone());
     connect_station_config_handler(&ui, &app_config, config_path.clone());
     connect_mode_handler(&ui);
     connect_external_link_handlers(&ui, &app_config, config_path.clone());
