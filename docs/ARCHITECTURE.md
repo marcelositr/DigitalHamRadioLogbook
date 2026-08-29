@@ -69,3 +69,35 @@ Os índices YSF são limitados a TX/RX DG-ID. `EXPLAIN QUERY PLAN` não demonstr
 O editor envia um snapshot imutável do formulário para validação e persistência. Um guard de submissão impede double-submit; o snapshot de referência para dirty state só é substituído depois do commit bem-sucedido. Em **Save & New**, exclusivo da criação, a sequência é validar → commit → refresh da listagem → limpeza integral dos campos e metadados → captura de um novo UTC fixo. O QSO recém-gravado não é reenviado.
 
 A consulta de possível duplicidade usa callsign normalizado, UTC inicial, frequência inteira em Hz e modo normalizado. Updates excluem o próprio ID. O resultado é deliberadamente apenas um aviso com **Review** e **Save anyway**: não há merge, bloqueio, migration, índice novo ou constraint `UNIQUE`, preservando duplicados manuais intencionais.
+
+## Arquitetura da interface v0.11
+
+A refatoração v0.11 preserva Slint e o contrato público consumido pelo Rust, mas reorganiza a superfície gráfica em um shell desktop persistente.
+
+```text
+ui/
+├── design-system.slint
+├── main.slint
+├── components/
+│   └── app-shell.slint
+├── models/
+└── pages/
+    ├── logbook-page.slint
+    ├── qso-editor-page.slint
+    ├── tools-page.slint
+    └── settings-page.slint
+```
+
+`ui/main.slint` continua sendo o contrato público compilado por `build.rs`. Ele mantém os mesmos callbacks e properties usados por `src/app/*`; a mudança é de composição visual, não de domínio ou persistência.
+
+O shell passa a ser composto por:
+
+- menu superior compacto para comandos globais e acessos secundários;
+- sidebar recolhível com grupos **Operation**, **Data** e **System**;
+- barra contextual com seção, página atual, metadata curta e callsign local;
+- workspace central ocupado por exatamente uma das quatro páginas;
+- barra de status global fora do conteúdo rolável.
+
+A identidade visual permanece própria do DHRL. `ui/design-system.slint` continua centralizando superfícies escuras, accent ciano, estados semânticos discretos, tipografia compacta, foco visível e geometria técnica. A arquitetura de interação pode compartilhar padrões com outros aplicativos de gestão, mas a paleta e a linguagem de instrumentação de rádio não são substituídas.
+
+Detalhes, restrições e gate da refatoração ficam em `docs/UI-ARCHITECTURE-v0.11.md` e `docs/VISUAL-QA-v0.11.md`. A homologação visual anterior não é automaticamente herdada pelo novo shell; o novo layout precisa de regressão manual em `1050×680` antes de ser considerado aprovado.
