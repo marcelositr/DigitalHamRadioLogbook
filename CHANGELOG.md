@@ -9,15 +9,18 @@ Este projeto segue [Semantic Versioning](https://semver.org/). As release notes 
 - reconstruída a camada gráfica v0.11 a partir dos contratos funcionais, sem reutilizar a interface anterior como referência visual;
 - adotada uma arquitetura Slint-native inspirada na Widgets Gallery, com `MenuBar`, `GroupBox`, widgets padrão, `Palette`, `StyleMetrics` e dimensionamento natural pelo conteúdo;
 - substituídos menu superior simulado, barra contextual e tema proprietário por menu nativo, sidebar simples, workspace central e status global;
-- Logbook reconstruído como workspace de dados; editor de QSO, Tools e Settings foram reescritos com layouts e widgets nativos sem alterar callbacks públicos, regras de domínio ou persistência;
-- adicionados `docs/UI-ARCHITECTURE-v0.11.md` e `docs/VISUAL-QA-v0.11.md` para documentar a arquitetura, comparação de styles e novo gate de regressão manual;
-- testes estruturais passaram a proteger a arquitetura Slint-native e impedir a reintrodução dos antigos painéis/tema customizados.
+- Logbook reconstruído como workspace de dados; editor de QSO, Tools e Settings foram reescritos com layouts e widgets nativos sem alterar regras de domínio ou persistência SQLite;
+- **Fluent** definido como style oficial do produto em `build.rs`;
+- Settings passa a oferecer **System / Light / Dark** em Appearance, aplicados imediatamente via `Palette.color-scheme` e persistidos de forma retrocompatível no `config.toml`, com `System` como padrão;
+- adicionados `docs/UI-ARCHITECTURE-v0.11.md` e `docs/VISUAL-QA-v0.11.md` para documentar a arquitetura e o novo gate de regressão manual;
+- testes estruturais passaram a proteger a arquitetura Slint-native, o style Fluent e o contrato de aparência System/Light/Dark.
 
 ### Compatibility
 
 - Slint permanece como toolkit gráfico; nenhuma migração para Tauri, Electron, Qt ou GTK foi realizada;
 - schema SQLite, migrations, ADIF, repository e dependências de runtime permanecem inalterados;
-- a homologação visual das versões anteriores não é herdada pela reconstrução v0.11; nova aprovação manual em `1050×680` e comparação dos styles candidatos permanecem necessárias antes de concluir o ciclo.
+- configurações antigas sem a nova seção `appearance` continuam válidas e usam `system` por padrão;
+- a homologação visual das versões anteriores não é herdada pela reconstrução v0.11; nova aprovação manual em `1050×680`, cobrindo System, Light e Dark, permanece necessária antes de concluir o ciclo.
 
 ## [0.10.0-rc.1] - 2026-08-28
 
