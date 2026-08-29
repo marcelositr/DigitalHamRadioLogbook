@@ -1,24 +1,47 @@
 import { HorizontalBox, VerticalBox } from "std-widgets.slint";
 import { Theme, KeyboardAction, StationBadge } from "../design-system.slint";
 
-component ShellMenuItem inherits Rectangle {
+component SideNavItem inherits Rectangle {
+    in property <string> short-label;
     in property <string> label;
-    in property <string> description;
+    in property <bool> active: false;
+    in property <bool> collapsed: false;
     callback activated();
+
     accessible-role: button;
     accessible-label: root.label;
-    accessible-description: root.description;
-    height: 29px;
-    min-width: 54px;
-    background: pointer.has-hover ? Theme.surface-hover : transparent;
-    Text {
-        text: root.label;
-        color: Theme.text-primary;
-        font-size: Theme.text-xs;
-        font-weight: 600;
-        horizontal-alignment: center;
-        vertical-alignment: center;
+    height: 36px;
+    border-radius: Theme.radius-sm;
+    background: root.active ? Theme.surface-selected : pointer.has-hover ? Theme.surface-hover : transparent;
+
+    HorizontalBox {
+        spacing: 0px;
+        Rectangle {
+            width: 3px;
+            background: root.active ? Theme.accent : transparent;
+            border-radius: 2px;
+        }
+        if root.collapsed : Text {
+            text: root.short-label;
+            horizontal-stretch: 1;
+            color: root.active ? Theme.text-primary : Theme.text-muted;
+            font-size: Theme.text-xs;
+            font-weight: root.active ? 650 : 550;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+        if !root.collapsed : Text {
+            text: root.label;
+            horizontal-stretch: 1;
+            color: root.active ? Theme.text-primary : Theme.text-secondary;
+            font-size: Theme.text-sm;
+            font-weight: root.active ? 650 : 500;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+        Rectangle { width: root.collapsed ? 3px : Theme.space-sm; background: transparent; }
     }
+
     focus := FocusScope {
         focus-on-click: false;
         key-pressed(event) => {
@@ -38,80 +61,38 @@ export component DesktopMenuBar inherits Rectangle {
     callback open-tools();
     callback open-settings();
 
-    accessible-role: navigation;
-    accessible-label: "Application menu";
-    height: 30px;
+    accessible-role: banner;
+    accessible-label: "Application bar";
+    height: 38px;
     background: Theme.surface;
     border-width: 1px;
     border-color: Theme.border-subtle;
 
     HorizontalBox {
-        padding-left: Theme.space-sm;
-        padding-right: Theme.space-sm;
-        spacing: Theme.space-2xs;
-        Text {
-            text: "DHRL";
-            width: 54px;
-            color: Theme.text-muted;
-            font-size: Theme.text-xs;
-            font-weight: 800;
-            vertical-alignment: center;
-        }
-        ShellMenuItem { label: "File"; description: "Return to the logbook"; activated => { root.open-logbook(); } }
-        ShellMenuItem { label: "View"; description: "Expand or collapse navigation"; activated => { root.toggle-sidebar(); } }
-        ShellMenuItem { label: "Tools"; description: "Open data tools"; activated => { root.open-tools(); } }
-        ShellMenuItem { label: "Settings"; description: "Open application settings"; activated => { root.open-settings(); } }
-        Rectangle { horizontal-stretch: 1; }
-        Text { text: "LOCAL-FIRST / OFFLINE"; color: Theme.text-muted; font-size: 9px; font-weight: 800; vertical-alignment: center; }
-    }
-}
-
-component SideNavItem inherits Rectangle {
-    in property <string> short-label;
-    in property <string> label;
-    in property <bool> active: false;
-    in property <bool> collapsed: false;
-    callback activated();
-
-    accessible-role: button;
-    accessible-label: root.label;
-    height: 34px;
-    border-radius: Theme.radius-sm;
-    background: root.active ? Theme.surface-selected : pointer.has-hover ? Theme.surface-hover : transparent;
-
-    HorizontalBox {
-        padding-left: root.collapsed ? 0px : Theme.space-sm;
-        padding-right: root.collapsed ? 0px : Theme.space-sm;
+        padding-left: Theme.space-lg;
+        padding-right: Theme.space-lg;
         spacing: Theme.space-sm;
         Text {
-            text: root.short-label;
-            width: root.collapsed ? parent.width : 28px;
-            color: root.active ? Theme.accent-strong : Theme.text-muted;
-            font-size: Theme.text-xs;
-            font-weight: 800;
-            horizontal-alignment: center;
-            vertical-alignment: center;
-        }
-        if !root.collapsed : Text {
-            text: root.label;
-            color: root.active ? Theme.accent-strong : Theme.text-secondary;
+            text: "Digital Ham Radio Logbook";
+            color: Theme.text-primary;
             font-size: Theme.text-sm;
-            font-weight: root.active ? 700 : 550;
+            font-weight: 650;
             vertical-alignment: center;
-            overflow: elide;
+        }
+        Rectangle { horizontal-stretch: 1; }
+        Rectangle {
+            width: 6px;
+            height: 6px;
+            border-radius: 3px;
+            background: Theme.success;
+        }
+        Text {
+            text: "Local database · Offline";
+            color: Theme.text-muted;
+            font-size: Theme.text-xs;
+            vertical-alignment: center;
         }
     }
-    focus := FocusScope {
-        focus-on-click: false;
-        key-pressed(event) => {
-            if event.text == Key.Return || event.text == Key.Space {
-                root.activated();
-                return accept;
-            }
-            return reject;
-        }
-    }
-    pointer := TouchArea { clicked => { focus.focus(); root.activated(); } }
 }
 
 export component AppSidebar inherits Rectangle {
@@ -122,56 +103,104 @@ export component AppSidebar inherits Rectangle {
 
     accessible-role: navigation;
     accessible-label: "Primary navigation";
-    width: root.collapsed ? 58px : 188px;
+    width: root.collapsed ? 58px : 196px;
     background: Theme.surface;
     border-width: 1px;
     border-color: Theme.border-subtle;
 
     VerticalBox {
         spacing: 0px;
+
         Rectangle {
-            height: 54px;
-            background: Theme.surface-raised;
+            height: 56px;
+            background: transparent;
             HorizontalBox {
-                padding-left: root.collapsed ? Theme.space-xs : Theme.space-md;
-                padding-right: Theme.space-xs;
+                padding-left: root.collapsed ? Theme.space-sm : Theme.space-md;
+                padding-right: Theme.space-sm;
                 spacing: Theme.space-sm;
                 Rectangle {
                     width: 30px;
                     height: 30px;
-                    border-radius: Theme.radius-md;
-                    background: Theme.primary;
-                    Text { text: "D"; color: #ffffff; font-size: Theme.text-md; font-weight: 800; horizontal-alignment: center; vertical-alignment: center; }
+                    border-radius: Theme.radius-sm;
+                    background: Theme.surface-selected;
+                    Text {
+                        text: "D";
+                        color: Theme.accent-strong;
+                        font-size: Theme.text-md;
+                        font-weight: 700;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
                 }
                 if !root.collapsed : VerticalBox {
                     horizontal-stretch: 1;
                     spacing: 0px;
                     alignment: center;
-                    Text { text: "Digital Ham Radio"; color: Theme.text-primary; font-size: Theme.text-xs; font-weight: 700; overflow: elide; }
-                    Text { text: "Logbook"; color: Theme.text-muted; font-size: Theme.text-xs; overflow: elide; }
+                    Text {
+                        text: "DHRL";
+                        color: Theme.text-primary;
+                        font-size: Theme.text-sm;
+                        font-weight: 650;
+                        overflow: elide;
+                    }
+                    Text {
+                        text: "Radio logbook";
+                        color: Theme.text-muted;
+                        font-size: Theme.text-xs;
+                        overflow: elide;
+                    }
                 }
-                KeyboardAction { width: 28px; compact: true; label: root.collapsed ? ">" : "<"; description: root.collapsed ? "Expand sidebar" : "Collapse sidebar"; activated => { root.toggle(); } }
             }
         }
 
         VerticalBox {
             padding-left: Theme.space-xs;
             padding-right: Theme.space-xs;
-            padding-top: Theme.space-sm;
+            padding-top: Theme.space-xs;
             spacing: Theme.space-2xs;
 
-            if !root.collapsed : Text { text: "OPERATION"; height: 22px; color: Theme.text-muted; font-size: 9px; font-weight: 800; vertical-alignment: center; }
-            SideNavItem { short-label: "LOG"; label: "Logbook"; collapsed: root.collapsed; active: root.active-page == 0; activated => { root.navigate(0); } }
+            if !root.collapsed : Text {
+                text: "Operation";
+                height: 24px;
+                color: Theme.text-muted;
+                font-size: Theme.text-xs;
+                font-weight: 550;
+                vertical-alignment: center;
+            }
+            SideNavItem { short-label: "LB"; label: "Logbook"; collapsed: root.collapsed; active: root.active-page == 0; activated => { root.navigate(0); } }
             SideNavItem { short-label: "+"; label: "New QSO"; collapsed: root.collapsed; active: root.active-page == 1; activated => { root.navigate(1); } }
 
             Rectangle { height: Theme.space-sm; background: transparent; }
-            if !root.collapsed : Text { text: "DATA"; height: 22px; color: Theme.text-muted; font-size: 9px; font-weight: 800; vertical-alignment: center; }
-            SideNavItem { short-label: "DB"; label: "Tools"; collapsed: root.collapsed; active: root.active-page == 2; activated => { root.navigate(2); } }
+            if !root.collapsed : Text {
+                text: "Data";
+                height: 24px;
+                color: Theme.text-muted;
+                font-size: Theme.text-xs;
+                font-weight: 550;
+                vertical-alignment: center;
+            }
+            SideNavItem { short-label: "TL"; label: "Tools"; collapsed: root.collapsed; active: root.active-page == 2; activated => { root.navigate(2); } }
 
             Rectangle { height: Theme.space-sm; background: transparent; }
-            if !root.collapsed : Text { text: "SYSTEM"; height: 22px; color: Theme.text-muted; font-size: 9px; font-weight: 800; vertical-alignment: center; }
-            SideNavItem { short-label: "CFG"; label: "Settings"; collapsed: root.collapsed; active: root.active-page == 3; activated => { root.navigate(3); } }
+            if !root.collapsed : Text {
+                text: "System";
+                height: 24px;
+                color: Theme.text-muted;
+                font-size: Theme.text-xs;
+                font-weight: 550;
+                vertical-alignment: center;
+            }
+            SideNavItem { short-label: "ST"; label: "Settings"; collapsed: root.collapsed; active: root.active-page == 3; activated => { root.navigate(3); } }
             Rectangle { vertical-stretch: 1; }
+
+            KeyboardAction {
+                height: 28px;
+                compact: true;
+                label: root.collapsed ? ">" : "Collapse navigation";
+                description: root.collapsed ? "Expand navigation" : "Collapse navigation";
+                activated => { root.toggle(); }
+            }
+            Rectangle { height: Theme.space-xs; }
         }
     }
 }
@@ -181,13 +210,13 @@ export component ContextBar inherits Rectangle {
     in property <string> title;
     in property <string> meta;
     in property <string> callsign;
-    in property <string> primary-label;
+    in property <string> primary-label: "";
     callback primary-action();
 
     accessible-role: banner;
     accessible-label: root.section + " " + root.title;
-    height: 50px;
-    background: Theme.surface-raised;
+    height: 58px;
+    background: Theme.background;
     border-width: 1px;
     border-color: Theme.border-subtle;
 
@@ -197,26 +226,37 @@ export component ContextBar inherits Rectangle {
         spacing: Theme.space-md;
         VerticalBox {
             horizontal-stretch: 1;
-            spacing: 0px;
+            spacing: Theme.space-2xs;
             alignment: center;
-            Text { text: root.section; color: Theme.text-muted; font-size: 9px; font-weight: 800; }
-            Text { text: root.title; color: Theme.text-primary; font-size: Theme.text-md; font-weight: 700; overflow: elide; }
+            Text {
+                text: root.section == "OPERATION" ? "Operation" : root.section == "CONTACT" ? "Contact" : root.section == "DATA" ? "Data" : root.section == "SYSTEM" ? "System" : root.section;
+                color: Theme.text-muted;
+                font-size: Theme.text-xs;
+                font-weight: 500;
+            }
+            Text {
+                text: root.title;
+                color: Theme.text-primary;
+                font-size: Theme.text-lg;
+                font-weight: 650;
+                overflow: elide;
+            }
         }
         if root.meta != "" : Text {
-            text: root.meta;
+            text: root.meta == "FILTERED VIEW" ? "Filtered view" : root.meta == "ADIF / SQLITE" ? "ADIF · SQLite" : root.meta == "LOCAL CONFIG" ? "Local configuration" : root.meta;
             color: Theme.text-muted;
             font-size: Theme.text-xs;
-            font-weight: 650;
+            font-weight: 500;
             vertical-alignment: center;
         }
         if root.primary-label != "" : KeyboardAction {
-            width: 104px;
+            width: 108px;
             compact: true;
             primary: true;
             label: root.primary-label;
             description: root.primary-label;
             activated => { root.primary-action(); }
         }
-        StationBadge { width: root.callsign == "" ? 150px : 138px; callsign: root.callsign; }
+        StationBadge { width: root.callsign == "" ? 140px : 128px; callsign: root.callsign; }
     }
 }
