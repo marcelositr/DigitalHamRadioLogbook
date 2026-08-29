@@ -13,51 +13,50 @@ export component SettingsPage inherits ScrollView {
 
     vertical-stretch: 1;
     VerticalBox {
-        padding: Theme.space-md;
-        spacing: Theme.space-md;
+        padding: Theme.space-lg;
+        spacing: Theme.space-lg;
 
         HorizontalBox {
-            height: 28px;
+            height: 26px;
             spacing: Theme.space-sm;
             Text {
-                text: "Station identity and optional external lookups. Configuration remains local to this device.";
+                text: "Configure the local station identity and optional external lookup services.";
                 color: Theme.text-muted;
-                font-size: Theme.text-xs;
+                font-size: Theme.text-sm;
                 vertical-alignment: center;
                 horizontal-stretch: 1;
             }
-            Tag { text: "LOCAL CONFIG"; accent: true; width: 96px; height: 24px; }
+            Tag { text: "Local config"; accent: true; width: 88px; height: 24px; }
         }
 
         Panel {
             raised: true;
-            height: 210px;
+            height: 198px;
             vertical-stretch: 0;
             VerticalBox {
-                padding: Theme.space-md;
+                padding: Theme.space-lg;
                 spacing: Theme.space-md;
 
                 HorizontalBox {
                     spacing: Theme.space-sm;
-                    Rectangle { width: 4px; background: Theme.success; border-radius: Theme.radius-xs; }
                     VerticalBox {
                         spacing: Theme.space-2xs;
-                        SectionTitle { text: "LOCAL STATION"; }
+                        SectionTitle { text: "Local station"; }
                         Text {
-                            text: "PRIMARY OPERATING IDENTITY";
-                            color: Theme.success;
+                            text: "Primary operating identity";
+                            color: Theme.text-muted;
                             font-size: Theme.text-xs;
-                            font-weight: 700;
+                            font-weight: 500;
                         }
                     }
                     Rectangle { horizontal-stretch: 1; }
-                    Tag { text: "ON THIS DEVICE"; width: 112px; height: 22px; }
+                    Tag { text: "This device"; width: 84px; height: 22px; accent: true; }
                 }
 
                 Rectangle { height: 1px; background: Theme.divider; }
 
                 Text {
-                    text: "Identify this station throughout the application shell. The callsign is stored in the local XDG configuration directory.";
+                    text: "The station callsign appears throughout the application and is stored in the local XDG configuration directory.";
                     color: Theme.text-secondary;
                     font-size: Theme.text-sm;
                 }
@@ -69,7 +68,7 @@ export component SettingsPage inherits ScrollView {
                     VerticalBox {
                         spacing: Theme.space-xs;
                         horizontal-stretch: 1;
-                        DataLabel { text: "STATION CALLSIGN"; }
+                        DataLabel { text: "Station callsign"; }
                         LineEdit {
                             accessible-label: "Local station callsign";
                             text <=> root.local-callsign-text;
@@ -97,26 +96,26 @@ export component SettingsPage inherits ScrollView {
                     spacing: Theme.space-sm;
                     VerticalBox {
                         spacing: Theme.space-2xs;
-                        SectionTitle { text: "EXTERNAL LOOKUP LINKS"; }
+                        SectionTitle { text: "External lookup links"; }
                         Text {
-                            text: "OPTIONAL / SECONDARY SERVICES";
+                            text: "Optional secondary services";
                             color: Theme.text-muted;
                             font-size: Theme.text-xs;
-                            font-weight: 700;
+                            font-weight: 500;
                         }
                     }
                     Rectangle { horizontal-stretch: 1; }
-                    Tag { text: "EXTERNAL"; width: 76px; height: 22px; }
+                    Tag { text: "External"; width: 68px; height: 22px; }
                 }
 
                 Rectangle { height: 1px; background: Theme.divider; }
 
                 HorizontalBox {
                     spacing: Theme.space-sm;
-                    Rectangle { width: 3px; background: Theme.warning; }
+                    Rectangle { width: 3px; background: Theme.warning; border-radius: 2px; }
                     Text {
                         text: "Opening a lookup sends only the selected callsign or grid locator to the configured external website.";
-                        color: Theme.warning;
+                        color: Theme.text-secondary;
                         font-size: Theme.text-xs;
                         vertical-alignment: center;
                     }
@@ -124,7 +123,7 @@ export component SettingsPage inherits ScrollView {
 
                 VerticalBox {
                     spacing: Theme.space-xs;
-                    DataLabel { text: "Callsign URL template — requires {callsign}"; }
+                    DataLabel { text: "Callsign URL template · requires {callsign}"; }
                     LineEdit {
                         accessible-label: "Callsign lookup URL template";
                         accessible-description: "Must contain the callsign placeholder";
@@ -135,7 +134,7 @@ export component SettingsPage inherits ScrollView {
 
                 VerticalBox {
                     spacing: Theme.space-xs;
-                    DataLabel { text: "Grid URL template — requires {grid}"; }
+                    DataLabel { text: "Grid URL template · requires {grid}"; }
                     LineEdit {
                         accessible-label: "Grid lookup URL template";
                         accessible-description: "Must contain the grid placeholder";
@@ -167,7 +166,7 @@ export component SettingsPage inherits ScrollView {
 
         HorizontalBox {
             spacing: Theme.space-sm;
-            Rectangle { width: 3px; background: Theme.success; }
+            Rectangle { width: 5px; height: 5px; border-radius: 3px; background: Theme.success; }
             Text {
                 text: "Data remains local. External websites open only after an explicit click.";
                 color: Theme.text-muted;
