@@ -6,13 +6,13 @@ Aplicativo desktop local e offline para registrar contatos de radioamador realiz
 
 ## Estado atual
 
-O checkpoint funcional de referência continua sendo `0.10.0-rc.1`, uma consolidação pré-1.0. A branch de interface v0.11 abre um ciclo separado de refatoração gráfica: nenhuma funcionalidade de domínio, schema, migration, ADIF ou persistência é adicionada por esse trabalho.
+O checkpoint funcional de referência continua sendo `0.10.0-rc.1`, uma consolidação pré-1.0. A branch de interface v0.11 abre um ciclo separado de reconstrução gráfica: nenhuma funcionalidade de domínio, schema, migration, ADIF ou persistência é adicionada por esse trabalho.
 
-O objetivo da v0.11 é reorganizar a experiência desktop em um shell persistente com menu superior, sidebar recolhível, barra contextual, workspace e status global, mantendo Slint e a identidade técnica de instrumentação de rádio do projeto. A especificação da nova camada visual está em `docs/UI-ARCHITECTURE-v0.11.md`; o novo gate manual está em `docs/VISUAL-QA-v0.11.md`.
+A v0.11 reconstrói a interface a partir dos contratos funcionais usando uma arquitetura **Slint-native**, inspirada na organização da Slint Widgets Gallery. A UI usa widgets e layouts padrão, `MenuBar` real, sidebar simples, workspace e status global; `Palette` e `StyleMetrics` substituem o antigo tema visual proprietário. A especificação está em `docs/UI-ARCHITECTURE-v0.11.md` e o novo gate manual em `docs/VISUAL-QA-v0.11.md`.
 
 O MVP funcional inclui:
 
-- interface Slint desktop-first com identidade técnica própria, alta legibilidade e operação confortável em `1050×680`;
+- interface Slint desktop-first baseada em widgets nativos, com alta legibilidade e operação confortável em `1050×680`;
 - banco SQLite local com migrations versionadas;
 - listagem, pesquisa, criação, edição e exclusão confirmada de QSOs;
 - fluxo **Save & New** para registrar QSOs consecutivos sem duplicar o contato recém-gravado;
@@ -64,6 +64,15 @@ A instalação não exige `sudo`; atualização e desinstalação preservam banc
 cargo run
 ```
 
+A reconstrução v0.11 deve ser comparada nos styles candidatos do Slint antes da escolha visual final:
+
+```sh
+SLINT_STYLE=fluent-dark cargo run --locked
+SLINT_STYLE=material-dark cargo run --locked
+SLINT_STYLE=cupertino-dark cargo run --locked
+SLINT_STYLE=cosmic-dark cargo run --locked
+```
+
 ## Testes e qualidade
 
 ```sh
@@ -108,45 +117,44 @@ Também é possível fechar o aplicativo e copiar `logbook.sqlite3` manualmente.
 - `src/database/`: migrations e acesso ao SQLite;
 - `src/app/`: handlers e serviços de apresentação separados por fluxo — editor, lista, filtros, ADIF, backup, configuração, arquivos e fechamento;
 - `src/main.rs`: composition root enxuto, responsável apenas por criar dependências, inicializar a janela e conectar os módulos;
-- `ui/main.slint`: contrato público e composição do shell global;
-- `ui/components/app-shell.slint`: menu superior, sidebar recolhível e barra contextual da arquitetura v0.11;
+- `ui/main.slint`: contrato público, `MenuBar` nativo e composição do shell global;
+- `ui/components/app-shell.slint`: sidebar recolhível baseada em layouts e estados do Slint;
 - `ui/pages/`: páginas independentes de Logbook, editor, Tools e Settings;
 - `ui/models/`: tipos Slint compartilhados entre páginas;
-- `ui/design-system.slint`: tokens e componentes reutilizáveis da identidade visual técnica.
+- `ui/design-system.slint`: primitivas semânticas mínimas que usam `Palette` e `StyleMetrics`, sem definir um tema paralelo.
 
 A interface não executa SQL e a camada de banco não depende de Slint.
 
-## Identidade visual
+## Interface Slint-native
 
-A interface usa uma linguagem própria inspirada em instrumentos de rádio e software técnico de telecomunicações. A paleta escura mantém influência do Nord, mas hierarquia, densidade e componentes são específicos do Digital Ham Radio Logbook:
+A v0.11 não tenta reproduzir manualmente um design system externo. A camada visual é construída para acompanhar o style selecionado pelo próprio Slint.
 
-- três níveis controlados de profundidade para fundo e superfícies;
-- accent ciano moderado e estados semânticos de baixo brilho;
-- tipografia compacta para leitura prolongada e dados técnicos;
-- foco visível, ações consistentes e dimensões adequadas ao uso por teclado;
-- raios pequenos, divisores discretos e bordas usadas com moderação.
+Os princípios são:
 
-A v0.11 preserva essa identidade e muda a arquitetura de interação. A janela passa a usar uma moldura desktop persistente, com menu superior compacto, sidebar, contexto da página e barra de status. O Logbook continua priorizando a lista operacional em duas linhas por QSO; editor, Tools e Settings continuam usando painéis densos e hierarquia técnica própria.
+- widgets de `std-widgets.slint` antes de componentes customizados;
+- `GroupBox`, `Button`, `LineEdit`, `ListView`, `ScrollView` e layouts nativos como blocos principais;
+- `Palette` e `StyleMetrics` para extensões necessárias;
+- sizing natural, `preferred-*`, `min-*` e stretch antes de larguras/alturas absolutas;
+- medidas fixas somente quando justificadas por estrutura previsível, como a sidebar e colunas tabulares;
+- nenhuma borda decorativa deve atravessar inputs, nenhum botão essencial pode ser truncado e nenhum conteúdo necessário pode ficar inacessível.
 
-A nova arquitetura não copia a paleta visual de outro produto. Ela reaproveita conceitos de organização de software operacional enquanto mantém o DHRL reconhecível como ferramenta de radioamadorismo.
-
-Cores, espaçamentos, dimensões e componentes básicos continuam centralizados em `ui/design-system.slint`. A interface anterior foi homologada no i3 em `1050×680`; o shell v0.11 exige nova aprovação manual usando `docs/VISUAL-QA-v0.11.md`.
+A UI anterior foi homologada no i3 em `1050×680`; essa aprovação não é herdada. A reconstrução v0.11 exige nova validação usando `docs/VISUAL-QA-v0.11.md`, inclusive comparação de `fluent-dark`, `material-dark`, `cupertino-dark` e `cosmic-dark`.
 
 ## Navegação da interface
 
-A moldura v0.11 organiza a navegação em duas camadas complementares:
+A moldura v0.11 usa duas regiões persistentes:
 
-- menu superior para acessos globais e comandos secundários;
-- sidebar recolhível agrupada em **Operation**, **Data** e **System**.
+- `MenuBar` nativo do Slint para comandos globais e secundários;
+- sidebar recolhível simples para as quatro áreas principais.
 
-As quatro áreas funcionais permanecem as mesmas:
+As áreas funcionais são:
 
 - **Logbook**: pesquisa, filtros, lista paginada e ações de edição/exclusão;
 - **New QSO**: formulário rolável para criar um contato;
 - **Tools**: health check, importação/exportação ADIF, criação e verificação de backup;
 - **Settings**: configuração do callsign da estação local e links externos.
 
-A barra contextual mostra a seção e a página ativa, além de manter o callsign local visível. Trocar a moldura não altera os contratos de navegação, dirty state ou confirmação existentes.
+O callsign local permanece visível na sidebar quando expandida. Não existem categorias decorativas `Operation`, `Data` ou `System`, nem barra contextual duplicando o título da página.
 
 O Logbook consulta até 100 QSOs por página diretamente no SQLite e mostra a faixa atual, o total e os controles **Previous/Next**. Busca e filtros DMR/FT8/D-STAR/YSF preservam seus critérios ao navegar entre páginas. Metadados DMR, FT8, D-STAR e YSF são carregados junto dos QSOs, evitando consultas adicionais por linha.
 
@@ -156,7 +164,7 @@ Para YSF/System Fusion, o modo interno é `C4FM`; a UI também aceita os aliases
 
 Esses são os subconjuntos suportados pelo aplicativo, não uma promessa de suporte integral aos protocolos, equipamentos ou dialetos ADIF. `digital_routes` continua específico de DMR.
 
-Ao editar um registro pela lista, o mesmo formulário é aberto preenchido. As ações de salvar e cancelar permanecem fixas no rodapé enquanto os campos podem ser rolados. Ao abrir um novo QSO, o foco vai para callsign.
+Ao editar um registro pela lista, o mesmo formulário é aberto preenchido. As ações de salvar e cancelar permanecem disponíveis no rodapé enquanto os campos podem ser rolados. Ao abrir um novo QSO, o foco vai para callsign.
 
 No fluxo de criação, **Save & New** valida e grava o QSO, atualiza a listagem, limpa todos os campos comuns, metadados de modo e metadata do editor e prepara um formulário novo com outro UTC fixo. A ação não cria um segundo QSO e não aparece na edição. Uma proteção contra double-submit impede duas gravações concorrentes, e o snapshot de estado limpo é atualizado somente depois do commit bem-sucedido.
 
