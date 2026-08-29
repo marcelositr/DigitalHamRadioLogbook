@@ -4,7 +4,9 @@
 
 A linha v0.11 refatora exclusivamente a camada gráfica do Digital Ham Radio Logbook. A implementação continua em Slint e preserva os contratos Rust existentes, SQLite, migrations, ADIF, configuração, backup, filtros e regras de domínio.
 
-A nova interface adota uma arquitetura de aplicativo desktop persistente: menu superior, navegação lateral, barra contextual, workspace central e barra de status. A organização é inspirada em padrões de software operacional, mas a identidade visual continua própria do DHRL: instrumentação de rádio compacta, dados técnicos densos, ciano moderado, superfícies escuras e estados semânticos discretos.
+A interface adota uma arquitetura desktop persistente e uma linguagem visual inspirada nos princípios do Material 3, reinterpretada para software desktop operacional. Material é usado como sistema de disciplina para superfícies, hierarquia, estados, espaçamento e semântica de cor; o DHRL não tenta reproduzir a aparência de um aplicativo Android.
+
+A direção é deliberadamente sóbria: superfícies escuras neutras, baixa cromaticidade, poucos níveis de elevação, typography compacta e cor de destaque reservada a ação, seleção e foco. A identidade radioamadora permanece no conteúdo e nos dados do produto, não em ornamentação futurista.
 
 ## Princípios
 
@@ -12,11 +14,14 @@ A nova interface adota uma arquitetura de aplicativo desktop persistente: menu s
 2. **Slint permanece a tecnologia gráfica.** Não introduzir Tauri, Electron, Qt, GTK ou camada web.
 3. **O shell é persistente.** A navegação e o contexto não são reconstruídos por página.
 4. **O workspace muda; a moldura não.** Logbook, editor, Tools e Settings ocupam a mesma área central.
-5. **Alta densidade sem poluição.** Callsign, UTC, modo, frequência e rota continuam prioritários.
-6. **Ações frequentes ficam visíveis; ações raras ou destrutivas devem ser progressivamente secundárias.**
-7. **Teclado é contrato de produto.** `Ctrl+N`, `Ctrl+S`, `Ctrl+Enter`, `Ctrl+F`, `Enter`, `Space` e `Escape` não podem regredir.
-8. **Acessibilidade faz parte da arquitetura.** Regiões, botões customizados, foco e status devem manter semântica explícita.
-9. **Nenhuma refatoração visual altera persistência ou domínio.** Mudanças de schema, migrations ou formato ADIF são fora de escopo.
+5. **Material como sistema, não como skin mobile.** Usar roles de superfície, state layers, hierarquia e spacing sem inflar controles para densidade de touchscreen.
+6. **Cor tem função.** Accent identifica ação, foco ou seleção; success, warning e danger ficam restritos a estados semânticos.
+7. **Menos caixas, mais hierarquia.** Espaço, tipografia e alinhamento devem separar conteúdo antes de bordas e containers.
+8. **Alta densidade sem poluição.** Callsign, UTC, modo, frequência e rota continuam prioritários.
+9. **Uma ação primária por contexto.** Ações secundárias permanecem visíveis, mas visualmente silenciosas.
+10. **Teclado é contrato de produto.** `Ctrl+N`, `Ctrl+S`, `Ctrl+Enter`, `Ctrl+F`, `Enter`, `Space` e `Escape` não podem regredir.
+11. **Acessibilidade faz parte da arquitetura.** Regiões, botões customizados, foco e status devem manter semântica explícita.
+12. **Nenhuma refatoração visual altera persistência ou domínio.** Mudanças de schema, migrations ou formato ADIF são fora de escopo.
 
 ## Estrutura
 
@@ -39,9 +44,9 @@ ui/
 
 ## Shell global
 
-### Menu superior
+### Top app bar
 
-Faixa compacta de comandos globais. Ela oferece acesso secundário a Logbook, navegação, Tools e Settings sem competir com o workspace.
+A faixa superior identifica o produto e comunica discretamente o caráter local/offline. Ela não simula menus que não existem e não duplica a navegação principal.
 
 ### Sidebar
 
@@ -51,18 +56,13 @@ A sidebar agrupa a aplicação pelo modelo mental do operador:
 - **Data**: Tools;
 - **System**: Settings.
 
-Pode ser recolhida para uma faixa compacta sem alterar a página ativa.
+O item ativo usa uma superfície tonal e um indicador estreito. Itens inativos permanecem neutros. A sidebar pode ser recolhida sem alterar a página ativa.
 
 ### Barra contextual
 
-A barra contextual informa a área atual e mantém a identidade da estação visível. Exemplos:
+A barra contextual informa área, página, metadados curtos e estação local. Os rótulos de seção são secundários; o título da página é o elemento tipográfico dominante.
 
-- `OPERATION / Logbook`;
-- `CONTACT / New QSO`;
-- `DATA / Tools`;
-- `SYSTEM / Settings`.
-
-Metadados curtos, como estado de filtro, modo atual ou natureza local dos dados, podem aparecer à direita sem substituir informações da página.
+Metadados de filtro, modo atual ou natureza local dos dados podem aparecer à direita, mas não competem com a ação principal do workspace.
 
 ### Workspace
 
@@ -70,46 +70,54 @@ Metadados curtos, como estado de filtro, modo atual ou natureza local dos dados,
 
 ### Barra de status
 
-Permanece global, fora do conteúdo rolável. Mensagens `STATUS`, `DONE`, `NOTICE` e `ERROR` continuam discretas e semanticamente identificáveis.
+Permanece global, fora do conteúdo rolável. O estado normal é visualmente silencioso; success, warning e error ganham cor somente quando necessário.
 
 ## Design system
 
-`ui/design-system.slint` continua como fonte central de tokens e componentes básicos.
+`ui/design-system.slint` é a fonte central de tokens e componentes básicos.
 
-A identidade deve preservar:
+A direção v0.11 usa:
 
-- níveis controlados de profundidade;
-- accent ciano moderado;
-- cores semânticas de baixo brilho;
-- tipografia compacta;
-- raios pequenos;
-- bordas discretas;
-- foco de alto contraste;
-- valores técnicos visualmente estáveis.
+- superfícies neutras de baixo contraste;
+- elevação principalmente tonal;
+- outline discreto;
+- accent azul/ciano dessaturado somente para foco, seleção e ações;
+- estados semanticamente distintos para success, warning e danger;
+- grade de espaçamento baseada em 4 px;
+- raios moderados de `4/6/8 px`;
+- tipografia compacta de desktop;
+- pesos médios/semibold no lugar de excesso de bold;
+- componentes customizados com hover, focus, active e disabled previsíveis.
 
-O objetivo não é reproduzir a paleta de outro projeto. O que é compartilhado é a arquitetura de interação, não a aparência temática.
+`Panel` sem elevação é deliberadamente transparente e sem borda. Isso evita a aparência de "card dentro de card". `raised: true` deve ser reservado a superfícies que realmente precisam de separação.
 
 ## Páginas
 
 ### Logbook
 
-A lista continua sendo o elemento visual dominante. Cada QSO deve permanecer escaneável sem assumir aparência de planilha tradicional. Pesquisa, filtros, paginação e ações devem ocupar regiões previsíveis.
+O Logbook é o principal workspace do produto. A lista assume comportamento visual de data workspace: linhas discretas, pouca ornamentação, busca/filtros previsíveis e `+ New QSO` como ação primária da página.
+
+Callsign, UTC, modo, frequência e banda permanecem no primeiro nível de leitura. Rota, grid e ações ficam secundários. Linhas não usam cards individuais.
 
 ### New/Edit QSO
 
-O editor deve se comportar como um workspace de registro técnico. Dados comuns, relatório/estação e metadata específica do modo permanecem agrupados. Ações de salvar/cancelar continuam fixas e o formulário permanece rolável.
+O editor usa título de seção em sentence/title case e labels mais silenciosos. Contact é a superfície principal; Report/Station e Notes podem permanecer visualmente planos. O bloco específico do modo recebe separação suficiente para leitura sem aparência de painel de instrumentação.
+
+Ações de salvar/cancelar continuam fixas e o formulário permanece rolável.
 
 ### Tools
 
-Tools é a central administrativa local, organizada em três responsabilidades visuais:
+Tools é a central administrativa local, organizada em três responsabilidades:
 
 1. interoperabilidade ADIF;
 2. diagnóstico read-only;
 3. backup SQLite.
 
+ADIF é o fluxo primário e pode usar superfície elevada. Data health e backup permanecem mais planos. Métricas de preview usam superfícies tonais sem bordas desnecessárias.
+
 ### Settings
 
-Settings mantém identidade da estação como configuração primária e serviços externos como configuração secundária e explícita.
+Settings mantém identidade da estação como configuração primária. Serviços externos são secundários e explícitos. Avisos de privacidade e saída para websites devem ser legíveis, mas não dominar a página.
 
 ## Compatibilidade
 
@@ -134,6 +142,8 @@ A aprovação visual antiga não é automaticamente herdada pelo novo shell. Ant
 
 - shell expandido e recolhido;
 - todas as quatro páginas;
+- contraste e hierarquia das superfícies Material-inspired;
+- hover/focus/selected/disabled nos principais controles;
 - QSO genérico, DMR, FT8, D-STAR e YSF/C4FM;
 - conteúdo longo;
 - banco vazio e resultados vazios;
@@ -147,4 +157,4 @@ A aprovação visual antiga não é automaticamente herdada pelo novo shell. Ant
 - `Ctrl+N`, `Ctrl+S`, `Ctrl+Enter`, `Ctrl+F`;
 - encerramento com trabalho pendente.
 
-A aprovação manual deve ser registrada em `docs/VISUAL-QA.md` somente depois da inspeção real do build da branch v0.11.
+A aprovação manual deve ser registrada em `docs/VISUAL-QA-v0.11.md` somente depois da inspeção real do build desta branch.
