@@ -1,6 +1,6 @@
-import { Button, VerticalBox, HorizontalBox } from "std-widgets.slint";
-import { Theme, StatusBar } from "design-system.slint";
-import { AppSidebar, ContextBar, DesktopMenuBar } from "components/app-shell.slint";
+import { Button, GroupBox, HorizontalBox, VerticalBox } from "std-widgets.slint";
+import { StatusBar } from "design-system.slint";
+import { AppSidebar } from "components/app-shell.slint";
 
 import { QsoRow } from "models/qso-types.slint";
 import { LogbookPage } from "pages/logbook-page.slint";
@@ -10,12 +10,13 @@ import { SettingsPage } from "pages/settings-page.slint";
 
 export component MainWindow inherits Window {
     title: "Digital Ham Radio Logbook";
-    width: 1050px;
-    height: 680px;
-    background: Theme.background;
+    preferred-width: 1050px;
+    preferred-height: 680px;
+    min-width: 1000px;
+    min-height: 600px;
 
-    in-out property <int> active-page: 0; // 0 logbook, 1 form, 2 tools, 3 settings
-    in-out property <int> active-filter: 0; // 0 all, 1 DMR, 2 FT8, 3 D-STAR, 4 YSF/C4FM
+    in-out property <int> active-page: 0;
+    in-out property <int> active-filter: 0;
     in-out property <bool> filters-expanded: false;
     in-out property <bool> filters-applied: false;
     in-out property <bool> sidebar-collapsed: false;
@@ -123,22 +124,97 @@ export component MainWindow inherits Window {
     in-out property <bool> exit-save-failed: false;
     in-out property <string> exit-error-text;
 
-    callback save-qso(); callback save-and-new-qso(); callback search-qso(string); callback mode-input-changed(string);
-    callback review-duplicate(); callback save-duplicate-anyway();
+    callback save-qso();
+    callback save-and-new-qso();
+    callback search-qso(string);
+    callback mode-input-changed(string);
+    callback review-duplicate();
+    callback save-duplicate-anyway();
     public function focus-callsign() { root.callsign-focus-request = !root.callsign-focus-request; }
     public function focus-search() { root.search-focus-request = !root.search-focus-request; }
-    callback previous-logbook-page(); callback next-logbook-page();
-    callback filter-dmr(); callback clear-dmr-filter();
-    callback filter-ft8(); callback clear-ft8-filter();
-    callback filter-dstar(); callback clear-dstar-filter();
-    callback filter-ysf(); callback clear-ysf-filter();
-    callback save-local-callsign(); callback save-external-links(); callback restore-external-link-defaults();
-    callback open-callsign-lookup(string); callback open-grid-lookup(string);
-    callback preview-adif(); callback confirm-adif-import(); callback cancel-adif-import(); callback invalidate-adif-preview(); callback export-adif(); callback export-current-adif();
-    callback choose-adif-import(); callback choose-adif-export(); callback choose-backup-destination();
-    callback backup-database(); callback check-data-health(); callback verify-backup(); callback delete-qso(string); callback clear-editor();
-    callback request-page(int); callback confirm-discard-editor(); callback keep-editing(); callback editor-opened();
-    callback continue-working(); callback discard-and-exit(); callback retry-exit(); callback exit-without-saving();
+    callback previous-logbook-page();
+    callback next-logbook-page();
+    callback filter-dmr();
+    callback clear-dmr-filter();
+    callback filter-ft8();
+    callback clear-ft8-filter();
+    callback filter-dstar();
+    callback clear-dstar-filter();
+    callback filter-ysf();
+    callback clear-ysf-filter();
+    callback save-local-callsign();
+    callback save-external-links();
+    callback restore-external-link-defaults();
+    callback open-callsign-lookup(string);
+    callback open-grid-lookup(string);
+    callback preview-adif();
+    callback confirm-adif-import();
+    callback cancel-adif-import();
+    callback invalidate-adif-preview();
+    callback export-adif();
+    callback export-current-adif();
+    callback choose-adif-import();
+    callback choose-adif-export();
+    callback choose-backup-destination();
+    callback backup-database();
+    callback check-data-health();
+    callback verify-backup();
+    callback delete-qso(string);
+    callback clear-editor();
+    callback request-page(int);
+    callback confirm-discard-editor();
+    callback keep-editing();
+    callback editor-opened();
+    callback continue-working();
+    callback discard-and-exit();
+    callback retry-exit();
+    callback exit-without-saving();
+
+    MenuBar {
+        Menu {
+            title: "File";
+            MenuItem { title: "Logbook"; activated => { root.request-page(0); } }
+            MenuItem { title: "New QSO"; activated => { root.request-page(1); } }
+            MenuSeparator {}
+            MenuItem { title: "Data tools"; activated => { root.request-page(2); } }
+        }
+        Menu {
+            title: "QSO";
+            MenuItem {
+                title: root.editing-id == "" ? "Save QSO" : "Save changes";
+                enabled: root.active-page == 1;
+                activated => { root.save-qso(); }
+            }
+            MenuItem {
+                title: "Save & New";
+                enabled: root.active-page == 1 && root.editing-id == "";
+                activated => { root.save-and-new-qso(); }
+            }
+        }
+        Menu {
+            title: "View";
+            MenuItem { title: "Logbook"; activated => { root.request-page(0); } }
+            MenuItem { title: "Tools"; activated => { root.request-page(2); } }
+            MenuItem { title: "Settings"; activated => { root.request-page(3); } }
+            MenuSeparator {}
+            MenuItem {
+                title: root.sidebar-collapsed ? "Expand sidebar" : "Collapse sidebar";
+                activated => { root.sidebar-collapsed = !root.sidebar-collapsed; }
+            }
+        }
+        Menu {
+            title: "Tools";
+            MenuItem { title: "ADIF and backup"; activated => { root.request-page(2); } }
+            MenuItem {
+                title: "Check data health";
+                activated => {
+                    root.request-page(2);
+                    root.check-data-health();
+                }
+            }
+            MenuItem { title: "Settings"; activated => { root.request-page(3); } }
+        }
+    }
 
     FocusScope {
         key-pressed(event) => {
@@ -147,14 +223,23 @@ export component MainWindow inherits Window {
                 else if root.duplicate-warning-visible { root.review-duplicate(); }
                 else if root.discard-editor-visible { root.keep-editing(); }
                 else if root.adif-preview-visible { root.cancel-adif-import(); }
-                else if root.pending-delete-id != "" { root.pending-delete-id = ""; root.pending-delete-label = ""; }
+                else if root.pending-delete-id != "" {
+                    root.pending-delete-id = "";
+                    root.pending-delete-label = "";
+                }
                 else if root.active-page == 1 { root.request-page(0); }
                 else { return reject; }
                 return accept;
             }
             if event.modifiers.control && event.text == "n" { root.request-page(1); return accept; }
-            if event.modifiers.control && event.text == "s" && root.active-page == 1 && !root.duplicate-warning-visible && !root.discard-editor-visible { root.save-qso(); return accept; }
-            if event.modifiers.control && event.text == Key.Return && root.active-page == 1 && root.editing-id == "" && !root.duplicate-warning-visible && !root.discard-editor-visible { root.save-and-new-qso(); return accept; }
+            if event.modifiers.control && event.text == "s" && root.active-page == 1 && !root.duplicate-warning-visible && !root.discard-editor-visible {
+                root.save-qso();
+                return accept;
+            }
+            if event.modifiers.control && event.text == Key.Return && root.active-page == 1 && root.editing-id == "" && !root.duplicate-warning-visible && !root.discard-editor-visible {
+                root.save-and-new-qso();
+                return accept;
+            }
             if event.modifiers.control && event.text == "f" && root.active-page == 0 { root.focus-search(); return accept; }
             return reject;
         }
@@ -162,48 +247,40 @@ export component MainWindow inherits Window {
 
     VerticalBox {
         spacing: 0px;
-
-        DesktopMenuBar {
-            open-logbook => { root.request-page(0); }
-            toggle-sidebar => { root.sidebar-collapsed = !root.sidebar-collapsed; }
-            open-tools => { root.request-page(2); }
-            open-settings => { root.request-page(3); }
-        }
-
         HorizontalBox {
             spacing: 0px;
             vertical-stretch: 1;
-
             AppSidebar {
                 active-page: root.active-page;
                 collapsed: root.sidebar-collapsed;
+                callsign: root.local-callsign-text;
                 navigate(page) => { root.request-page(page); }
                 toggle => { root.sidebar-collapsed = !root.sidebar-collapsed; }
             }
-
             VerticalBox {
-                spacing: 0px;
                 horizontal-stretch: 1;
+                spacing: 0px;
 
-                ContextBar {
-                    section: root.active-page == 0 ? "OPERATION" : root.active-page == 1 ? "CONTACT" : root.active-page == 2 ? "DATA" : "SYSTEM";
-                    title: root.active-page == 0 ? "Logbook" : root.active-page == 1 ? (root.editing-id == "" ? "New QSO" : "Edit QSO") : root.active-page == 2 ? "Tools" : "Settings";
-                    meta: root.active-page == 0 ? (root.filters-applied ? "FILTERED VIEW" : root.logbook-page-total + " QSOs") : root.active-page == 1 ? (root.mode-text == "" ? "UTC / MODE NOT SET" : "UTC / " + root.mode-text) : root.active-page == 2 ? "ADIF / SQLITE" : "LOCAL CONFIG";
-                    callsign: root.local-callsign-text;
-                }
-
-                if root.exit-confirmation-visible : Rectangle {
-                    background: Theme.surface-raised; border-width: 1px; border-color: root.exit-save-failed ? Theme.danger : Theme.warning; border-radius: Theme.radius-md;
+                if root.exit-confirmation-visible : GroupBox {
+                    title: root.exit-save-failed ? "Could not save preferences" : "Exit with pending work?";
+                    vertical-stretch: 0;
                     HorizontalBox {
-                        padding: Theme.space-md; spacing: Theme.space-md;
-                        VerticalBox {
-                            spacing: 2px; horizontal-stretch: 1;
-                            Text { text: root.exit-save-failed ? "Could not save preferences" : "Exit with pending work?"; color: root.exit-save-failed ? Theme.danger : Theme.warning; font-weight: 700; }
-                            Text { text: root.exit-save-failed ? root.exit-error-text : "Unsaved QSO changes or an ADIF preview will be discarded."; color: Theme.text-secondary; wrap: word-wrap; }
+                        Text {
+                            text: root.exit-save-failed ? root.exit-error-text : "Unsaved QSO changes or an ADIF preview will be discarded.";
+                            horizontal-stretch: 1;
+                            wrap: word-wrap;
+                            vertical-alignment: center;
                         }
                         Button { text: "Continue working"; clicked => { root.continue-working(); } }
                         if root.exit-save-failed : Button { text: "Exit without saving preferences"; clicked => { root.exit-without-saving(); } }
-                        Button { text: root.exit-save-failed ? "Try again" : "Discard and exit"; primary: true; clicked => { if root.exit-save-failed { root.retry-exit(); } else { root.discard-and-exit(); } } }
+                        Button {
+                            text: root.exit-save-failed ? "Try again" : "Discard and exit";
+                            primary: true;
+                            clicked => {
+                                if root.exit-save-failed { root.retry-exit(); }
+                                else { root.discard-and-exit(); }
+                            }
+                        }
                     }
                 }
 
@@ -406,7 +483,6 @@ export component MainWindow inherits Window {
                 }
             }
         }
-
         StatusBar { message: root.status-text; kind: root.status-kind; }
     }
 }
