@@ -33,7 +33,7 @@ Para instalação e distribuição no GNU/Linux, consulte [Linux distribution](d
 
 O [GitHub Wiki](https://github.com/marcelositr/DigitalHamRadioLogbook/wiki) concentra instalação, uso e orientação ao usuário. A documentação de engenharia está organizada em [docs/](docs/README.md), com arquitetura, contratos de dados, qualidade, operações e processo de release.
 
-Consulte também o [changelog](docs/releases/CHANGELOG.md) e a [matriz de suporte](docs/operations/SUPPORT-MATRIX.md).
+Consulte também o [changelog](docs/releases/CHANGELOG.md), as [release notes do v0.11.0-RC1](docs/releases/notes/RELEASE-NOTES-v0.11.0-RC1.md) e a [matriz de suporte](docs/operations/SUPPORT-MATRIX.md).
 
 ## Status do projeto
 
