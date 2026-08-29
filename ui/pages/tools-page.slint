@@ -35,49 +35,48 @@ export component ToolsPage inherits ScrollView {
     vertical-stretch: 1;
 
     VerticalBox {
-        padding: Theme.space-md;
-        spacing: Theme.space-md;
+        padding: Theme.space-lg;
+        spacing: Theme.space-lg;
 
         HorizontalBox {
-            height: 28px;
+            height: 26px;
             spacing: Theme.space-sm;
             Text {
-                text: "Interoperability, integrity diagnostics and native SQLite backup in one local workspace.";
+                text: "Import and export ADIF, inspect data integrity and manage local backups.";
                 color: Theme.text-muted;
-                font-size: Theme.text-xs;
+                font-size: Theme.text-sm;
                 vertical-alignment: center;
                 horizontal-stretch: 1;
             }
-            Tag { width: 84px; height: 23px; text: "LOCAL DATA"; accent: true; }
+            Tag { width: 76px; height: 24px; text: "Local data"; accent: true; }
         }
 
         Panel {
             raised: true;
             VerticalBox {
-                padding: Theme.space-md;
+                padding: Theme.space-lg;
                 spacing: Theme.space-md;
 
                 HorizontalBox {
                     spacing: Theme.space-md;
-                    Rectangle { width: 3px; background: Theme.accent; }
                     VerticalBox {
                         spacing: Theme.space-2xs;
-                        SectionTitle { text: "ADIF IMPORT / EXPORT"; }
+                        SectionTitle { text: "ADIF import and export"; }
                         Text {
-                            text: "Primary interchange channel for logbook records";
+                            text: "Primary interchange workflow for logbook records";
                             color: Theme.text-muted;
                             font-size: Theme.text-xs;
                         }
                     }
                     Rectangle { horizontal-stretch: 1; }
-                    Tag { width: 72px; height: 23px; text: "PRIMARY"; accent: true; }
+                    Tag { width: 64px; height: 24px; text: "Primary"; accent: true; }
                 }
 
                 Rectangle { height: 1px; background: Theme.divider; }
 
                 VerticalBox {
                     spacing: Theme.space-xs;
-                    DataLabel { text: "ADIF FILE PATH"; }
+                    DataLabel { text: "ADIF file path"; }
                     HorizontalBox {
                         spacing: Theme.space-sm;
                         LineEdit {
@@ -135,24 +134,24 @@ export component ToolsPage inherits ScrollView {
                 if root.adif-preview-visible : Rectangle {
                     accessible-role: region;
                     accessible-label: "ADIF import preview";
-                    background: Theme.background;
+                    background: Theme.surface;
                     border-width: 1px;
-                    border-color: root.adif-preview-invalid > 0 ? Theme.warning : Theme.accent-secondary;
-                    border-radius: Theme.radius-sm;
+                    border-color: root.adif-preview-invalid > 0 ? Theme.warning : Theme.border-subtle;
+                    border-radius: Theme.radius-md;
 
                     VerticalBox {
                         padding: Theme.space-md;
-                        spacing: Theme.space-sm;
+                        spacing: Theme.space-md;
 
                         HorizontalBox {
                             spacing: Theme.space-sm;
                             VerticalBox {
                                 spacing: Theme.space-2xs;
-                                Text { text: "IMPORT SCAN"; color: Theme.text-primary; font-size: Theme.text-sm; font-weight: 700; }
-                                Text { text: "Preview only — the database has not been changed."; color: Theme.text-muted; font-size: Theme.text-xs; }
+                                Text { text: "Import preview"; color: Theme.text-primary; font-size: Theme.text-sm; font-weight: 600; }
+                                Text { text: "Preview only. The database has not been changed."; color: Theme.text-muted; font-size: Theme.text-xs; }
                             }
                             Rectangle { horizontal-stretch: 1; }
-                            Tag { width: 92px; height: 23px; text: root.adif-preview-invalid > 0 ? "REVIEW NEEDED" : "READY"; accent: root.adif-preview-invalid == 0; }
+                            Tag { width: 92px; height: 24px; text: root.adif-preview-invalid > 0 ? "Review needed" : "Ready"; accent: root.adif-preview-invalid == 0; }
                         }
 
                         Rectangle { height: 1px; background: Theme.divider; }
@@ -160,40 +159,39 @@ export component ToolsPage inherits ScrollView {
                         HorizontalBox {
                             spacing: Theme.space-xs;
                             Rectangle {
-                                height: 45px; horizontal-stretch: 1; background: Theme.surface; border-width: 1px; border-color: Theme.border-subtle; border-radius: Theme.radius-xs;
-                                VerticalBox { padding: Theme.space-sm; spacing: Theme.space-2xs; DataLabel { text: "TOTAL"; } Text { text: root.adif-preview-total; color: Theme.text-primary; font-size: Theme.text-md; font-weight: 700; } }
+                                height: 48px; horizontal-stretch: 1; background: Theme.surface-raised; border-width: 0px; border-radius: Theme.radius-sm;
+                                VerticalBox { padding: Theme.space-sm; spacing: Theme.space-2xs; DataLabel { text: "Total"; } Text { text: root.adif-preview-total; color: Theme.text-primary; font-size: Theme.text-md; font-weight: 600; } }
                             }
                             Rectangle {
-                                height: 45px; horizontal-stretch: 1; background: Theme.success-surface; border-width: 1px; border-color: Theme.success; border-radius: Theme.radius-xs;
-                                VerticalBox { padding: Theme.space-sm; spacing: Theme.space-2xs; DataLabel { text: "NEW"; } Text { text: root.adif-preview-new; color: Theme.success; font-size: Theme.text-md; font-weight: 700; } }
+                                height: 48px; horizontal-stretch: 1; background: Theme.success-surface; border-width: 0px; border-radius: Theme.radius-sm;
+                                VerticalBox { padding: Theme.space-sm; spacing: Theme.space-2xs; DataLabel { text: "New"; } Text { text: root.adif-preview-new; color: Theme.success; font-size: Theme.text-md; font-weight: 600; } }
                             }
                             Rectangle {
-                                height: 45px; horizontal-stretch: 1; background: Theme.surface; border-width: 1px; border-color: Theme.border-subtle; border-radius: Theme.radius-xs;
-                                VerticalBox { padding: Theme.space-sm; spacing: Theme.space-2xs; DataLabel { text: "DUPLICATES"; } Text { text: root.adif-preview-duplicates; color: Theme.text-secondary; font-size: Theme.text-md; font-weight: 700; } }
+                                height: 48px; horizontal-stretch: 1; background: Theme.surface-raised; border-width: 0px; border-radius: Theme.radius-sm;
+                                VerticalBox { padding: Theme.space-sm; spacing: Theme.space-2xs; DataLabel { text: "Duplicates"; } Text { text: root.adif-preview-duplicates; color: Theme.text-secondary; font-size: Theme.text-md; font-weight: 600; } }
                             }
                             Rectangle {
-                                height: 45px; horizontal-stretch: 1; background: root.adif-preview-invalid > 0 ? Theme.warning-surface : Theme.surface; border-width: 1px; border-color: root.adif-preview-invalid > 0 ? Theme.warning : Theme.border-subtle; border-radius: Theme.radius-xs;
-                                VerticalBox { padding: Theme.space-sm; spacing: Theme.space-2xs; DataLabel { text: "INVALID"; } Text { text: root.adif-preview-invalid; color: root.adif-preview-invalid > 0 ? Theme.warning : Theme.text-secondary; font-size: Theme.text-md; font-weight: 700; } }
+                                height: 48px; horizontal-stretch: 1; background: root.adif-preview-invalid > 0 ? Theme.warning-surface : Theme.surface-raised; border-width: 0px; border-radius: Theme.radius-sm;
+                                VerticalBox { padding: Theme.space-sm; spacing: Theme.space-2xs; DataLabel { text: "Invalid"; } Text { text: root.adif-preview-invalid; color: root.adif-preview-invalid > 0 ? Theme.warning : Theme.text-secondary; font-size: Theme.text-md; font-weight: 600; } }
                             }
                         }
 
                         Rectangle {
-                            background: Theme.surface;
-                            border-width: 1px;
-                            border-color: Theme.border-subtle;
-                            border-radius: Theme.radius-xs;
+                            background: Theme.background;
+                            border-width: 0px;
+                            border-radius: Theme.radius-sm;
                             VerticalBox {
                                 padding: Theme.space-sm;
                                 spacing: Theme.space-xs;
-                                HorizontalBox { spacing: Theme.space-md; DataLabel { text: "MODES"; width: 76px; } Text { text: root.adif-preview-modes; color: Theme.text-secondary; wrap: word-wrap; horizontal-stretch: 1; } }
-                                HorizontalBox { spacing: Theme.space-md; DataLabel { text: "BANDS"; width: 76px; } Text { text: root.adif-preview-bands; color: Theme.text-secondary; wrap: word-wrap; horizontal-stretch: 1; } }
-                                HorizontalBox { spacing: Theme.space-md; DataLabel { text: "UTC RANGE"; width: 76px; } Text { text: root.adif-preview-date-range; color: Theme.text-secondary; wrap: word-wrap; horizontal-stretch: 1; } }
+                                HorizontalBox { spacing: Theme.space-md; DataLabel { text: "Modes"; width: 76px; } Text { text: root.adif-preview-modes; color: Theme.text-secondary; wrap: word-wrap; horizontal-stretch: 1; } }
+                                HorizontalBox { spacing: Theme.space-md; DataLabel { text: "Bands"; width: 76px; } Text { text: root.adif-preview-bands; color: Theme.text-secondary; wrap: word-wrap; horizontal-stretch: 1; } }
+                                HorizontalBox { spacing: Theme.space-md; DataLabel { text: "UTC range"; width: 76px; } Text { text: root.adif-preview-date-range; color: Theme.text-secondary; wrap: word-wrap; horizontal-stretch: 1; } }
                             }
                         }
 
                         HorizontalBox {
                             spacing: Theme.space-md;
-                            DataLabel { text: "DUPLICATE RULE"; width: 112px; }
+                            DataLabel { text: "Duplicate rule"; width: 112px; }
                             Text {
                                 text: "Same normalized callsign + start UTC + frequency + mode. Existing QSOs and later repetitions in this file are skipped.";
                                 color: Theme.text-muted;
@@ -207,11 +205,11 @@ export component ToolsPage inherits ScrollView {
                             background: Theme.warning-surface;
                             border-width: 1px;
                             border-color: Theme.warning;
-                            border-radius: Theme.radius-xs;
+                            border-radius: Theme.radius-sm;
                             VerticalBox {
                                 padding: Theme.space-sm;
                                 spacing: Theme.space-xs;
-                                Text { text: "INVALID RECORDS / NOT IMPORTED"; color: Theme.warning; font-size: Theme.text-xs; font-weight: 700; }
+                                Text { text: "Invalid records · not imported"; color: Theme.warning; font-size: Theme.text-xs; font-weight: 600; }
                                 Text { text: root.adif-preview-invalid-details; color: Theme.text-secondary; wrap: word-wrap; }
                             }
                         }
@@ -222,7 +220,7 @@ export component ToolsPage inherits ScrollView {
                                 text: root.adif-preview-new > 0 ? root.adif-preview-new + " QSO(s) ready for commit" : "No new QSOs available to import";
                                 color: root.adif-preview-new > 0 ? Theme.success : Theme.text-muted;
                                 font-size: Theme.text-xs;
-                                font-weight: 700;
+                                font-weight: 600;
                                 vertical-alignment: center;
                                 horizontal-stretch: 1;
                             }
@@ -257,11 +255,11 @@ export component ToolsPage inherits ScrollView {
                     spacing: Theme.space-md;
                     VerticalBox {
                         spacing: Theme.space-2xs;
-                        SectionTitle { text: "DATA HEALTH"; }
+                        SectionTitle { text: "Data health"; }
                         Text { text: "Read-only integrity, schema and mode metadata checks"; color: Theme.text-muted; font-size: Theme.text-xs; }
                     }
                     Rectangle { horizontal-stretch: 1; }
-                    Tag { width: 78px; height: 22px; text: "READ ONLY"; }
+                    Tag { width: 76px; height: 22px; text: "Read only"; }
                     KeyboardAction {
                         width: 152px;
                         label: "Check data health";
@@ -287,9 +285,9 @@ export component ToolsPage inherits ScrollView {
                 spacing: Theme.space-sm;
                 Text {
                     text: root.database-report-title;
-                    color: root.database-report-kind == 1 ? Theme.success : root.database-report-kind == 2 ? Theme.warning : root.database-report-kind == 3 ? Theme.danger : Theme.accent;
+                    color: root.database-report-kind == 1 ? Theme.success : root.database-report-kind == 2 ? Theme.warning : root.database-report-kind == 3 ? Theme.danger : Theme.text-primary;
                     font-size: Theme.text-md;
-                    font-weight: 700;
+                    font-weight: 600;
                 }
                 Rectangle { height: 1px; background: Theme.divider; }
                 Text {
@@ -311,11 +309,11 @@ export component ToolsPage inherits ScrollView {
                     spacing: Theme.space-md;
                     VerticalBox {
                         spacing: Theme.space-2xs;
-                        SectionTitle { text: "DATABASE BACKUP"; }
-                        Text { text: "Validated SQLite snapshot / destination must not exist"; color: Theme.text-muted; font-size: Theme.text-xs; }
+                        SectionTitle { text: "Database backup"; }
+                        Text { text: "Validated SQLite snapshot · destination must not exist"; color: Theme.text-muted; font-size: Theme.text-xs; }
                     }
                     Rectangle { horizontal-stretch: 1; }
-                    Tag { width: 74px; height: 22px; text: "SQLITE"; }
+                    Tag { width: 68px; height: 22px; text: "SQLite"; }
                     KeyboardAction {
                         width: 128px;
                         label: "Verify backup";
@@ -326,7 +324,7 @@ export component ToolsPage inherits ScrollView {
 
                 VerticalBox {
                     spacing: Theme.space-xs;
-                    DataLabel { text: "BACKUP DESTINATION"; }
+                    DataLabel { text: "Backup destination"; }
                     HorizontalBox {
                         spacing: Theme.space-sm;
                         LineEdit {
