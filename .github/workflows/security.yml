@@ -5,14 +5,14 @@ on:
     - cron: "17 9 * * 1"
   workflow_dispatch:
   push:
-    branches: [main, develop]
+    branches: [main]
     paths:
       - Cargo.toml
       - Cargo.lock
       - rust-toolchain.toml
       - .github/workflows/security.yml
   pull_request:
-    branches: [main, develop]
+    branches: [main]
     paths:
       - Cargo.toml
       - Cargo.lock

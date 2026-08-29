@@ -2,11 +2,12 @@
 
 This checklist is executable release discipline, not a declaration that a version is ready. Record exact commands, commit, artifact hash and manual approvals in the version-specific regression/readiness document.
 
-The repository automation is documented in [`../operations/CI-CD.md`](../operations/CI-CD.md). The manual `Release candidate` workflow may generate candidate assets, but it never merges, tags, or publishes a GitHub Release.
+The repository automation is documented in [`../operations/CI-CD.md`](../operations/CI-CD.md). The manual `Release candidate` workflow may generate candidate assets, but it never merges, tags, or publishes a GitHub Release by itself.
 
 ## 1. Scope and branch
 
-- [ ] Confirm the working branch follows the existing `develop` → `main` process.
+- [ ] Start from the current `main` and create a short-lived branch for the release change.
+- [ ] Confirm the pull request targets `main`.
 - [ ] Confirm the working tree is clean and record the baseline commit.
 - [ ] Confirm every change is a bugfix, compatibility, diagnostic, test, documentation or release-engineering change during feature freeze.
 - [ ] Review open issues, known blockers and TODO/FIXME findings.
@@ -62,7 +63,7 @@ MIGRATION_SOURCE_VERSION=N cargo test --locked \
 - [ ] Select representative published release artifacts, not only synthetic schema numbers.
 - [ ] Verify historical artifact checksums before use.
 - [ ] Test a direct old-release → current RC upgrade.
-- [ ] Test the relevant sequential release chain.
+- [ ] Test the relevant sequential release chain when historical artifacts exist.
 - [ ] Run health check, backup/verify and restart after upgrade.
 - [ ] Compare semantic data and configuration.
 - [ ] Use only isolated XDG directories and synthetic/safe copies.
@@ -114,7 +115,7 @@ packaging/linux/smoke-test.sh
 Preferred automated path:
 
 1. open **Actions → Release candidate**;
-2. choose the exact branch/commit ref;
+2. choose the exact approved commit/ref;
 3. enter the exact version from `Cargo.toml`;
 4. run the workflow;
 5. download the resulting Actions artifact.
@@ -153,14 +154,18 @@ After the exact candidate is generated, do not rebuild and publish a different b
 
 ## 12. CI and publication gate
 
-- [ ] Push the prepared commit to `develop`.
-- [ ] Confirm `Quality`, `Tests and build`, `Linux packaging smoke`, `Historical schemas 0-7`, and `Documentation integrity` pass.
+- [ ] Push the prepared commit to its short-lived branch and open a pull request to `main`.
+- [ ] Confirm `Quality`, `Tests and build`, `Linux packaging smoke`, `Historical schemas 0-7`, and `Documentation integrity` pass on the pull request.
 - [ ] Confirm the scheduled/dependency-sensitive RustSec audit has no unresolved applicable advisory.
 - [ ] Confirm no Critical or High integrity blocker is known.
-- [ ] Obtain explicit maintainer authorization before `main`, final tag or GitHub Release.
-- [ ] Fast-forward/merge using the established repository policy.
-- [ ] Confirm required CI on `main`.
-- [ ] Create the authorized annotated tag.
+- [ ] Obtain explicit maintainer authorization before merging, tagging or publishing a GitHub Release.
+- [ ] Merge the approved pull request into `main` using the repository policy.
+- [ ] Delete the merged short-lived branch.
+- [ ] Confirm required CI on the resulting `main` commit.
+- [ ] Generate and manually validate release-candidate artifacts from that exact approved commit.
+- [ ] Create the authorized annotated tag only after the candidate is approved.
 - [ ] Publish the already validated artifact and checksum; do not rebuild.
+- [ ] For RCs, confirm the GitHub Release is explicitly marked **Pre-release**.
 - [ ] Download release assets and verify checksum and byte equality.
 - [ ] Confirm release notes and prerelease/latest flags are correct.
+- [ ] Never move an existing release tag; publish a later RC or patch version instead.
