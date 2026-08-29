@@ -1,4 +1,5 @@
 const BUILD: &str = include_str!("../build.rs");
+const ENTRY: &str = include_str!("../ui/app.slint");
 const MAIN: &str = include_str!("../ui/main.slint");
 const FOUNDATION: &str = include_str!("../ui/design-system.slint");
 const APPEARANCE: &str = include_str!("../ui/appearance.slint");
@@ -33,8 +34,11 @@ fn visual_foundation_uses_slint_style_instead_of_parallel_theme() {
 
 #[test]
 fn appearance_uses_fixed_fluent_style_with_runtime_color_scheme() {
+    assert!(BUILD.contains("ui/app.slint"));
     assert!(BUILD.contains("with_style(\"fluent\".to_owned())"));
     assert!(!BUILD.contains("fluent-dark"));
+    assert!(ENTRY.contains("export { Appearance }"));
+    assert!(ENTRY.contains("export { MainWindow }"));
     assert!(APPEARANCE.contains("Palette.color-scheme"));
     assert!(APPEARANCE.contains("ColorScheme.unknown"));
     assert!(APPEARANCE.contains("ColorScheme.light"));
