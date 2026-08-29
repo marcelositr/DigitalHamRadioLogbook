@@ -1,4 +1,42 @@
 use super::*;
+use crate::Appearance;
+
+pub(crate) fn connect_appearance_handler(
+    ui: &MainWindow,
+    app_config: &Rc<RefCell<AppConfig>>,
+    config_path: PathBuf,
+) {
+    let weak_ui = ui.as_weak();
+    let app_config = Rc::clone(app_config);
+    ui.global::<Appearance>()
+        .on_color_scheme_selected(move |index| {
+            let Some(ui) = weak_ui.upgrade() else {
+                return;
+            };
+            let previous_index = app_config.borrow().appearance.color_scheme_index();
+            let result = (|| -> Result<(), Box<dyn Error>> {
+                let mut updated = app_config.borrow().clone();
+                updated.appearance.set_color_scheme_index(index);
+                config::save(&config_path, &updated)?;
+                logging::info("appearance configuration saved");
+                *app_config.borrow_mut() = updated;
+                Ok(())
+            })();
+            match result {
+                Ok(()) => set_status(&ui, "Appearance saved", STATUS_SUCCESS),
+                Err(error) => {
+                    ui.global::<Appearance>()
+                        .set_color_scheme_index(previous_index);
+                    logging::error(&format!("failed to save appearance configuration: {error}"));
+                    set_status(
+                        &ui,
+                        actionable_error("Could not save appearance", error.as_ref()),
+                        STATUS_ERROR,
+                    );
+                }
+            }
+        });
+}
 
 pub(crate) fn connect_station_config_handler(
     ui: &MainWindow,
