@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/marcelositr/DigitalHamRadioLogbook/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/marcelositr/DigitalHamRadioLogbook/actions/workflows/ci.yml)
 
-Desktop logbook for amateur radio, built with **Rust**, **Slint** and **SQLite**. The application is local-first and works offline, with dedicated workflows for digital modes and ADIF interoperability.
+Aplicativo desktop para registro e organização de contatos de radioamador, desenvolvido em **Rust**, **Slint** e **SQLite**. O projeto é local-first, funciona offline e oferece fluxos dedicados para modos digitais e interoperabilidade ADIF.
 
 ![Digital Ham Radio Logbook](docs/assets/logbook-v0.11.png)
 
