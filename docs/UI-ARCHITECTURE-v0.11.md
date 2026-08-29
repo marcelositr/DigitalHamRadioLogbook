@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-A linha v0.11 reconstrói exclusivamente a camada gráfica do Digital Ham Radio Logbook. O backend Rust, domínio, SQLite, migrations, ADIF, configuração, backup, filtros, atalhos e contratos públicos do `MainWindow` permanecem preservados.
+A linha v0.11 reconstrói exclusivamente a camada gráfica do Digital Ham Radio Logbook. O backend Rust, domínio, SQLite, migrations, ADIF, backup, filtros, atalhos e contratos funcionais permanecem preservados. A configuração local recebe somente uma preferência visual retrocompatível para o esquema de cores.
 
 A referência de engenharia visual passa a ser a **Slint Widgets Gallery**: layouts naturais, widgets de `std-widgets.slint`, dimensionamento pelo conteúdo e adaptação ao style selecionado. A UI anterior não é referência visual para esta reconstrução.
 
@@ -22,12 +22,13 @@ Isso significa:
 
 ## Versão do Slint
 
-`Cargo.toml` usa a faixa `1.9`, e o `Cargo.lock` atual resolve Slint/Slint Build 1.17.1. A reconstrução usa recursos disponíveis nessa geração, incluindo `MenuBar`, `Palette` e `StyleMetrics`, sem alterar dependências ou lockfile.
+`Cargo.toml` usa a faixa `1.9`, e o `Cargo.lock` atual resolve Slint/Slint Build 1.17.1. A reconstrução usa recursos disponíveis nessa geração, incluindo `MenuBar`, `Palette`, `StyleMetrics` e alteração runtime de `Palette.color-scheme`, sem alterar dependências ou lockfile.
 
 ## Estrutura
 
 ```text
 ui/
+├── appearance.slint
 ├── design-system.slint
 ├── main.slint
 ├── components/
@@ -53,6 +54,8 @@ ui/
 - `StatusBar`: faixa de status global.
 
 Esses componentes usam `Palette` e `StyleMetrics`. Não definem paleta própria, raios próprios, níveis de superfície ou uma coleção paralela de botões/cards.
+
+`ui/appearance.slint` concentra somente o esquema de cores runtime e traduz a preferência persistida para `Palette.color-scheme`.
 
 ## Shell
 
@@ -125,25 +128,29 @@ O preview ADIF usa texto e layouts simples, sem cards de métricas promocionais.
 
 ### Settings
 
-Settings usa dois grupos principais:
+Settings usa três grupos principais:
 
-1. Local station;
-2. External lookup links.
+1. Appearance;
+2. Local station;
+3. External lookup links.
+
+Appearance não escolhe um design diferente para o produto. O style é **Fluent** e permanece fixo. O usuário escolhe somente o esquema de cores:
+
+- `System`: padrão; usa `ColorScheme.unknown` e acompanha a preferência claro/escuro reportada pelo desktop;
+- `Light`: força `ColorScheme.light`;
+- `Dark`: força `ColorScheme.dark`.
+
+A mudança é aplicada imediatamente por `Palette.color-scheme` e persistida no `config.toml`. Configurações antigas sem a seção `appearance` continuam válidas e recebem `system` como default.
 
 A identidade local permanece prioritária. Serviços externos continuam opcionais e explícitos.
 
-## Styles
+## Style do produto
 
-A mesma UI deve poder ser avaliada sem reescrita nos quatro styles principais do Slint:
+A comparação inicial entre Fluent, Material, Cupertino e Cosmic foi concluída durante o ciclo de reconstrução. **Fluent foi escolhido como style oficial do Digital Ham Radio Logbook.**
 
-```bash
-SLINT_STYLE=fluent-dark cargo run --locked
-SLINT_STYLE=material-dark cargo run --locked
-SLINT_STYLE=cupertino-dark cargo run --locked
-SLINT_STYLE=cosmic-dark cargo run --locked
-```
+`build.rs` fixa `fluent` por `CompilerConfiguration::with_style`, portanto o produto não depende de `SLINT_STYLE` para definir sua identidade e não oferece troca runtime entre famílias de widgets.
 
-O style final não deve ser escolhido por preferência teórica. A decisão deve ocorrer após executar o mesmo build e comparar legibilidade, densidade, foco, menus, forms e lista em `1050×680`.
+Claro/escuro continua independente do style. O mesmo build Fluent deve ser validado nos três estados de aparência disponíveis em Settings: System, Light e Dark.
 
 ## Compatibilidade obrigatória
 
@@ -160,11 +167,15 @@ A reconstrução preserva:
 - foco inicial de callsign e busca;
 - `Ctrl+N`, `Ctrl+S`, `Ctrl+Enter`, `Ctrl+F` e `Escape`;
 - operação offline/local-first;
-- schema, migrations e formatos persistidos.
+- schema SQLite, migrations e formatos persistidos.
+
+A preferência `appearance.color_scheme` pertence apenas ao arquivo local de configuração e não altera o schema SQLite.
 
 ## Gate de aceitação
 
-O gate técnico continua sendo CI completa. Depois dele é obrigatória uma nova inspeção manual em `1050×680`.
+O gate técnico continua sendo CI completa. Depois dele é obrigatória uma nova inspeção manual em `1050×680` usando Fluent.
+
+O QA deve cobrir System, Light e Dark, incluindo troca runtime e persistência após reiniciar a aplicação.
 
 Falha visual imediata:
 
@@ -175,6 +186,6 @@ Falha visual imediata:
 - controles sobrepostos;
 - conteúdo inacessível por falta de scroll;
 - mudança de página quebrando estado existente;
-- style alternativo tornando uma tela inutilizável.
+- Light ou Dark tornando uma tela ou estado essencial ilegível.
 
 A aprovação visual deve ser registrada em `docs/VISUAL-QA-v0.11.md` somente após executar o build real desta reconstrução.
