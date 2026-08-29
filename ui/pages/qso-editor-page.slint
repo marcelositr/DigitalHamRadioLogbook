@@ -66,39 +66,6 @@ export component QsoEditorPage inherits VerticalBox {
 
     spacing: 0px;
 
-    Rectangle {
-        height: 58px;
-        background: Theme.surface;
-        border-width: 1px;
-        border-color: Theme.border-subtle;
-
-        HorizontalBox {
-            padding-left: Theme.space-lg;
-            padding-right: Theme.space-lg;
-            spacing: Theme.space-md;
-
-            Rectangle { width: 3px; background: Theme.accent; }
-            VerticalBox {
-                spacing: Theme.space-2xs;
-                horizontal-stretch: 1;
-                Text {
-                    text: root.editing-id == "" ? "NEW QSO" : "EDIT QSO";
-                    color: Theme.text-primary;
-                    font-size: Theme.text-lg;
-                    font-weight: 700;
-                }
-                Text {
-                    text: root.editing-id == "" ? "Log a digital radio contact" : "Update contact and mode metadata";
-                    color: Theme.text-muted;
-                    font-size: Theme.text-xs;
-                }
-            }
-            Tag { width: 72px; height: 24px; text: root.mode-text == "" ? "NO MODE" : root.mode-text; accent: root.mode-text != ""; }
-            Text { text: "UTC"; color: Theme.text-muted; font-size: Theme.text-xs; font-weight: 700; vertical-alignment: center; }
-            Text { text: "* REQUIRED"; color: Theme.warning; font-size: Theme.text-xs; font-weight: 700; vertical-alignment: center; }
-        }
-    }
-
     ScrollView {
         accessible-role: form;
         accessible-label: root.editing-id == "" ? "New QSO form" : "Edit QSO form";
@@ -108,7 +75,23 @@ export component QsoEditorPage inherits VerticalBox {
             padding: Theme.space-md;
             spacing: Theme.space-sm;
 
+            HorizontalBox {
+                height: 28px;
+                spacing: Theme.space-sm;
+                Text {
+                    text: root.editing-id == "" ? "Create a new digital contact record" : "Editing existing contact record";
+                    color: Theme.text-muted;
+                    font-size: Theme.text-xs;
+                    vertical-alignment: center;
+                    horizontal-stretch: 1;
+                }
+                Tag { width: 72px; height: 24px; text: root.mode-text == "" ? "NO MODE" : root.mode-text; accent: root.mode-text != ""; }
+                DataLabel { text: "UTC"; }
+                Text { text: "* required"; color: Theme.warning; font-size: Theme.text-xs; font-weight: 700; vertical-alignment: center; }
+            }
+
             Panel {
+                raised: true;
                 VerticalBox {
                     padding: Theme.space-md;
                     spacing: Theme.space-sm;
@@ -323,7 +306,6 @@ export component QsoEditorPage inherits VerticalBox {
     }
 
     if root.duplicate-warning-visible : Rectangle {
-
         accessible-role: form;
         accessible-label: "Possible duplicate QSO actions";
         background: Theme.warning-surface;
