@@ -1,57 +1,58 @@
-// Product visual language: compact desktop radio instrumentation.
+// Material 3-inspired visual system adapted for dense desktop radio work.
+// The product uses tonal surfaces, restrained accent color and consistent state layers.
 import { HorizontalBox, VerticalBox } from "std-widgets.slint";
 
 export global Theme {
-    // Three deliberate depth levels
-    out property <color> background: #171c24;
-    out property <color> surface: #202731;
-    out property <color> surface-raised: #28323e;
-    out property <color> surface-hover: #303c49;
-    out property <color> surface-selected: #263e4c;
+    // Material-style surface roles. Dark, neutral and deliberately low-chroma.
+    out property <color> background: #111418;
+    out property <color> surface: #171b20;
+    out property <color> surface-raised: #1d2228;
+    out property <color> surface-hover: #242a31;
+    out property <color> surface-selected: #20323a;
 
-    // Structure
-    out property <color> border: #34414f;
-    out property <color> border-subtle: #293541;
-    out property <color> divider: #2d3945;
-    out property <color> focus: #7bc4d4;
+    // Outline and focus roles.
+    out property <color> border: #384149;
+    out property <color> border-subtle: #292f36;
+    out property <color> divider: #252b31;
+    out property <color> focus: #8ac7d8;
 
-    // Type
-    out property <color> text-primary: #e6edf3;
-    out property <color> text-secondary: #b7c2cc;
-    out property <color> text-muted: #84919e;
-    out property <color> text-disabled: #606d79;
+    // On-surface type roles.
+    out property <color> text-primary: #e5e9ed;
+    out property <color> text-secondary: #b7bec5;
+    out property <color> text-muted: #858f98;
+    out property <color> text-disabled: #626b73;
 
-    // Product accent
-    out property <color> accent: #72b8c8;
-    out property <color> accent-strong: #8bcbd8;
-    out property <color> accent-secondary: #789fbd;
-    out property <color> primary: #356b82;
-    out property <color> primary-hover: #417c94;
+    // Product accent. Used for actions, focus and selection, never decoration.
+    out property <color> accent: #72b2c4;
+    out property <color> accent-strong: #a8d6e1;
+    out property <color> accent-secondary: #6a9baa;
+    out property <color> primary: #2f697a;
+    out property <color> primary-hover: #397b8f;
 
-    // Operational states
-    out property <color> danger: #d4777f;
-    out property <color> danger-surface: #3b272e;
-    out property <color> warning: #d5b36a;
-    out property <color> warning-surface: #3a3324;
-    out property <color> success: #86b884;
-    out property <color> success-surface: #26372c;
-    out property <color> info-surface: #223540;
-    out property <color> special: #a995bd;
+    // Operational semantic roles.
+    out property <color> danger: #e49a9f;
+    out property <color> danger-surface: #352326;
+    out property <color> warning: #d7ba7b;
+    out property <color> warning-surface: #332d21;
+    out property <color> success: #94bf92;
+    out property <color> success-surface: #233027;
+    out property <color> info-surface: #1d2b31;
+    out property <color> special: #b0a2bf;
 
-    // Compact desktop spacing
-    out property <length> space-2xs: 2px;
-    out property <length> space-xs: 4px;
-    out property <length> space-sm: 7px;
-    out property <length> space-md: 11px;
-    out property <length> space-lg: 15px;
-    out property <length> space-xl: 20px;
+    // 4 px desktop spacing grid.
+    out property <length> space-2xs: 4px;
+    out property <length> space-xs: 8px;
+    out property <length> space-sm: 8px;
+    out property <length> space-md: 12px;
+    out property <length> space-lg: 16px;
+    out property <length> space-xl: 24px;
 
-    // Technical geometry: restrained rounding
-    out property <length> radius-xs: 2px;
-    out property <length> radius-sm: 3px;
-    out property <length> radius-md: 5px;
+    // Restrained Material geometry for desktop density.
+    out property <length> radius-xs: 4px;
+    out property <length> radius-sm: 6px;
+    out property <length> radius-md: 8px;
 
-    // Type scale
+    // Compact desktop type scale.
     out property <length> text-xs: 11px;
     out property <length> text-sm: 12px;
     out property <length> text-md: 14px;
@@ -77,10 +78,10 @@ export component KeyboardAction inherits Rectangle {
     accessible-description: root.description;
     accessible-enabled: root.enabled;
     accessible-action-default => { if root.enabled { root.activated(); } }
-    border-width: action-focus.has-focus ? 2px : root.link ? 0px : 1px;
-    border-color: action-focus.has-focus ? Theme.focus : root.active ? Theme.accent : root.danger ? Theme.danger : Theme.border;
-    min-height: root.link ? 20px : root.compact ? 27px : 33px;
-    max-height: root.link ? 20px : root.compact ? 27px : 33px;
+    border-width: action-focus.has-focus ? 2px : root.link || root.primary ? 0px : 1px;
+    border-color: action-focus.has-focus ? Theme.focus : root.active ? Theme.accent-secondary : root.danger ? Theme.danger : Theme.border;
+    min-height: root.link ? 22px : root.compact ? 28px : 32px;
+    max-height: root.link ? 22px : root.compact ? 28px : 32px;
     border-radius: Theme.radius-sm;
     background: !root.enabled ? Theme.surface
         : root.link ? transparent
@@ -96,7 +97,7 @@ export component KeyboardAction inherits Rectangle {
             : root.danger && pointer.has-hover ? Theme.background
             : Theme.text-primary;
         font-size: root.compact ? Theme.text-xs : Theme.text-sm;
-        font-weight: root.active || root.primary || root.link ? 700 : 500;
+        font-weight: root.active || root.primary ? 600 : root.link ? 550 : 500;
         horizontal-alignment: root.link ? left : center;
         vertical-alignment: center;
         overflow: elide;
@@ -126,10 +127,10 @@ export component SearchField inherits Rectangle {
 
     accessible-role: search;
     accessible-label: "Search logbook";
-    height: 35px;
+    height: 36px;
     min-width: 240px;
     clip: true;
-    background: Theme.background;
+    background: Theme.surface;
     border-width: search-input.has-focus ? 2px : 1px;
     border-color: search-input.has-focus ? Theme.focus : Theme.border;
     border-radius: Theme.radius-sm;
@@ -161,8 +162,8 @@ export component SearchField inherits Rectangle {
 
 export component Panel inherits Rectangle {
     in property <bool> raised: false;
-    background: raised ? Theme.surface-raised : Theme.surface;
-    border-width: 1px;
+    background: raised ? Theme.surface-raised : transparent;
+    border-width: raised ? 1px : 0px;
     border-color: Theme.border-subtle;
     border-radius: Theme.radius-md;
 }
@@ -177,12 +178,12 @@ export component Tag inherits Rectangle {
     in property <bool> accent: false;
     min-width: 48px;
     background: accent ? Theme.surface-selected : Theme.surface-raised;
-    border-radius: Theme.radius-xs;
+    border-radius: Theme.radius-sm;
     Text {
         text: root.text;
         color: accent ? Theme.accent-strong : Theme.text-secondary;
         font-size: Theme.text-xs;
-        font-weight: 700;
+        font-weight: 600;
         horizontal-alignment: center;
         vertical-alignment: center;
         overflow: elide;
@@ -194,7 +195,7 @@ export component FilterChip inherits Rectangle {
     in property <bool> selected: false;
     background: selected ? Theme.surface-selected : Theme.surface;
     border-width: 1px;
-    border-color: selected ? Theme.accent : Theme.border;
+    border-color: selected ? Theme.accent-secondary : Theme.border;
     border-radius: Theme.radius-sm;
     HorizontalBox {
         padding-left: Theme.space-sm;
@@ -205,7 +206,7 @@ export component FilterChip inherits Rectangle {
             text: root.text;
             color: selected ? Theme.accent-strong : Theme.text-secondary;
             font-size: Theme.text-xs;
-            font-weight: 700;
+            font-weight: 600;
             vertical-alignment: center;
         }
     }
@@ -214,65 +215,63 @@ export component FilterChip inherits Rectangle {
 export component DataLabel inherits Text {
     color: Theme.text-muted;
     font-size: Theme.text-xs;
-    font-weight: 600;
+    font-weight: 550;
     vertical-alignment: center;
 }
 
 export component TechnicalValue inherits Text {
     color: Theme.text-primary;
     font-size: Theme.technical-size;
-    font-weight: 600;
+    font-weight: 550;
     vertical-alignment: center;
     overflow: elide;
 }
 
 export component SectionTitle inherits Text {
-    color: Theme.accent;
+    color: Theme.text-primary;
     font-size: Theme.text-md;
-    font-weight: 700;
+    font-weight: 600;
     vertical-alignment: center;
 }
 
 export component PageTitle inherits Text {
     color: Theme.text-primary;
     font-size: Theme.text-xl;
-    font-weight: 700;
+    font-weight: 650;
     vertical-alignment: center;
 }
 
 export component StationBadge inherits Rectangle {
     in property <string> callsign;
 
-    background: Theme.surface;
-    border-width: 1px;
-    border-color: callsign == "" ? Theme.warning : Theme.border;
+    background: transparent;
+    border-width: 0px;
     border-radius: Theme.radius-sm;
 
     HorizontalBox {
-        padding-left: Theme.space-md;
-        padding-right: Theme.space-md;
+        padding-left: Theme.space-sm;
+        padding-right: Theme.space-sm;
         padding-top: Theme.space-xs;
         padding-bottom: Theme.space-xs;
         spacing: Theme.space-sm;
 
         Rectangle {
-            width: 5px;
-            height: 5px;
+            width: 6px;
+            height: 6px;
             border-radius: 3px;
             background: callsign == "" ? Theme.warning : Theme.success;
         }
         Text {
-            text: callsign == "" ? "STATION NOT SET" : callsign;
+            text: callsign == "" ? "Station not set" : callsign;
             color: callsign == "" ? Theme.warning : Theme.text-primary;
             font-size: Theme.text-sm;
-            font-weight: 700;
+            font-weight: 600;
             vertical-alignment: center;
         }
-        Text {
-            text: "LOCAL";
+        if callsign != "" : Text {
+            text: "Local";
             color: Theme.text-muted;
             font-size: Theme.text-xs;
-            font-weight: 700;
             vertical-alignment: center;
         }
     }
@@ -284,15 +283,14 @@ export component ModeBadge inherits Rectangle {
     min-width: 54px;
     max-width: 54px;
     background: mode == "DMR" ? Theme.surface-selected : mode == "FT8" ? Theme.success-surface : Theme.surface-raised;
-    border-width: 1px;
-    border-color: mode == "DMR" ? Theme.accent-secondary : mode == "FT8" ? Theme.success : Theme.border;
-    border-radius: Theme.radius-xs;
+    border-width: 0px;
+    border-radius: Theme.radius-sm;
 
     Text {
         text: mode;
         color: mode == "DMR" ? Theme.accent-strong : mode == "FT8" ? Theme.success : Theme.text-secondary;
         font-size: Theme.text-xs;
-        font-weight: 700;
+        font-weight: 600;
         horizontal-alignment: center;
         vertical-alignment: center;
         overflow: elide;
@@ -307,17 +305,10 @@ export component EmptyState inherits VerticalBox {
     spacing: Theme.space-sm;
 
     Text {
-        text: "NO SIGNAL";
-        color: Theme.accent;
-        font-size: Theme.text-xs;
-        font-weight: 700;
-        horizontal-alignment: center;
-    }
-    Text {
         text: title;
         color: Theme.text-primary;
         font-size: Theme.text-lg;
-        font-weight: 700;
+        font-weight: 600;
         horizontal-alignment: center;
     }
     Text {
@@ -335,7 +326,7 @@ export component StatusBar inherits Rectangle {
     accessible-role: content-info;
     accessible-label: message;
     accessible-live-region: polite;
-    height: 32px;
+    height: 30px;
     background: Theme.surface;
     border-width: 1px;
     border-color: Theme.border-subtle;
@@ -346,20 +337,22 @@ export component StatusBar inherits Rectangle {
         spacing: Theme.space-sm;
 
         Rectangle {
-            width: 3px;
-            background: kind == 3 ? Theme.danger : kind == 2 ? Theme.warning : kind == 1 ? Theme.success : Theme.accent;
+            width: 5px;
+            height: 5px;
+            border-radius: 3px;
+            background: kind == 3 ? Theme.danger : kind == 2 ? Theme.warning : kind == 1 ? Theme.success : Theme.text-muted;
         }
         Text {
-            text: kind == 3 ? "ERROR" : kind == 2 ? "NOTICE" : kind == 1 ? "DONE" : "STATUS";
-            color: kind == 3 ? Theme.danger : kind == 2 ? Theme.warning : kind == 1 ? Theme.success : Theme.accent;
+            text: kind == 3 ? "Error" : kind == 2 ? "Notice" : kind == 1 ? "Complete" : "Local database";
+            color: kind == 3 ? Theme.danger : kind == 2 ? Theme.warning : kind == 1 ? Theme.success : Theme.text-muted;
             font-size: Theme.text-xs;
-            font-weight: 700;
+            font-weight: 600;
             vertical-alignment: center;
         }
         Text {
             text: message;
             color: Theme.text-secondary;
-            font-size: Theme.text-sm;
+            font-size: Theme.text-xs;
             vertical-alignment: center;
             overflow: elide;
         }
