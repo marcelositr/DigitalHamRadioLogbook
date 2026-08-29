@@ -51,7 +51,7 @@ A tabela `digital_routes` permanece específica de DMR. SQL, tabelas, consultas 
 
 Na reconciliação ADIF, campos privados reconhecidos pelo modo atual são materializados como metadata e removidos da coleção de extras; campos realmente desconhecidos permanecem preservados. Isso impede duplicação ou sobrevivência de campos específicos obsoletos após mudança de modo.
 
-Consulte `docs/WHAT-ADDING-DSTAR-REQUIRED.md`, `docs/ADDING-A-DIGITAL-MODE.md` e `docs/FOUR-MODE-ARCHITECTURE-REVIEW.md`.
+Consulte [`decisions/WHAT-ADDING-DSTAR-REQUIRED.md`](decisions/WHAT-ADDING-DSTAR-REQUIRED.md), [`ADDING-A-DIGITAL-MODE.md`](ADDING-A-DIGITAL-MODE.md) e [`decisions/FOUR-MODE-ARCHITECTURE-REVIEW.md`](decisions/FOUR-MODE-ARCHITECTURE-REVIEW.md).
 
 ## Onde alterar
 
@@ -69,3 +69,53 @@ Os índices YSF são limitados a TX/RX DG-ID. `EXPLAIN QUERY PLAN` não demonstr
 O editor envia um snapshot imutável do formulário para validação e persistência. Um guard de submissão impede double-submit; o snapshot de referência para dirty state só é substituído depois do commit bem-sucedido. Em **Save & New**, exclusivo da criação, a sequência é validar → commit → refresh da listagem → limpeza integral dos campos e metadados → captura de um novo UTC fixo. O QSO recém-gravado não é reenviado.
 
 A consulta de possível duplicidade usa callsign normalizado, UTC inicial, frequência inteira em Hz e modo normalizado. Updates excluem o próprio ID. O resultado é deliberadamente apenas um aviso com **Review** e **Save anyway**: não há merge, bloqueio, migration, índice novo ou constraint `UNIQUE`, preservando duplicados manuais intencionais.
+
+## Arquitetura da interface v0.11
+
+A v0.11 preserva Slint e o contrato público consumido pelo Rust, mas reconstrói a superfície gráfica a partir de princípios Slint-native. A implementação anterior não é usada como referência visual.
+
+```text
+ui/
+├── app.slint
+├── appearance.slint
+├── design-system.slint
+├── main.slint
+├── components/
+│   └── app-shell.slint
+├── models/
+└── pages/
+    ├── logbook-page.slint
+    ├── qso-editor-page.slint
+    ├── tools-page.slint
+    └── settings-page.slint
+```
+
+`ui/app.slint` é o entrypoint compilado por `build.rs` e apenas reexporta `MainWindow` e o global `Appearance` para a API Rust gerada. `ui/main.slint` mantém o contrato funcional da janela e os callbacks/properties usados por `src/app/*`; a mudança de interface permanece separada do domínio e do SQLite.
+
+O shell é composto por:
+
+- `MenuBar`, `Menu`, `MenuItem` e `MenuSeparator` nativos para comandos globais e secundários;
+- sidebar recolhível simples com Logbook, New QSO, Tools e Settings;
+- workspace central ocupado por uma das quatro páginas;
+- barra de status global fora do conteúdo rolável.
+
+Não existe barra contextual, menu superior simulado nem categorização visual `Operation`, `Data` ou `System`.
+
+`ui/design-system.slint` deixa de representar um tema proprietário. Ele contém somente primitivas semânticas pequenas que faltam em `std-widgets.slint`, como `FormField`, `TextAction`, `EmptyState` e `StatusBar`. Essas primitivas usam `Palette` e `StyleMetrics`.
+
+`ui/appearance.slint` concentra a preferência de esquema de cores e escreve em `Palette.color-scheme`. O style do produto é fixado como **Fluent** em `build.rs`; não existe troca runtime entre Fluent, Material, Cupertino ou Cosmic.
+
+As páginas priorizam widgets padrão e layouts naturais:
+
+- Logbook é um workspace de dados em linhas/colunas, sem cards individuais por QSO;
+- editor usa `GroupBox` para Contact, Station and report, Notes e metadata condicional de modo;
+- Tools usa grupos para ADIF, Data health e Database backup;
+- Settings usa grupos para Appearance, Local station e External lookup links.
+
+Dimensionamento deve preferir conteúdo, `preferred-*`, `min-*` e stretch. Medidas fixas são reservadas a casos estruturais previsíveis, como largura da sidebar e alinhamento de colunas da listagem.
+
+A aparência oferece `System`, `Light` e `Dark`. `System` é o default e usa `ColorScheme.unknown`, permitindo que o Fluent acompanhe o esquema reportado pelo desktop; Light e Dark forçam seus respectivos valores. A preferência é armazenada em `config.toml` na seção `appearance`, de forma retrocompatível, sem migration ou mudança no schema SQLite.
+
+Clipping, sobreposição, separador atravessando input, botão truncado ou conteúdo essencial inacessível são falhas de QA em qualquer um dos três esquemas.
+
+Detalhes, restrições e gate da reconstrução ficam em [`UI-ARCHITECTURE-v0.11.md`](UI-ARCHITECTURE-v0.11.md) e [`../quality/VISUAL-QA-v0.11.md`](../quality/VISUAL-QA-v0.11.md). A homologação visual anterior não é herdada; o novo layout exige regressão manual em `1050×680`, nos modos System, Light e Dark, antes de ser considerado aprovado.

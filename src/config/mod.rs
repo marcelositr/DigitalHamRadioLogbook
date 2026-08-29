@@ -15,6 +15,49 @@ pub struct AppConfig {
     pub external_links: ExternalLinksConfig,
     #[serde(default)]
     pub operational: OperationalConfig,
+    #[serde(default)]
+    pub appearance: AppearanceConfig,
+}
+
+pub const COLOR_SCHEME_SYSTEM: &str = "system";
+pub const COLOR_SCHEME_LIGHT: &str = "light";
+pub const COLOR_SCHEME_DARK: &str = "dark";
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AppearanceConfig {
+    #[serde(default = "default_color_scheme")]
+    pub color_scheme: String,
+}
+
+impl Default for AppearanceConfig {
+    fn default() -> Self {
+        Self {
+            color_scheme: default_color_scheme(),
+        }
+    }
+}
+
+impl AppearanceConfig {
+    pub fn color_scheme_index(&self) -> i32 {
+        match self.color_scheme.as_str() {
+            COLOR_SCHEME_LIGHT => 1,
+            COLOR_SCHEME_DARK => 2,
+            _ => 0,
+        }
+    }
+
+    pub fn set_color_scheme_index(&mut self, index: i32) {
+        self.color_scheme = match index {
+            1 => COLOR_SCHEME_LIGHT,
+            2 => COLOR_SCHEME_DARK,
+            _ => COLOR_SCHEME_SYSTEM,
+        }
+        .into();
+    }
+}
+
+fn default_color_scheme() -> String {
+    COLOR_SCHEME_SYSTEM.into()
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -271,6 +314,28 @@ mod tests {
         let config: AppConfig = toml::from_str("[station]\ncallsign = 'PY2ABC'\n").unwrap();
         assert_eq!(config.external_links, ExternalLinksConfig::default());
         assert_eq!(config.operational, OperationalConfig::default());
+        assert_eq!(config.appearance, AppearanceConfig::default());
+    }
+
+    #[test]
+    fn appearance_defaults_to_system_and_sanitizes_unknown_values() {
+        let mut appearance = AppearanceConfig::default();
+        assert_eq!(appearance.color_scheme, COLOR_SCHEME_SYSTEM);
+        assert_eq!(appearance.color_scheme_index(), 0);
+
+        appearance.set_color_scheme_index(1);
+        assert_eq!(appearance.color_scheme, COLOR_SCHEME_LIGHT);
+        assert_eq!(appearance.color_scheme_index(), 1);
+
+        appearance.set_color_scheme_index(2);
+        assert_eq!(appearance.color_scheme, COLOR_SCHEME_DARK);
+        assert_eq!(appearance.color_scheme_index(), 2);
+
+        appearance.color_scheme = "unexpected".into();
+        assert_eq!(appearance.color_scheme_index(), 0);
+
+        appearance.set_color_scheme_index(99);
+        assert_eq!(appearance.color_scheme, COLOR_SCHEME_SYSTEM);
     }
 
     #[test]
@@ -300,6 +365,7 @@ mod tests {
         let path = directory.join("config.toml");
         let mut config = AppConfig::default();
         config.set_callsign("PY2ABC").unwrap();
+        config.appearance.set_color_scheme_index(2);
         config.operational = OperationalConfig {
             active_page: 2,
             active_filter: 1,

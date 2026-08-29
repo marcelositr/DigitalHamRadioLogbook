@@ -1,0 +1,75 @@
+name: Database migrations
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: migrations-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  migrations:
+    name: Historical schemas 0-7
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+
+      - name: Set up Rust and Linux dependencies
+        uses: ./.github/actions/setup-rust-linux
+        with:
+          cache-key: migrations
+
+      - name: Migrate schema v0 to current
+        env:
+          MIGRATION_SOURCE_VERSION: "0"
+        run: cargo test --locked database::migrations::tests::migrates_every_supported_schema_version_without_losing_data -- --exact
+
+      - name: Migrate schema v1 to current
+        env:
+          MIGRATION_SOURCE_VERSION: "1"
+        run: cargo test --locked database::migrations::tests::migrates_every_supported_schema_version_without_losing_data -- --exact
+
+      - name: Migrate schema v2 to current
+        env:
+          MIGRATION_SOURCE_VERSION: "2"
+        run: cargo test --locked database::migrations::tests::migrates_every_supported_schema_version_without_losing_data -- --exact
+
+      - name: Migrate schema v3 to current
+        env:
+          MIGRATION_SOURCE_VERSION: "3"
+        run: cargo test --locked database::migrations::tests::migrates_every_supported_schema_version_without_losing_data -- --exact
+
+      - name: Migrate schema v4 to current
+        env:
+          MIGRATION_SOURCE_VERSION: "4"
+        run: cargo test --locked database::migrations::tests::migrates_every_supported_schema_version_without_losing_data -- --exact
+
+      - name: Migrate schema v5 to current
+        env:
+          MIGRATION_SOURCE_VERSION: "5"
+        run: cargo test --locked database::migrations::tests::migrates_every_supported_schema_version_without_losing_data -- --exact
+
+      - name: Migrate schema v6 to current
+        env:
+          MIGRATION_SOURCE_VERSION: "6"
+        run: cargo test --locked database::migrations::tests::migrates_every_supported_schema_version_without_losing_data -- --exact
+
+      - name: Migrate schema v7 to current
+        env:
+          MIGRATION_SOURCE_VERSION: "7"
+        run: cargo test --locked database::migrations::tests::migrates_every_supported_schema_version_without_losing_data -- --exact

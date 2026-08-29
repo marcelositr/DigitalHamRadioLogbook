@@ -1,5 +1,6 @@
-import { Button, LineEdit, ListView, ScrollView, VerticalBox, HorizontalBox } from "std-widgets.slint";
-import { Theme, EmptyState, KeyboardAction, ModeBadge, PageTitle, SectionTitle, StationBadge, StatusBar } from "design-system.slint";
+import { Button, GroupBox, HorizontalBox, VerticalBox } from "std-widgets.slint";
+import { StatusBar } from "design-system.slint";
+import { AppSidebar } from "components/app-shell.slint";
 
 import { QsoRow } from "models/qso-types.slint";
 import { LogbookPage } from "pages/logbook-page.slint";
@@ -9,14 +10,16 @@ import { SettingsPage } from "pages/settings-page.slint";
 
 export component MainWindow inherits Window {
     title: "Digital Ham Radio Logbook";
-    width: 1050px;
-    height: 680px;
-    background: Theme.background;
+    preferred-width: 1050px;
+    preferred-height: 680px;
+    min-width: 1000px;
+    min-height: 600px;
 
-    in-out property <int> active-page: 0; // 0 logbook, 1 form, 2 tools, 3 settings
-    in-out property <int> active-filter: 0; // 0 all, 1 DMR, 2 FT8, 3 D-STAR, 4 YSF/C4FM
+    in-out property <int> active-page: 0;
+    in-out property <int> active-filter: 0;
     in-out property <bool> filters-expanded: false;
     in-out property <bool> filters-applied: false;
+    in-out property <bool> sidebar-collapsed: false;
     in-out property <[QsoRow]> qsos;
     in-out property <int> logbook-page-offset;
     in-out property <int> logbook-page-limit;
@@ -24,7 +27,7 @@ export component MainWindow inherits Window {
     in-out property <int> logbook-page-number;
     in-out property <int> logbook-page-count;
     in-out property <string> status-text: "Ready";
-    in-out property <int> status-kind: 0; // 0 info, 1 success, 2 warning, 3 error
+    in-out property <int> status-kind: 0;
     in-out property <string> local-callsign-text;
     in-out property <string> callsign-url-text;
     in-out property <string> grid-url-text;
@@ -32,7 +35,7 @@ export component MainWindow inherits Window {
     in-out property <string> callsign-text;
     in-out property <string> datetime-text;
     in-out property <string> mode-text;
-    in-out property <int> mode-kind: 0; // 0 generic, 1 DMR, 2 FT8, 3 D-STAR, 4 YSF/C4FM
+    in-out property <int> mode-kind: 0;
     in-out property <string> frequency-text;
     in-out property <string> band-text;
     in-out property <string> rst-sent-text;
@@ -121,23 +124,97 @@ export component MainWindow inherits Window {
     in-out property <bool> exit-save-failed: false;
     in-out property <string> exit-error-text;
 
-    callback save-qso(); callback save-and-new-qso(); callback search-qso(string); callback mode-input-changed(string);
-    callback review-duplicate(); callback save-duplicate-anyway();
-
+    callback save-qso();
+    callback save-and-new-qso();
+    callback search-qso(string);
+    callback mode-input-changed(string);
+    callback review-duplicate();
+    callback save-duplicate-anyway();
     public function focus-callsign() { root.callsign-focus-request = !root.callsign-focus-request; }
     public function focus-search() { root.search-focus-request = !root.search-focus-request; }
-    callback previous-logbook-page(); callback next-logbook-page();
-    callback filter-dmr(); callback clear-dmr-filter();
-    callback filter-ft8(); callback clear-ft8-filter();
-    callback filter-dstar(); callback clear-dstar-filter();
-    callback filter-ysf(); callback clear-ysf-filter();
-    callback save-local-callsign(); callback save-external-links(); callback restore-external-link-defaults();
-    callback open-callsign-lookup(string); callback open-grid-lookup(string);
-    callback preview-adif(); callback confirm-adif-import(); callback cancel-adif-import(); callback invalidate-adif-preview(); callback export-adif(); callback export-current-adif();
-    callback choose-adif-import(); callback choose-adif-export(); callback choose-backup-destination();
-    callback backup-database(); callback check-data-health(); callback verify-backup(); callback delete-qso(string); callback clear-editor();
-    callback request-page(int); callback confirm-discard-editor(); callback keep-editing(); callback editor-opened();
-    callback continue-working(); callback discard-and-exit(); callback retry-exit(); callback exit-without-saving();
+    callback previous-logbook-page();
+    callback next-logbook-page();
+    callback filter-dmr();
+    callback clear-dmr-filter();
+    callback filter-ft8();
+    callback clear-ft8-filter();
+    callback filter-dstar();
+    callback clear-dstar-filter();
+    callback filter-ysf();
+    callback clear-ysf-filter();
+    callback save-local-callsign();
+    callback save-external-links();
+    callback restore-external-link-defaults();
+    callback open-callsign-lookup(string);
+    callback open-grid-lookup(string);
+    callback preview-adif();
+    callback confirm-adif-import();
+    callback cancel-adif-import();
+    callback invalidate-adif-preview();
+    callback export-adif();
+    callback export-current-adif();
+    callback choose-adif-import();
+    callback choose-adif-export();
+    callback choose-backup-destination();
+    callback backup-database();
+    callback check-data-health();
+    callback verify-backup();
+    callback delete-qso(string);
+    callback clear-editor();
+    callback request-page(int);
+    callback confirm-discard-editor();
+    callback keep-editing();
+    callback editor-opened();
+    callback continue-working();
+    callback discard-and-exit();
+    callback retry-exit();
+    callback exit-without-saving();
+
+    MenuBar {
+        Menu {
+            title: "File";
+            MenuItem { title: "Logbook"; activated => { root.request-page(0); } }
+            MenuItem { title: "New QSO"; activated => { root.request-page(1); } }
+            MenuSeparator {}
+            MenuItem { title: "Data tools"; activated => { root.request-page(2); } }
+        }
+        Menu {
+            title: "QSO";
+            MenuItem {
+                title: root.editing-id == "" ? "Save QSO" : "Save changes";
+                enabled: root.active-page == 1;
+                activated => { root.save-qso(); }
+            }
+            MenuItem {
+                title: "Save & New";
+                enabled: root.active-page == 1 && root.editing-id == "";
+                activated => { root.save-and-new-qso(); }
+            }
+        }
+        Menu {
+            title: "View";
+            MenuItem { title: "Logbook"; activated => { root.request-page(0); } }
+            MenuItem { title: "Tools"; activated => { root.request-page(2); } }
+            MenuItem { title: "Settings"; activated => { root.request-page(3); } }
+            MenuSeparator {}
+            MenuItem {
+                title: root.sidebar-collapsed ? "Expand sidebar" : "Collapse sidebar";
+                activated => { root.sidebar-collapsed = !root.sidebar-collapsed; }
+            }
+        }
+        Menu {
+            title: "Tools";
+            MenuItem { title: "ADIF and backup"; activated => { root.request-page(2); } }
+            MenuItem {
+                title: "Check data health";
+                activated => {
+                    root.request-page(2);
+                    root.check-data-health();
+                }
+            }
+            MenuItem { title: "Settings"; activated => { root.request-page(3); } }
+        }
+    }
 
     FocusScope {
         key-pressed(event) => {
@@ -146,15 +223,15 @@ export component MainWindow inherits Window {
                 else if root.duplicate-warning-visible { root.review-duplicate(); }
                 else if root.discard-editor-visible { root.keep-editing(); }
                 else if root.adif-preview-visible { root.cancel-adif-import(); }
-                else if root.pending-delete-id != "" { root.pending-delete-id = ""; root.pending-delete-label = ""; }
+                else if root.pending-delete-id != "" {
+                    root.pending-delete-id = "";
+                    root.pending-delete-label = "";
+                }
                 else if root.active-page == 1 { root.request-page(0); }
                 else { return reject; }
                 return accept;
             }
-            if event.modifiers.control && event.text == "n" {
-                root.request-page(1);
-                return accept;
-            }
+            if event.modifiers.control && event.text == "n" { root.request-page(1); return accept; }
             if event.modifiers.control && event.text == "s" && root.active-page == 1 && !root.duplicate-warning-visible && !root.discard-editor-visible {
                 root.save-qso();
                 return accept;
@@ -163,266 +240,249 @@ export component MainWindow inherits Window {
                 root.save-and-new-qso();
                 return accept;
             }
-            if event.modifiers.control && event.text == "f" && root.active-page == 0 {
-                root.focus-search();
-                return accept;
-            }
+            if event.modifiers.control && event.text == "f" && root.active-page == 0 { root.focus-search(); return accept; }
             return reject;
         }
     }
 
     VerticalBox {
         spacing: 0px;
+        HorizontalBox {
+            spacing: 0px;
+            vertical-stretch: 1;
+            AppSidebar {
+                active-page: root.active-page;
+                collapsed: root.sidebar-collapsed;
+                callsign: root.local-callsign-text;
+                navigate(page) => { root.request-page(page); }
+                toggle => { root.sidebar-collapsed = !root.sidebar-collapsed; }
+            }
+            VerticalBox {
+                horizontal-stretch: 1;
+                spacing: 0px;
 
-        Rectangle {
-            accessible-role: banner;
-            accessible-label: "Application header and main navigation";
-            height: 66px;
-            background: Theme.surface;
-            border-width: 1px;
-            border-color: Theme.border-subtle;
-            HorizontalBox {
-                padding-left: Theme.space-lg; padding-right: Theme.space-lg;
-                padding-top: Theme.space-sm; padding-bottom: Theme.space-sm;
-                spacing: Theme.space-lg;
-                VerticalBox {
-                    width: 226px;
-                    spacing: Theme.space-2xs;
-                    alignment: center;
-                    Text { text: "DIGITAL HAM RADIO"; color: Theme.text-muted; font-size: Theme.text-xs; font-weight: 700; }
-                    Text { text: "LOGBOOK"; color: Theme.text-primary; font-size: Theme.text-lg; font-weight: 700; }
-                }
-                Rectangle {
-                    accessible-role: navigation;
-                    accessible-label: "Main pages";
-                    background: transparent;
-                    horizontal-stretch: 1;
+                if root.exit-confirmation-visible : GroupBox {
+                    title: root.exit-save-failed ? "Could not save preferences" : "Exit with pending work?";
+                    vertical-stretch: 0;
                     HorizontalBox {
-                        spacing: Theme.space-xs;
-                        KeyboardAction { width: 94px; label: "Logbook"; description: "Open the logbook page"; active: root.active-page == 0; activated => { root.request-page(0); } }
-                        KeyboardAction { width: 108px; label: "+ New QSO"; description: "Open the QSO editor"; active: root.active-page == 1; primary: root.active-page != 1; activated => { root.request-page(1); } }
-                        KeyboardAction { width: 84px; label: "Tools"; description: "Open ADIF and backup tools"; active: root.active-page == 2; activated => { root.request-page(2); } }
-                        KeyboardAction { width: 94px; label: "Settings"; description: "Open application settings"; active: root.active-page == 3; activated => { root.request-page(3); } }
-                        Rectangle { horizontal-stretch: 1; }
+                        Text {
+                            text: root.exit-save-failed ? root.exit-error-text : "Unsaved QSO changes or an ADIF preview will be discarded.";
+                            horizontal-stretch: 1;
+                            wrap: word-wrap;
+                            vertical-alignment: center;
+                        }
+                        Button { text: "Continue working"; clicked => { root.continue-working(); } }
+                        if root.exit-save-failed : Button { text: "Exit without saving preferences"; clicked => { root.exit-without-saving(); } }
+                        Button {
+                            text: root.exit-save-failed ? "Try again" : "Discard and exit";
+                            primary: true;
+                            clicked => {
+                                if root.exit-save-failed { root.retry-exit(); }
+                                else { root.discard-and-exit(); }
+                            }
+                        }
                     }
                 }
-                StationBadge { callsign: root.local-callsign-text; }
-            }
-        }
 
-        if root.exit-confirmation-visible : Rectangle {
-            background: Theme.surface-raised; border-width: 1px; border-color: root.exit-save-failed ? Theme.danger : Theme.warning; border-radius: Theme.radius-md;
-            HorizontalBox {
-                padding: Theme.space-md; spacing: Theme.space-md;
-                VerticalBox {
-                    spacing: 2px; horizontal-stretch: 1;
-                    Text { text: root.exit-save-failed ? "Could not save preferences" : "Exit with pending work?"; color: root.exit-save-failed ? Theme.danger : Theme.warning; font-weight: 700; }
-                    Text { text: root.exit-save-failed ? root.exit-error-text : "Unsaved QSO changes or an ADIF preview will be discarded."; color: Theme.text-secondary; wrap: word-wrap; }
+                if root.active-page == 0 : LogbookPage {
+                    active-filter <=> root.active-filter;
+                    search-focus-request: root.search-focus-request;
+                    active-page <=> root.active-page;
+                    band-text <=> root.band-text;
+                    callsign-text <=> root.callsign-text;
+                    datetime-text <=> root.datetime-text;
+                    dmr-access-type-text <=> root.dmr-access-type-text;
+                    dmr-call-type-text <=> root.dmr-call-type-text;
+                    dmr-color-code-text <=> root.dmr-color-code-text;
+                    dmr-filter-hotspot-text <=> root.dmr-filter-hotspot-text;
+                    dmr-filter-id-text <=> root.dmr-filter-id-text;
+                    dmr-filter-network-text <=> root.dmr-filter-network-text;
+                    dmr-filter-repeater-text <=> root.dmr-filter-repeater-text;
+                    dmr-filter-talkgroup-text <=> root.dmr-filter-talkgroup-text;
+                    dmr-filter-timeslot-text <=> root.dmr-filter-timeslot-text;
+                    dmr-hotspot-text <=> root.dmr-hotspot-text;
+                    dmr-local-id-text <=> root.dmr-local-id-text;
+                    dmr-network-text <=> root.dmr-network-text;
+                    dmr-notes-text <=> root.dmr-notes-text;
+                    dmr-remote-id-text <=> root.dmr-remote-id-text;
+                    dmr-repeater-text <=> root.dmr-repeater-text;
+                    dmr-talkgroup-text <=> root.dmr-talkgroup-text;
+                    dmr-timeslot-text <=> root.dmr-timeslot-text;
+                    dstar-reflector-text <=> root.dstar-reflector-text;
+                    dstar-module-text <=> root.dstar-module-text;
+                    dstar-mycall-text <=> root.dstar-mycall-text;
+                    dstar-urcall-text <=> root.dstar-urcall-text;
+                    dstar-rpt1-text <=> root.dstar-rpt1-text;
+                    dstar-rpt2-text <=> root.dstar-rpt2-text;
+                    dstar-notes-text <=> root.dstar-notes-text;
+                    dstar-filter-reflector-text <=> root.dstar-filter-reflector-text;
+                    dstar-filter-module-text <=> root.dstar-filter-module-text;
+                    dstar-filter-rpt1-text <=> root.dstar-filter-rpt1-text;
+                    ysf-filter-room-text <=> root.ysf-filter-room-text;
+                    ysf-filter-node-text <=> root.ysf-filter-node-text;
+                    ysf-filter-dg-id-text <=> root.ysf-filter-dg-id-text;
+                    ysf-room-text <=> root.ysf-room-text;
+                    ysf-wires-x-node-text <=> root.ysf-wires-x-node-text;
+                    ysf-repeater-text <=> root.ysf-repeater-text;
+                    ysf-network-text <=> root.ysf-network-text;
+                    ysf-access-type-text <=> root.ysf-access-type-text;
+                    ysf-tx-dg-id-text <=> root.ysf-tx-dg-id-text;
+                    ysf-rx-dg-id-text <=> root.ysf-rx-dg-id-text;
+                    ysf-notes-text <=> root.ysf-notes-text;
+                    editing-id <=> root.editing-id;
+                    filters-applied <=> root.filters-applied;
+                    filters-expanded <=> root.filters-expanded;
+                    frequency-text <=> root.frequency-text;
+                    ft8-audio-frequency-text <=> root.ft8-audio-frequency-text;
+                    ft8-filter-band-text <=> root.ft8-filter-band-text;
+                    ft8-filter-callsign-text <=> root.ft8-filter-callsign-text;
+                    ft8-filter-end-text <=> root.ft8-filter-end-text;
+                    ft8-filter-grid-text <=> root.ft8-filter-grid-text;
+                    ft8-filter-max-snr-text <=> root.ft8-filter-max-snr-text;
+                    ft8-filter-min-snr-text <=> root.ft8-filter-min-snr-text;
+                    ft8-filter-start-text <=> root.ft8-filter-start-text;
+                    ft8-final-message-text <=> root.ft8-final-message-text;
+                    ft8-power-text <=> root.ft8-power-text;
+                    ft8-protocol-text <=> root.ft8-protocol-text;
+                    ft8-snr-received-text <=> root.ft8-snr-received-text;
+                    ft8-snr-sent-text <=> root.ft8-snr-sent-text;
+                    ft8-source-software-text <=> root.ft8-source-software-text;
+                    grid-text <=> root.grid-text;
+                    mode-text <=> root.mode-text;
+                    name-text <=> root.name-text;
+                    notes-text <=> root.notes-text;
+                    pending-delete-id <=> root.pending-delete-id;
+                    pending-delete-label <=> root.pending-delete-label;
+                    qsos <=> root.qsos;
+                    logbook-page-offset <=> root.logbook-page-offset;
+                    logbook-page-limit <=> root.logbook-page-limit;
+                    logbook-page-total <=> root.logbook-page-total;
+                    logbook-page-number <=> root.logbook-page-number;
+                    logbook-page-count <=> root.logbook-page-count;
+                    qth-text <=> root.qth-text;
+                    rst-received-text <=> root.rst-received-text;
+                    rst-sent-text <=> root.rst-sent-text;
+                    search-text <=> root.search-text;
+                    clear-dmr-filter => { root.clear-dmr-filter(); }
+                    clear-ft8-filter => { root.clear-ft8-filter(); }
+                    clear-dstar-filter => { root.clear-dstar-filter(); }
+                    clear-ysf-filter => { root.clear-ysf-filter(); }
+                    delete-qso(value) => { root.delete-qso(value); }
+                    editor-opened => { root.editor-opened(); }
+                    filter-dmr => { root.filter-dmr(); }
+                    filter-ft8 => { root.filter-ft8(); }
+                    filter-dstar => { root.filter-dstar(); }
+                    filter-ysf => { root.filter-ysf(); }
+                    mode-input-changed(value) => { root.mode-input-changed(value); }
+                    previous-logbook-page => { root.previous-logbook-page(); }
+                    next-logbook-page => { root.next-logbook-page(); }
+                    open-callsign-lookup(value) => { root.open-callsign-lookup(value); }
+                    open-grid-lookup(value) => { root.open-grid-lookup(value); }
+                    request-page(value) => { root.request-page(value); }
+                    search-qso(value) => { root.search-qso(value); }
                 }
-                Button { text: "Continue working"; clicked => { root.continue-working(); } }
-                if root.exit-save-failed : Button { text: "Exit without saving preferences"; clicked => { root.exit-without-saving(); } }
-                Button { text: root.exit-save-failed ? "Try again" : "Discard and exit"; primary: true; clicked => { if root.exit-save-failed { root.retry-exit(); } else { root.discard-and-exit(); } } }
+
+                if root.active-page == 1 : QsoEditorPage {
+                    band-text <=> root.band-text;
+                    callsign-text <=> root.callsign-text;
+                    callsign-focus-request: root.callsign-focus-request;
+                    datetime-text <=> root.datetime-text;
+                    discard-editor-visible <=> root.discard-editor-visible;
+                    duplicate-warning-visible <=> root.duplicate-warning-visible;
+                    duplicate-warning-text <=> root.duplicate-warning-text;
+                    dmr-access-type-text <=> root.dmr-access-type-text;
+                    dmr-call-type-text <=> root.dmr-call-type-text;
+                    dmr-color-code-text <=> root.dmr-color-code-text;
+                    dmr-hotspot-text <=> root.dmr-hotspot-text;
+                    dmr-local-id-text <=> root.dmr-local-id-text;
+                    dmr-network-text <=> root.dmr-network-text;
+                    dmr-notes-text <=> root.dmr-notes-text;
+                    dmr-remote-id-text <=> root.dmr-remote-id-text;
+                    dmr-repeater-text <=> root.dmr-repeater-text;
+                    dmr-talkgroup-text <=> root.dmr-talkgroup-text;
+                    dmr-timeslot-text <=> root.dmr-timeslot-text;
+                    dstar-reflector-text <=> root.dstar-reflector-text;
+                    dstar-module-text <=> root.dstar-module-text;
+                    dstar-mycall-text <=> root.dstar-mycall-text;
+                    dstar-urcall-text <=> root.dstar-urcall-text;
+                    dstar-rpt1-text <=> root.dstar-rpt1-text;
+                    dstar-rpt2-text <=> root.dstar-rpt2-text;
+                    dstar-notes-text <=> root.dstar-notes-text;
+                    ysf-room-text <=> root.ysf-room-text;
+                    ysf-wires-x-node-text <=> root.ysf-wires-x-node-text;
+                    ysf-repeater-text <=> root.ysf-repeater-text;
+                    ysf-network-text <=> root.ysf-network-text;
+                    ysf-access-type-text <=> root.ysf-access-type-text;
+                    ysf-tx-dg-id-text <=> root.ysf-tx-dg-id-text;
+                    ysf-rx-dg-id-text <=> root.ysf-rx-dg-id-text;
+                    ysf-notes-text <=> root.ysf-notes-text;
+                    editing-id <=> root.editing-id;
+                    frequency-text <=> root.frequency-text;
+                    ft8-audio-frequency-text <=> root.ft8-audio-frequency-text;
+                    ft8-final-message-text <=> root.ft8-final-message-text;
+                    ft8-power-text <=> root.ft8-power-text;
+                    ft8-protocol-text <=> root.ft8-protocol-text;
+                    ft8-snr-received-text <=> root.ft8-snr-received-text;
+                    ft8-snr-sent-text <=> root.ft8-snr-sent-text;
+                    ft8-source-software-text <=> root.ft8-source-software-text;
+                    grid-text <=> root.grid-text;
+                    mode-kind <=> root.mode-kind;
+                    mode-text <=> root.mode-text;
+                    name-text <=> root.name-text;
+                    notes-text <=> root.notes-text;
+                    qth-text <=> root.qth-text;
+                    rst-received-text <=> root.rst-received-text;
+                    rst-sent-text <=> root.rst-sent-text;
+                    confirm-discard-editor => { root.confirm-discard-editor(); }
+                    keep-editing => { root.keep-editing(); }
+                    mode-input-changed(value) => { root.mode-input-changed(value); }
+                    request-page(value) => { root.request-page(value); }
+                    save-qso => { root.save-qso(); }
+                    save-and-new-qso => { root.save-and-new-qso(); }
+                    review-duplicate => { root.review-duplicate(); }
+                    save-duplicate-anyway => { root.save-duplicate-anyway(); }
+                }
+
+                if root.active-page == 2 : ToolsPage {
+                    adif-path-text <=> root.adif-path-text;
+                    adif-preview-duplicates <=> root.adif-preview-duplicates;
+                    adif-preview-invalid <=> root.adif-preview-invalid;
+                    adif-preview-modes <=> root.adif-preview-modes;
+                    adif-preview-bands <=> root.adif-preview-bands;
+                    adif-preview-date-range <=> root.adif-preview-date-range;
+                    adif-preview-invalid-details <=> root.adif-preview-invalid-details;
+                    adif-preview-new <=> root.adif-preview-new;
+                    adif-preview-total <=> root.adif-preview-total;
+                    adif-preview-visible <=> root.adif-preview-visible;
+                    backup-path-text <=> root.backup-path-text;
+                    database-report-visible <=> root.database-report-visible;
+                    database-report-title <=> root.database-report-title;
+                    database-report-text <=> root.database-report-text;
+                    database-report-kind <=> root.database-report-kind;
+                    backup-database => { root.backup-database(); }
+                    check-data-health => { root.check-data-health(); }
+                    verify-backup => { root.verify-backup(); }
+                    cancel-adif-import => { root.cancel-adif-import(); }
+                    choose-adif-export => { root.choose-adif-export(); }
+                    choose-adif-import => { root.choose-adif-import(); }
+                    choose-backup-destination => { root.choose-backup-destination(); }
+                    confirm-adif-import => { root.confirm-adif-import(); }
+                    export-adif => { root.export-adif(); }
+                    export-current-adif => { root.export-current-adif(); }
+                    invalidate-adif-preview => { root.invalidate-adif-preview(); }
+                    preview-adif => { root.preview-adif(); }
+                }
+
+                if root.active-page == 3 : SettingsPage {
+                    callsign-url-text <=> root.callsign-url-text;
+                    grid-url-text <=> root.grid-url-text;
+                    local-callsign-text <=> root.local-callsign-text;
+                    restore-external-link-defaults => { root.restore-external-link-defaults(); }
+                    save-external-links => { root.save-external-links(); }
+                    save-local-callsign => { root.save-local-callsign(); }
+                }
             }
         }
-
-        if root.active-page == 0 : logbook-page := LogbookPage {
-            active-filter <=> root.active-filter;
-            search-focus-request: root.search-focus-request;
-            active-page <=> root.active-page;
-            band-text <=> root.band-text;
-            callsign-text <=> root.callsign-text;
-            datetime-text <=> root.datetime-text;
-            dmr-access-type-text <=> root.dmr-access-type-text;
-            dmr-call-type-text <=> root.dmr-call-type-text;
-            dmr-color-code-text <=> root.dmr-color-code-text;
-            dmr-filter-hotspot-text <=> root.dmr-filter-hotspot-text;
-            dmr-filter-id-text <=> root.dmr-filter-id-text;
-            dmr-filter-network-text <=> root.dmr-filter-network-text;
-            dmr-filter-repeater-text <=> root.dmr-filter-repeater-text;
-            dmr-filter-talkgroup-text <=> root.dmr-filter-talkgroup-text;
-            dmr-filter-timeslot-text <=> root.dmr-filter-timeslot-text;
-            dmr-hotspot-text <=> root.dmr-hotspot-text;
-            dmr-local-id-text <=> root.dmr-local-id-text;
-            dmr-network-text <=> root.dmr-network-text;
-            dmr-notes-text <=> root.dmr-notes-text;
-            dmr-remote-id-text <=> root.dmr-remote-id-text;
-            dmr-repeater-text <=> root.dmr-repeater-text;
-            dmr-talkgroup-text <=> root.dmr-talkgroup-text;
-            dmr-timeslot-text <=> root.dmr-timeslot-text;
-            dstar-reflector-text <=> root.dstar-reflector-text;
-            dstar-module-text <=> root.dstar-module-text;
-            dstar-mycall-text <=> root.dstar-mycall-text;
-            dstar-urcall-text <=> root.dstar-urcall-text;
-            dstar-rpt1-text <=> root.dstar-rpt1-text;
-            dstar-rpt2-text <=> root.dstar-rpt2-text;
-            dstar-notes-text <=> root.dstar-notes-text;
-            dstar-filter-reflector-text <=> root.dstar-filter-reflector-text;
-            dstar-filter-module-text <=> root.dstar-filter-module-text;
-            dstar-filter-rpt1-text <=> root.dstar-filter-rpt1-text;
-            ysf-filter-room-text <=> root.ysf-filter-room-text;
-            ysf-filter-node-text <=> root.ysf-filter-node-text;
-            ysf-filter-dg-id-text <=> root.ysf-filter-dg-id-text;
-            ysf-room-text <=> root.ysf-room-text;
-            ysf-wires-x-node-text <=> root.ysf-wires-x-node-text;
-            ysf-repeater-text <=> root.ysf-repeater-text;
-            ysf-network-text <=> root.ysf-network-text;
-            ysf-access-type-text <=> root.ysf-access-type-text;
-            ysf-tx-dg-id-text <=> root.ysf-tx-dg-id-text;
-            ysf-rx-dg-id-text <=> root.ysf-rx-dg-id-text;
-            ysf-notes-text <=> root.ysf-notes-text;
-            editing-id <=> root.editing-id;
-            filters-applied <=> root.filters-applied;
-            filters-expanded <=> root.filters-expanded;
-            frequency-text <=> root.frequency-text;
-            ft8-audio-frequency-text <=> root.ft8-audio-frequency-text;
-            ft8-filter-band-text <=> root.ft8-filter-band-text;
-            ft8-filter-callsign-text <=> root.ft8-filter-callsign-text;
-            ft8-filter-end-text <=> root.ft8-filter-end-text;
-            ft8-filter-grid-text <=> root.ft8-filter-grid-text;
-            ft8-filter-max-snr-text <=> root.ft8-filter-max-snr-text;
-            ft8-filter-min-snr-text <=> root.ft8-filter-min-snr-text;
-            ft8-filter-start-text <=> root.ft8-filter-start-text;
-            ft8-final-message-text <=> root.ft8-final-message-text;
-            ft8-power-text <=> root.ft8-power-text;
-            ft8-protocol-text <=> root.ft8-protocol-text;
-            ft8-snr-received-text <=> root.ft8-snr-received-text;
-            ft8-snr-sent-text <=> root.ft8-snr-sent-text;
-            ft8-source-software-text <=> root.ft8-source-software-text;
-            grid-text <=> root.grid-text;
-            mode-text <=> root.mode-text;
-            name-text <=> root.name-text;
-            notes-text <=> root.notes-text;
-            pending-delete-id <=> root.pending-delete-id;
-            pending-delete-label <=> root.pending-delete-label;
-            qsos <=> root.qsos;
-            logbook-page-offset <=> root.logbook-page-offset;
-            logbook-page-limit <=> root.logbook-page-limit;
-            logbook-page-total <=> root.logbook-page-total;
-            logbook-page-number <=> root.logbook-page-number;
-            logbook-page-count <=> root.logbook-page-count;
-            qth-text <=> root.qth-text;
-            rst-received-text <=> root.rst-received-text;
-            rst-sent-text <=> root.rst-sent-text;
-            search-text <=> root.search-text;
-            clear-dmr-filter => { root.clear-dmr-filter(); }
-            clear-ft8-filter => { root.clear-ft8-filter(); }
-            clear-dstar-filter => { root.clear-dstar-filter(); }
-            clear-ysf-filter => { root.clear-ysf-filter(); }
-            delete-qso(value) => { root.delete-qso(value); }
-            editor-opened => { root.editor-opened(); }
-            filter-dmr => { root.filter-dmr(); }
-            filter-ft8 => { root.filter-ft8(); }
-            filter-dstar => { root.filter-dstar(); }
-            filter-ysf => { root.filter-ysf(); }
-            mode-input-changed(value) => { root.mode-input-changed(value); }
-            previous-logbook-page => { root.previous-logbook-page(); }
-            next-logbook-page => { root.next-logbook-page(); }
-            open-callsign-lookup(value) => { root.open-callsign-lookup(value); }
-            open-grid-lookup(value) => { root.open-grid-lookup(value); }
-            request-page(value) => { root.request-page(value); }
-            search-qso(value) => { root.search-qso(value); }
-        }
-
-        if root.active-page == 1 : editor-page := QsoEditorPage {
-            band-text <=> root.band-text;
-            callsign-text <=> root.callsign-text;
-            callsign-focus-request: root.callsign-focus-request;
-            datetime-text <=> root.datetime-text;
-            discard-editor-visible <=> root.discard-editor-visible;
-            duplicate-warning-visible <=> root.duplicate-warning-visible;
-            duplicate-warning-text <=> root.duplicate-warning-text;
-            dmr-access-type-text <=> root.dmr-access-type-text;
-            dmr-call-type-text <=> root.dmr-call-type-text;
-            dmr-color-code-text <=> root.dmr-color-code-text;
-            dmr-hotspot-text <=> root.dmr-hotspot-text;
-            dmr-local-id-text <=> root.dmr-local-id-text;
-            dmr-network-text <=> root.dmr-network-text;
-            dmr-notes-text <=> root.dmr-notes-text;
-            dmr-remote-id-text <=> root.dmr-remote-id-text;
-            dmr-repeater-text <=> root.dmr-repeater-text;
-            dmr-talkgroup-text <=> root.dmr-talkgroup-text;
-            dmr-timeslot-text <=> root.dmr-timeslot-text;
-            dstar-reflector-text <=> root.dstar-reflector-text;
-            dstar-module-text <=> root.dstar-module-text;
-            dstar-mycall-text <=> root.dstar-mycall-text;
-            dstar-urcall-text <=> root.dstar-urcall-text;
-            dstar-rpt1-text <=> root.dstar-rpt1-text;
-            dstar-rpt2-text <=> root.dstar-rpt2-text;
-            dstar-notes-text <=> root.dstar-notes-text;
-            ysf-room-text <=> root.ysf-room-text;
-            ysf-wires-x-node-text <=> root.ysf-wires-x-node-text;
-            ysf-repeater-text <=> root.ysf-repeater-text;
-            ysf-network-text <=> root.ysf-network-text;
-            ysf-access-type-text <=> root.ysf-access-type-text;
-            ysf-tx-dg-id-text <=> root.ysf-tx-dg-id-text;
-            ysf-rx-dg-id-text <=> root.ysf-rx-dg-id-text;
-            ysf-notes-text <=> root.ysf-notes-text;
-            editing-id <=> root.editing-id;
-            frequency-text <=> root.frequency-text;
-            ft8-audio-frequency-text <=> root.ft8-audio-frequency-text;
-            ft8-final-message-text <=> root.ft8-final-message-text;
-            ft8-power-text <=> root.ft8-power-text;
-            ft8-protocol-text <=> root.ft8-protocol-text;
-            ft8-snr-received-text <=> root.ft8-snr-received-text;
-            ft8-snr-sent-text <=> root.ft8-snr-sent-text;
-            ft8-source-software-text <=> root.ft8-source-software-text;
-            grid-text <=> root.grid-text;
-            mode-kind <=> root.mode-kind;
-            mode-text <=> root.mode-text;
-            name-text <=> root.name-text;
-            notes-text <=> root.notes-text;
-            qth-text <=> root.qth-text;
-            rst-received-text <=> root.rst-received-text;
-            rst-sent-text <=> root.rst-sent-text;
-            confirm-discard-editor => { root.confirm-discard-editor(); }
-            keep-editing => { root.keep-editing(); }
-            mode-input-changed(value) => { root.mode-input-changed(value); }
-            request-page(value) => { root.request-page(value); }
-            save-qso => { root.save-qso(); }
-            save-and-new-qso => { root.save-and-new-qso(); }
-            review-duplicate => { root.review-duplicate(); }
-            save-duplicate-anyway => { root.save-duplicate-anyway(); }
-        }
-
-        if root.active-page == 2 : ToolsPage {
-            adif-path-text <=> root.adif-path-text;
-            adif-preview-duplicates <=> root.adif-preview-duplicates;
-            adif-preview-invalid <=> root.adif-preview-invalid;
-            adif-preview-modes <=> root.adif-preview-modes;
-            adif-preview-bands <=> root.adif-preview-bands;
-            adif-preview-date-range <=> root.adif-preview-date-range;
-            adif-preview-invalid-details <=> root.adif-preview-invalid-details;
-            adif-preview-new <=> root.adif-preview-new;
-            adif-preview-total <=> root.adif-preview-total;
-            adif-preview-visible <=> root.adif-preview-visible;
-            backup-path-text <=> root.backup-path-text;
-            database-report-visible <=> root.database-report-visible;
-            database-report-title <=> root.database-report-title;
-            database-report-text <=> root.database-report-text;
-            database-report-kind <=> root.database-report-kind;
-            backup-database => { root.backup-database(); }
-            check-data-health => { root.check-data-health(); }
-            verify-backup => { root.verify-backup(); }
-            cancel-adif-import => { root.cancel-adif-import(); }
-            choose-adif-export => { root.choose-adif-export(); }
-            choose-adif-import => { root.choose-adif-import(); }
-            choose-backup-destination => { root.choose-backup-destination(); }
-            confirm-adif-import => { root.confirm-adif-import(); }
-            export-adif => { root.export-adif(); }
-            export-current-adif => { root.export-current-adif(); }
-            invalidate-adif-preview => { root.invalidate-adif-preview(); }
-            preview-adif => { root.preview-adif(); }
-        }
-
-        if root.active-page == 3 : SettingsPage {
-            callsign-url-text <=> root.callsign-url-text;
-            grid-url-text <=> root.grid-url-text;
-            local-callsign-text <=> root.local-callsign-text;
-            restore-external-link-defaults => { root.restore-external-link-defaults(); }
-            save-external-links => { root.save-external-links(); }
-            save-local-callsign => { root.save-local-callsign(); }
-        }
-
         StatusBar { message: root.status-text; kind: root.status-kind; }
     }
 }

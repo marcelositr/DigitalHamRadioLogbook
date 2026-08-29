@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 env:
@@ -20,98 +20,66 @@ env:
 
 jobs:
   quality:
-    name: Quality and tests
+    name: Quality
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 25
     steps:
       - name: Check out repository
-        uses: actions/checkout@v5
-
-      - name: Install Linux build dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install --yes --no-install-recommends \
-            libfontconfig1-dev \
-            libwayland-dev \
-            libx11-dev \
-            libx11-xcb-dev \
-            libxcb1-dev \
-            libxcb-render0-dev \
-            libxcb-shape0-dev \
-            libxcb-xfixes0-dev \
-            libxkbcommon-dev \
-            libxkbcommon-x11-dev
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
-          components: clippy, rustfmt
+          fetch-depth: 2
+          persist-credentials: false
 
-      - name: Cache Cargo artifacts
-        uses: Swatinem/rust-cache@v2
+      - name: Set up Rust and Linux dependencies
+        uses: ./.github/actions/setup-rust-linux
+        with:
+          cache-key: ci-quality
+
+      - name: Check repository whitespace
+        run: git diff --check HEAD^ --
 
       - name: Check formatting
         run: cargo fmt --check
 
+      - name: Check compilation
+        run: cargo check --locked
+
       - name: Run Clippy
         run: cargo clippy --locked --all-targets --all-features -- -D warnings
 
-      - name: Run all tests
+  tests:
+    name: Tests and build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+
+      - name: Set up Rust and Linux dependencies
+        uses: ./.github/actions/setup-rust-linux
+        with:
+          cache-key: ci-tests
+
+      - name: Run all active tests
         run: cargo test --locked
 
       - name: Build application
         run: cargo build --locked
 
-  packaging-release:
-    name: Linux packaging release
+  packaging:
+    name: Linux packaging smoke
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - name: Check out repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
 
       - name: Check shell syntax
         run: sh -n packaging/linux/*.sh
 
       - name: Run packaging smoke test
         run: packaging/linux/smoke-test.sh
-
-  migrations:
-    name: Migrate schema v${{ matrix.source-version }} to current
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        source-version: [0, 1, 2, 3, 4, 5, 6, 7]
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v5
-
-      - name: Install Linux build dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install --yes --no-install-recommends \
-            libfontconfig1-dev \
-            libwayland-dev \
-            libx11-dev \
-            libx11-xcb-dev \
-            libxcb1-dev \
-            libxcb-render0-dev \
-            libxcb-shape0-dev \
-            libxcb-xfixes0-dev \
-            libxkbcommon-dev \
-            libxkbcommon-x11-dev
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache Cargo artifacts
-        uses: Swatinem/rust-cache@v2
-        with:
-          key: migrations-${{ matrix.source-version }}
-
-      - name: Validate migration and data preservation
-        env:
-          MIGRATION_SOURCE_VERSION: ${{ matrix.source-version }}
-        run: cargo test --locked database::migrations::tests::migrates_every_supported_schema_version_without_losing_data -- --exact
