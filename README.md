@@ -8,7 +8,7 @@ Aplicativo desktop local e offline para registrar contatos de radioamador realiz
 
 O checkpoint funcional de referência continua sendo `0.10.0-rc.1`, uma consolidação pré-1.0. A branch de interface v0.11 abre um ciclo separado de reconstrução gráfica: nenhuma funcionalidade de domínio, schema, migration, ADIF ou persistência SQLite é adicionada por esse trabalho.
 
-A v0.11 reconstrói a interface a partir dos contratos funcionais usando uma arquitetura **Slint-native**, inspirada na organização da Slint Widgets Gallery. A UI usa widgets e layouts padrão, `MenuBar` real, sidebar simples, workspace e status global; `Palette` e `StyleMetrics` substituem o antigo tema visual proprietário. **Fluent** é o style oficial do produto, com **System / Light / Dark** configuráveis em runtime. A especificação está em `docs/UI-ARCHITECTURE-v0.11.md` e o novo gate manual em `docs/VISUAL-QA-v0.11.md`.
+A v0.11 reconstrói a interface a partir dos contratos funcionais usando uma arquitetura **Slint-native**, inspirada na organização da Slint Widgets Gallery. A UI usa widgets e layouts padrão, `MenuBar` real, sidebar simples, workspace e status global; `Palette` e `StyleMetrics` substituem o antigo tema visual proprietário. **Fluent** é o style oficial do produto, com **System / Light / Dark** configuráveis em runtime. A especificação está em `docs/architecture/UI-ARCHITECTURE-v0.11.md` e o novo gate manual em `docs/quality/VISUAL-QA-v0.11.md`.
 
 O MVP funcional inclui:
 
@@ -48,7 +48,7 @@ Para gerar o pacote release user-local (`tar.gz`):
 packaging/linux/make-release.sh
 ```
 
-A pre-release também fornece `.deb` e AppImage produzidos do mesmo binário validado. O `.deb` integra o aplicativo ao sistema Debian/Ubuntu; o AppImage pode ser executado diretamente. Consulte `docs/LINUX-DISTRIBUTION.md` para comandos, dependências e limites de portabilidade.
+A pre-release também fornece `.deb` e AppImage produzidos do mesmo binário validado. O `.deb` integra o aplicativo ao sistema Debian/Ubuntu; o AppImage pode ser executado diretamente. Consulte `docs/operations/LINUX-DISTRIBUTION.md` para comandos, dependências e limites de portabilidade.
 
 Depois de validar o arquivo `.sha256`, extraia o `tar.gz` e execute:
 
@@ -57,7 +57,7 @@ Depois de validar o arquivo `.sha256`, extraia o `tar.gz` e execute:
 ./install.sh
 ```
 
-A instalação não exige `sudo`; atualização e desinstalação preservam banco e configuração. Consulte `docs/LINUX-DISTRIBUTION.md` para instalação, atualização, remoção e compatibilidade.
+A instalação não exige `sudo`; atualização e desinstalação preservam banco e configuração. Consulte `docs/operations/LINUX-DISTRIBUTION.md` para instalação, atualização, remoção e compatibilidade.
 
 ## Execução
 
@@ -84,9 +84,9 @@ cargo build --locked
 
 O workflow `.github/workflows/ci.yml` executa esses controles em `main`, `develop`, pull requests e manualmente. Jobs adicionais testam em paralelo a migração dos schemas 0–7 e o contrato do pacote Linux, incluindo instalação e desinstalação em XDG isolado.
 
-O caminho factual até uma possível versão `1.0.0` está em `docs/PRE-1.0-READINESS.md`; ele não define prazo nem declara prontidão. Ambientes efetivamente testados e limitações estão em `docs/SUPPORT-MATRIX.md`, e o processo reproduzível de release está em `docs/RELEASE-CHECKLIST.md`.
+O caminho factual até uma possível versão `1.0.0` está em `docs/releases/PRE-1.0-READINESS.md`; ele não define prazo nem declara prontidão. Ambientes efetivamente testados e limitações estão em `docs/operations/SUPPORT-MATRIX.md`, e o processo reproduzível de release está em `docs/releases/RELEASE-CHECKLIST.md`.
 
-Testes pesados são ignorados por padrão. Consulte `docs/PERFORMANCE-v0.3.0.md` para gerar datasets determinísticos de 1 mil a 1 milhão de QSOs e reproduzir as medições. A organização interna da persistência está resumida em `docs/ARCHITECTURE.md`.
+Testes pesados são ignorados por padrão. Consulte `docs/quality/PERFORMANCE-v0.3.0.md` para gerar datasets determinísticos de 1 mil a 1 milhão de QSOs e reproduzir as medições. A organização interna da persistência está resumida em `docs/architecture/ARCHITECTURE.md`.
 
 ## Localização dos dados
 
@@ -109,7 +109,7 @@ A interface permite criar um snapshot consistente para um caminho terminado em `
 
 **Export all QSOs** mantém a exportação completa. **Export current results** exporta todos os registros correspondentes à pesquisa ou filtro atual, atravessando todas as páginas; resultado vazio é informado sem criar arquivo. **Check data health** executa verificações read-only de SQLite, foreign keys, schema, migrations e consistência de metadata por modo.
 
-Também é possível fechar o aplicativo e copiar `logbook.sqlite3` manualmente. O banco contém os QSOs e metadados armazenados pelo aplicativo. Para restauração, corrupção, permissões e schema incompatível, siga `docs/DATA-RECOVERY.md`.
+Também é possível fechar o aplicativo e copiar `logbook.sqlite3` manualmente. O banco contém os QSOs e metadados armazenados pelo aplicativo. Para restauração, corrupção, permissões e schema incompatível, siga `docs/data/DATA-RECOVERY.md`.
 
 ## Arquitetura resumida
 
@@ -117,7 +117,8 @@ Também é possível fechar o aplicativo e copiar `logbook.sqlite3` manualmente.
 - `src/database/`: migrations e acesso ao SQLite;
 - `src/app/`: handlers e serviços de apresentação separados por fluxo — editor, lista, filtros, ADIF, backup, configuração, arquivos e fechamento;
 - `src/main.rs`: composition root enxuto, responsável apenas por criar dependências, inicializar a janela e conectar os módulos;
-- `ui/main.slint`: contrato público, `MenuBar` nativo e composição do shell global;
+- `ui/app.slint`: entrypoint compilado pelo `build.rs`, reexportando a janela e o global de aparência para o Rust gerado;
+- `ui/main.slint`: contrato público da janela, `MenuBar` nativo e composição do shell global;
 - `ui/appearance.slint`: ligação runtime entre a preferência System/Light/Dark e `Palette.color-scheme`;
 - `ui/components/app-shell.slint`: sidebar recolhível baseada em layouts e estados do Slint;
 - `ui/pages/`: páginas independentes de Logbook, editor, Tools e Settings;
@@ -139,7 +140,7 @@ Os princípios são:
 - medidas fixas somente quando justificadas por estrutura previsível, como a sidebar e colunas tabulares;
 - nenhuma borda decorativa deve atravessar inputs, nenhum botão essencial pode ser truncado e nenhum conteúdo necessário pode ficar inacessível.
 
-A UI anterior foi homologada no i3 em `1050×680`; essa aprovação não é herdada. A reconstrução v0.11 exige nova validação usando `docs/VISUAL-QA-v0.11.md` nos esquemas **System**, **Light** e **Dark**.
+A UI anterior foi homologada no i3 em `1050×680`; essa aprovação não é herdada. A reconstrução v0.11 exige nova validação usando `docs/quality/VISUAL-QA-v0.11.md` nos esquemas **System**, **Light** e **Dark**.
 
 ## Navegação da interface
 
@@ -212,9 +213,9 @@ Erros operacionais comuns exibem orientação prática junto do detalhe técnico
 
 A abertura do banco recusa schemas futuros, valida os objetos esperados e executa verificações SQLite de integridade e foreign keys. O health check e a verificação de backup abrem arquivos em modo read-only, não executam migrations e não alteram dados. Backups são publicados somente depois da validação, e configuração/exportação ADIF usam publicação atômica; arquivos privados usam `0600` no Unix.
 
-O procedimento seguro de restauração está em `docs/DATA-RECOVERY.md`. Nunca substitua o banco enquanto a aplicação estiver aberta. Downgrade automático não é suportado: um banco aberto por uma versão com schema mais novo deve ser usado com uma aplicação compatível ou substituído por um backup anterior compatível enquanto o aplicativo estiver fechado.
+O procedimento seguro de restauração está em `docs/data/DATA-RECOVERY.md`. Nunca substitua o banco enquanto a aplicação estiver aberta. Downgrade automático não é suportado: um banco aberto por uma versão com schema mais novo deve ser usado com uma aplicação compatível ou substituído por um backup anterior compatível enquanto o aplicativo estiver fechado.
 
-O contrato de campos, normalizações, corpus e limitações ADIF está em `docs/ADIF-INTEROPERABILITY.md`. As extensões privadas compatíveis estão em `docs/ADIF-EXTENSIONS.md`. Para implementar outro modo, consulte `docs/ADDING-A-DIGITAL-MODE.md`; a decisão de manter a arquitetura explícita de quatro modos está em `docs/FOUR-MODE-ARCHITECTURE-REVIEW.md`.
+O contrato de campos, normalizações, corpus e limitações ADIF está em `docs/data/ADIF-INTEROPERABILITY.md`. As extensões privadas compatíveis estão em `docs/data/ADIF-EXTENSIONS.md`. Para implementar outro modo, consulte `docs/architecture/ADDING-A-DIGITAL-MODE.md`; a decisão de manter a arquitetura explícita de quatro modos está em `docs/architecture/decisions/FOUR-MODE-ARCHITECTURE-REVIEW.md`.
 
 ## Licença e autoria
 
