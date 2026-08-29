@@ -1,178 +1,125 @@
-import { LineEdit, ScrollView, VerticalBox, HorizontalBox } from "std-widgets.slint";
-import { Theme, DataLabel, KeyboardAction, Panel, SectionTitle, Tag } from "../design-system.slint";
+import { Button, GroupBox, HorizontalBox, LineEdit, ScrollView, StyleMetrics, VerticalBox } from "std-widgets.slint";
 
 export component SettingsPage inherits ScrollView {
     accessible-role: main;
     accessible-label: "Settings";
+
     in-out property <string> callsign-url-text;
     in-out property <string> grid-url-text;
     in-out property <string> local-callsign-text;
+
     callback restore-external-link-defaults();
     callback save-external-links();
     callback save-local-callsign();
 
     vertical-stretch: 1;
-    VerticalBox {
-        padding: Theme.space-lg;
-        spacing: Theme.space-lg;
 
-        HorizontalBox {
-            height: 26px;
-            spacing: Theme.space-sm;
+    VerticalBox {
+        padding: StyleMetrics.layout-padding;
+        spacing: StyleMetrics.layout-spacing;
+
+        VerticalBox {
+            spacing: 2px;
             Text {
-                text: "Configure the local station identity and optional external lookup services.";
-                color: Theme.text-muted;
-                font-size: Theme.text-sm;
-                vertical-alignment: center;
-                horizontal-stretch: 1;
+                text: "Settings";
+                font-size: 20px;
+                font-weight: 600;
             }
-            Tag { text: "Local config"; accent: true; width: 88px; height: 24px; }
+            Text {
+                text: "Station identity and optional external lookup services.";
+                opacity: 0.7;
+                wrap: word-wrap;
+            }
         }
 
-        Panel {
-            raised: true;
-            height: 198px;
+        GroupBox {
+            title: "Local station";
             vertical-stretch: 0;
+
             VerticalBox {
-                padding: Theme.space-lg;
-                spacing: Theme.space-md;
-
-                HorizontalBox {
-                    spacing: Theme.space-sm;
-                    VerticalBox {
-                        spacing: Theme.space-2xs;
-                        SectionTitle { text: "Local station"; }
-                        Text {
-                            text: "Primary operating identity";
-                            color: Theme.text-muted;
-                            font-size: Theme.text-xs;
-                            font-weight: 500;
-                        }
-                    }
-                    Rectangle { horizontal-stretch: 1; }
-                    Tag { text: "This device"; width: 84px; height: 22px; accent: true; }
-                }
-
-                Rectangle { height: 1px; background: Theme.divider; }
-
                 Text {
-                    text: "The station callsign appears throughout the application and is stored in the local XDG configuration directory.";
-                    color: Theme.text-secondary;
-                    font-size: Theme.text-sm;
+                    text: "The station callsign appears throughout the application and is stored in the local configuration.";
+                    wrap: word-wrap;
+                    opacity: 0.8;
                 }
 
                 HorizontalBox {
-                    height: 50px;
-                    vertical-stretch: 0;
-                    spacing: Theme.space-sm;
                     VerticalBox {
-                        spacing: Theme.space-xs;
                         horizontal-stretch: 1;
-                        DataLabel { text: "Station callsign"; }
+                        Text { text: "Station callsign"; }
                         LineEdit {
                             accessible-label: "Local station callsign";
                             text <=> root.local-callsign-text;
                             placeholder-text: "Local callsign";
                         }
                     }
-                    KeyboardAction {
-                        width: 116px;
-                        label: "Save station";
-                        description: "Save local station callsign";
+
+                    Button {
+                        text: "Save station";
                         primary: true;
-                        activated => { root.save-local-callsign(); }
+                        clicked => { root.save-local-callsign(); }
                     }
                 }
             }
         }
 
-        Panel {
+        GroupBox {
+            title: "External lookup links";
             vertical-stretch: 0;
+
             VerticalBox {
-                padding: Theme.space-md;
-                spacing: Theme.space-md;
-
-                HorizontalBox {
-                    spacing: Theme.space-sm;
-                    VerticalBox {
-                        spacing: Theme.space-2xs;
-                        SectionTitle { text: "External lookup links"; }
-                        Text {
-                            text: "Optional secondary services";
-                            color: Theme.text-muted;
-                            font-size: Theme.text-xs;
-                            font-weight: 500;
-                        }
-                    }
-                    Rectangle { horizontal-stretch: 1; }
-                    Tag { text: "External"; width: 68px; height: 22px; }
-                }
-
-                Rectangle { height: 1px; background: Theme.divider; }
-
-                HorizontalBox {
-                    spacing: Theme.space-sm;
-                    Rectangle { width: 3px; background: Theme.warning; border-radius: 2px; }
-                    Text {
-                        text: "Opening a lookup sends only the selected callsign or grid locator to the configured external website.";
-                        color: Theme.text-secondary;
-                        font-size: Theme.text-xs;
-                        vertical-alignment: center;
-                    }
+                Text {
+                    text: "These services are optional. Opening a lookup sends only the selected callsign or grid locator to the configured website.";
+                    wrap: word-wrap;
                 }
 
                 VerticalBox {
-                    spacing: Theme.space-xs;
-                    DataLabel { text: "Callsign URL template · requires {callsign}"; }
+                    Text { text: "Callsign URL template"; }
+                    Text {
+                        text: "Must include {callsign}.";
+                        opacity: 0.7;
+                    }
                     LineEdit {
                         accessible-label: "Callsign lookup URL template";
                         accessible-description: "Must contain the callsign placeholder";
                         text <=> root.callsign-url-text;
-                        horizontal-stretch: 1;
                     }
                 }
 
                 VerticalBox {
-                    spacing: Theme.space-xs;
-                    DataLabel { text: "Grid URL template · requires {grid}"; }
+                    Text { text: "Grid URL template"; }
+                    Text {
+                        text: "Must include {grid}.";
+                        opacity: 0.7;
+                    }
                     LineEdit {
                         accessible-label: "Grid lookup URL template";
                         accessible-description: "Must contain the grid placeholder";
                         text <=> root.grid-url-text;
-                        horizontal-stretch: 1;
                     }
                 }
 
                 HorizontalBox {
-                    spacing: Theme.space-sm;
                     Rectangle { horizontal-stretch: 1; }
-                    KeyboardAction {
-                        width: 118px;
-                        compact: true;
-                        label: "Restore defaults";
-                        description: "Restore default external lookup URL templates";
-                        activated => { root.restore-external-link-defaults(); }
+
+                    Button {
+                        text: "Restore defaults";
+                        clicked => { root.restore-external-link-defaults(); }
                     }
-                    KeyboardAction {
-                        width: 92px;
-                        compact: true;
-                        label: "Save links";
-                        description: "Save external lookup URL templates";
-                        activated => { root.save-external-links(); }
+
+                    Button {
+                        text: "Save links";
+                        primary: true;
+                        clicked => { root.save-external-links(); }
                     }
                 }
             }
         }
 
-        HorizontalBox {
-            spacing: Theme.space-sm;
-            Rectangle { width: 5px; height: 5px; border-radius: 3px; background: Theme.success; }
-            Text {
-                text: "Data remains local. External websites open only after an explicit click.";
-                color: Theme.text-muted;
-                font-size: Theme.text-xs;
-                vertical-alignment: center;
-            }
+        Text {
+            text: "Logbook data remains local. External websites open only after an explicit lookup action.";
+            opacity: 0.7;
+            wrap: word-wrap;
         }
     }
 }
