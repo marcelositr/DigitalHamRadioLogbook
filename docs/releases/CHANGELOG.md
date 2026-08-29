@@ -4,6 +4,8 @@ Este projeto segue [Semantic Versioning](https://semver.org/). As release notes 
 
 ## [Unreleased]
 
+Release notes detalhadas da linha v0.11: [`notes/RELEASE-NOTES-v0.11.0.md`](notes/RELEASE-NOTES-v0.11.0.md).
+
 ### Changed
 
 - reconstruída a camada gráfica v0.11 a partir dos contratos funcionais, sem reutilizar a interface anterior como referência visual;
