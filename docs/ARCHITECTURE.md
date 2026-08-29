@@ -76,6 +76,7 @@ A v0.11 preserva Slint e o contrato público consumido pelo Rust, mas reconstró
 
 ```text
 ui/
+├── appearance.slint
 ├── design-system.slint
 ├── main.slint
 ├── components/
@@ -88,7 +89,7 @@ ui/
     └── settings-page.slint
 ```
 
-`ui/main.slint` continua sendo o contrato público compilado por `build.rs`. Ele mantém os callbacks e properties usados por `src/app/*`; a mudança permanece restrita à composição visual.
+`ui/main.slint` continua sendo o contrato público compilado por `build.rs`. Ele mantém os callbacks e properties usados por `src/app/*`; a mudança de interface permanece separada do domínio e do SQLite.
 
 O shell é composto por:
 
@@ -99,17 +100,21 @@ O shell é composto por:
 
 Não existe barra contextual, menu superior simulado nem categorização visual `Operation`, `Data` ou `System`.
 
-`ui/design-system.slint` deixa de representar um tema proprietário. Ele contém somente primitivas semânticas pequenas que faltam em `std-widgets.slint`, como `FormField`, `TextAction`, `EmptyState` e `StatusBar`. Essas primitivas usam `Palette` e `StyleMetrics`, permitindo que a aparência acompanhe o style selecionado pelo Slint.
+`ui/design-system.slint` deixa de representar um tema proprietário. Ele contém somente primitivas semânticas pequenas que faltam em `std-widgets.slint`, como `FormField`, `TextAction`, `EmptyState` e `StatusBar`. Essas primitivas usam `Palette` e `StyleMetrics`.
+
+`ui/appearance.slint` concentra a preferência de esquema de cores e escreve em `Palette.color-scheme`. O style do produto é fixado como **Fluent** em `build.rs`; não existe troca runtime entre Fluent, Material, Cupertino ou Cosmic.
 
 As páginas priorizam widgets padrão e layouts naturais:
 
 - Logbook é um workspace de dados em linhas/colunas, sem cards individuais por QSO;
 - editor usa `GroupBox` para Contact, Station and report, Notes e metadata condicional de modo;
 - Tools usa grupos para ADIF, Data health e Database backup;
-- Settings usa grupos para Local station e External lookup links.
+- Settings usa grupos para Appearance, Local station e External lookup links.
 
 Dimensionamento deve preferir conteúdo, `preferred-*`, `min-*` e stretch. Medidas fixas são reservadas a casos estruturais previsíveis, como largura da sidebar e alinhamento de colunas da listagem.
 
-A mesma implementação deve ser comparada em `fluent-dark`, `material-dark`, `cupertino-dark` e `cosmic-dark` antes da escolha final do style. Clipping, sobreposição, separador atravessando input, botão truncado ou conteúdo essencial inacessível são falhas de QA.
+A aparência oferece `System`, `Light` e `Dark`. `System` é o default e usa `ColorScheme.unknown`, permitindo que o Fluent acompanhe o esquema reportado pelo desktop; Light e Dark forçam seus respectivos valores. A preferência é armazenada em `config.toml` na seção `appearance`, de forma retrocompatível, sem migration ou mudança no schema SQLite.
 
-Detalhes, restrições e gate da reconstrução ficam em `docs/UI-ARCHITECTURE-v0.11.md` e `docs/VISUAL-QA-v0.11.md`. A homologação visual anterior não é herdada; o novo layout exige regressão manual em `1050×680` antes de ser considerado aprovado.
+Clipping, sobreposição, separador atravessando input, botão truncado ou conteúdo essencial inacessível são falhas de QA em qualquer um dos três esquemas.
+
+Detalhes, restrições e gate da reconstrução ficam em `docs/UI-ARCHITECTURE-v0.11.md` e `docs/VISUAL-QA-v0.11.md`. A homologação visual anterior não é herdada; o novo layout exige regressão manual em `1050×680`, nos modos System, Light e Dark, antes de ser considerado aprovado.
