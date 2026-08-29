@@ -51,7 +51,7 @@ A tabela `digital_routes` permanece específica de DMR. SQL, tabelas, consultas 
 
 Na reconciliação ADIF, campos privados reconhecidos pelo modo atual são materializados como metadata e removidos da coleção de extras; campos realmente desconhecidos permanecem preservados. Isso impede duplicação ou sobrevivência de campos específicos obsoletos após mudança de modo.
 
-Consulte `docs/WHAT-ADDING-DSTAR-REQUIRED.md`, `docs/ADDING-A-DIGITAL-MODE.md` e `docs/FOUR-MODE-ARCHITECTURE-REVIEW.md`.
+Consulte [`decisions/WHAT-ADDING-DSTAR-REQUIRED.md`](decisions/WHAT-ADDING-DSTAR-REQUIRED.md), [`ADDING-A-DIGITAL-MODE.md`](ADDING-A-DIGITAL-MODE.md) e [`decisions/FOUR-MODE-ARCHITECTURE-REVIEW.md`](decisions/FOUR-MODE-ARCHITECTURE-REVIEW.md).
 
 ## Onde alterar
 
@@ -118,4 +118,4 @@ A aparência oferece `System`, `Light` e `Dark`. `System` é o default e usa `Co
 
 Clipping, sobreposição, separador atravessando input, botão truncado ou conteúdo essencial inacessível são falhas de QA em qualquer um dos três esquemas.
 
-Detalhes, restrições e gate da reconstrução ficam em `docs/UI-ARCHITECTURE-v0.11.md` e `docs/VISUAL-QA-v0.11.md`. A homologação visual anterior não é herdada; o novo layout exige regressão manual em `1050×680`, nos modos System, Light e Dark, antes de ser considerado aprovado.
+Detalhes, restrições e gate da reconstrução ficam em [`UI-ARCHITECTURE-v0.11.md`](UI-ARCHITECTURE-v0.11.md) e [`../quality/VISUAL-QA-v0.11.md`](../quality/VISUAL-QA-v0.11.md). A homologação visual anterior não é herdada; o novo layout exige regressão manual em `1050×680`, nos modos System, Light e Dark, antes de ser considerado aprovado.

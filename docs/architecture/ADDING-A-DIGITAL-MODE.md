@@ -31,7 +31,7 @@ No schema 7, YSF usa `ysf_metadata`. Somente TX/RX DG-ID têm índices; room e W
 ## 4. ADIF
 
 - Defina as formas histórica aceita e canônica exportada.
-- Liste campos privados exatos em `docs/ADIF-EXTENSIONS.md`.
+- Liste campos privados exatos em [`../data/ADIF-EXTENSIONS.md`](../data/ADIF-EXTENSIONS.md).
 - Marque os campos conhecidos conforme o modo para que não permaneçam também em extras.
 - Preserve campos realmente desconhecidos, inclusive tipo, duplicatas e ordem relativa.
 - Reconcile extras quando um campo passa a ser conhecido ou o modo muda, evitando metadata privada duplicada/obsoleta.
@@ -51,4 +51,4 @@ Para YSF/C4FM, a forma canônica é `MODE=DIGITALVOICE` + `SUBMODE=C4FM`; `MODE=
 - Execute formatação, check e suíte pertinente.
 - Atualize README, changelog, progresso, arquitetura, interoperabilidade e performance quando aplicável.
 
-Traits ou plugins só devem ser considerados se eliminarem duplicação real sem ocultar SQL, tabelas, contratos ADIF ou UI específicos. Quatro modos não justificaram essa abstração; consulte `docs/FOUR-MODE-ARCHITECTURE-REVIEW.md`.
+Traits ou plugins só devem ser considerados se eliminarem duplicação real sem ocultar SQL, tabelas, contratos ADIF ou UI específicos. Quatro modos não justificaram essa abstração; consulte [`decisions/FOUR-MODE-ARCHITECTURE-REVIEW.md`](decisions/FOUR-MODE-ARCHITECTURE-REVIEW.md).

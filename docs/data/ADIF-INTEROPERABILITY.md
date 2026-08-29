@@ -47,7 +47,7 @@ O modo de domínio é `DSTAR`. Na importação são aceitas duas formas:
 - canônica: `MODE=DIGITALVOICE` e `SUBMODE=DSTAR`;
 - histórica: `MODE=DSTAR`.
 
-A exportação sempre usa a forma canônica `DIGITALVOICE` + `DSTAR`. O subconjunto modelado contém reflector, module, MYCALL, URCALL, RPT1, RPT2 e notes. `STATION_CALLSIGN` é o campo ADIF canônico usado para MYCALL; `APP_DHRL_DSTAR_MYCALL` permanece aceito como alias de importação. Se ambos aparecerem com valores diferentes, o registro é recusado em vez de perder informação silenciosamente. Os demais valores D-STAR usam as extensões descritas em `docs/ADIF-EXTENSIONS.md`.
+A exportação sempre usa a forma canônica `DIGITALVOICE` + `DSTAR`. O subconjunto modelado contém reflector, module, MYCALL, URCALL, RPT1, RPT2 e notes. `STATION_CALLSIGN` é o campo ADIF canônico usado para MYCALL; `APP_DHRL_DSTAR_MYCALL` permanece aceito como alias de importação. Se ambos aparecerem com valores diferentes, o registro é recusado em vez de perder informação silenciosamente. Os demais valores D-STAR usam as extensões descritas em [`ADIF-EXTENSIONS.md`](ADIF-EXTENSIONS.md).
 
 Esse mapeamento não representa suporte total a D-STAR, a todos os equipamentos ou a todos os campos/dialetos ADIF relacionados.
 
@@ -55,7 +55,7 @@ Esse mapeamento não representa suporte total a D-STAR, a todos os equipamentos 
 
 O modo de domínio é `C4FM`; `YSF` e `SYSTEM FUSION` são aliases de entrada da UI, não valores persistidos. A importação aceita `MODE=DIGITALVOICE` + `SUBMODE=C4FM` e o formato histórico `MODE=C4FM`; a exportação sempre usa a forma canônica `DIGITALVOICE` + `C4FM`.
 
-O subconjunto modelado contém room, WIRES-X node, repeater, network, access type (`simplex`, `repeater` ou `hotspot`), TX/RX DG-ID (`00`–`99`) e notes. Os nomes privados exatos estão em `docs/ADIF-EXTENSIONS.md`.
+O subconjunto modelado contém room, WIRES-X node, repeater, network, access type (`simplex`, `repeater` ou `hotspot`), TX/RX DG-ID (`00`–`99`) e notes. Os nomes privados exatos estão em [`ADIF-EXTENSIONS.md`](ADIF-EXTENSIONS.md).
 
 ## Integridade e reconciliação
 
@@ -131,4 +131,4 @@ O target aceita bytes arbitrários, envia somente UTF-8 válido ao parser e não
 - `TIME_OFF` e `QSO_DATE_OFF` ainda são preservados como campos desconhecidos, não integrados às colunas de domínio; `SUBMODE=DSTAR` e `SUBMODE=C4FM` são reconhecidos nos respectivos mapeamentos;
 - ADIF é intercâmbio; backup SQLite continua sendo o mecanismo de recuperação integral recomendado.
 
-Extensões privadas estão especificadas em `docs/ADIF-EXTENSIONS.md`.
+Extensões privadas estão especificadas em [`ADIF-EXTENSIONS.md`](ADIF-EXTENSIONS.md).

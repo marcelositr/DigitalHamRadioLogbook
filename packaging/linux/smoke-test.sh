@@ -31,14 +31,14 @@ else
     fail 'sha256sum or shasum is required'
 fi
 
-mkdir -p "$FIXTURE/packaging/linux" "$FIXTURE/assets" "$FIXTURE/docs" \
+mkdir -p "$FIXTURE/packaging/linux" "$FIXTURE/assets" "$FIXTURE/docs/operations" \
     "$TOOLS" "$DIST" "$DIST_SECOND" "$EXTRACT" "$TEST_HOME" "$XDG_DATA_HOME" \
     "$XDG_CONFIG_HOME/digital-ham-log" "$XDG_BIN_HOME"
 cp "$SCRIPT_DIR/make-release.sh" "$SCRIPT_DIR/install.sh" \
     "$SCRIPT_DIR/uninstall.sh" "$SCRIPT_DIR/$APP_ID.desktop.in" \
     "$FIXTURE/packaging/linux/"
 cp "$ROOT_DIR/assets/$APP_ID.svg" "$FIXTURE/assets/"
-cp "$ROOT_DIR/docs/LINUX-DISTRIBUTION.md" "$FIXTURE/docs/"
+cp "$ROOT_DIR/docs/operations/LINUX-DISTRIBUTION.md" "$FIXTURE/docs/operations/"
 cp "$ROOT_DIR/LICENSE" "$FIXTURE/"
 printf '%s\n' '[package]' 'name = "digital-ham-radio-logbook"' 'version = "0.0.0-smoke"' >"$FIXTURE/Cargo.toml"
 

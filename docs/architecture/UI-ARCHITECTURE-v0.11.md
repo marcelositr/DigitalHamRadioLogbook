@@ -189,4 +189,4 @@ Falha visual imediata:
 - mudança de página quebrando estado existente;
 - Light ou Dark tornando uma tela ou estado essencial ilegível.
 
-A aprovação visual deve ser registrada em `docs/VISUAL-QA-v0.11.md` somente após executar o build real desta reconstrução.
+A aprovação visual deve ser registrada em [`../quality/VISUAL-QA-v0.11.md`](../quality/VISUAL-QA-v0.11.md) somente após executar o build real desta reconstrução.
