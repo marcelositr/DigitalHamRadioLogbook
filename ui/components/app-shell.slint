@@ -1,0 +1,154 @@
+import { HorizontalBox, Palette, StyleMetrics, VerticalBox } from "std-widgets.slint";
+
+component SideNavItem inherits Rectangle {
+    in property <string> short-label;
+    in property <string> label;
+    in property <bool> selected: false;
+    in property <bool> collapsed: false;
+    callback activated();
+
+    accessible-role: tab;
+    accessible-label: root.label;
+    accessible-item-selectable: true;
+    accessible-item-selected: root.selected;
+    accessible-action-default => { root.activated(); }
+
+    min-height: row.preferred-height + StyleMetrics.layout-spacing;
+
+    states [
+        selected when root.selected : { state.opacity: 1; }
+        hover when pointer.has-hover : { state.opacity: 0.65; }
+        focused when focus.has-focus : { state.opacity: 0.8; }
+    ]
+
+    state := Rectangle {
+        opacity: 0;
+        background: Palette.background;
+        animate opacity { duration: 120ms; }
+    }
+
+    row := HorizontalBox {
+        padding-left: root.collapsed ? 0px : StyleMetrics.layout-padding;
+        padding-right: root.collapsed ? 0px : StyleMetrics.layout-padding;
+        padding-top: StyleMetrics.layout-spacing / 2;
+        padding-bottom: StyleMetrics.layout-spacing / 2;
+
+        Text {
+            text: root.short-label;
+            width: root.collapsed ? 72px : 28px;
+            font-weight: root.selected ? 700 : 600;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+
+        if !root.collapsed : Text {
+            text: root.label;
+            horizontal-stretch: 1;
+            font-weight: root.selected ? 600 : 400;
+            vertical-alignment: center;
+        }
+    }
+
+    focus := FocusScope {
+        focus-on-click: false;
+        key-pressed(event) => {
+            if event.text == Key.Return || event.text == Key.Space {
+                root.activated();
+                return accept;
+            }
+            return reject;
+        }
+    }
+
+    pointer := TouchArea {
+        clicked => {
+            focus.focus();
+            root.activated();
+        }
+    }
+}
+
+export component AppSidebar inherits Rectangle {
+    in property <int> active-page;
+    in property <bool> collapsed;
+    in property <string> callsign;
+    callback navigate(int);
+    callback toggle();
+
+    accessible-role: navigation;
+    accessible-label: "Primary navigation";
+
+    width: root.collapsed ? 72px : 210px;
+    background: Palette.background.darker(0.2);
+
+    VerticalBox {
+        padding-left: 0px;
+        padding-right: 0px;
+        alignment: start;
+
+        VerticalBox {
+            padding-left: StyleMetrics.layout-padding;
+            padding-right: StyleMetrics.layout-padding;
+            padding-top: StyleMetrics.layout-padding;
+            padding-bottom: StyleMetrics.layout-padding;
+            spacing: 2px;
+
+            Text {
+                text: root.collapsed ? "DHRL" : "Digital Ham Radio Logbook";
+                font-size: root.collapsed ? 14px : 18px;
+                font-weight: 600;
+                horizontal-alignment: root.collapsed ? center : left;
+                wrap: root.collapsed ? no-wrap : word-wrap;
+            }
+
+            if !root.collapsed : Text {
+                text: root.callsign == "" ? "Local station not configured" : root.callsign;
+                opacity: 0.7;
+                overflow: elide;
+            }
+        }
+
+        SideNavItem {
+            short-label: "L";
+            label: "Logbook";
+            collapsed: root.collapsed;
+            selected: root.active-page == 0;
+            activated => { root.navigate(0); }
+        }
+
+        SideNavItem {
+            short-label: "+";
+            label: "New QSO";
+            collapsed: root.collapsed;
+            selected: root.active-page == 1;
+            activated => { root.navigate(1); }
+        }
+
+        Rectangle { height: StyleMetrics.layout-spacing; }
+
+        SideNavItem {
+            short-label: "T";
+            label: "Tools";
+            collapsed: root.collapsed;
+            selected: root.active-page == 2;
+            activated => { root.navigate(2); }
+        }
+
+        SideNavItem {
+            short-label: "S";
+            label: "Settings";
+            collapsed: root.collapsed;
+            selected: root.active-page == 3;
+            activated => { root.navigate(3); }
+        }
+
+        Rectangle { vertical-stretch: 1; }
+
+        SideNavItem {
+            short-label: root.collapsed ? ">" : "<";
+            label: root.collapsed ? "Expand sidebar" : "Collapse sidebar";
+            collapsed: root.collapsed;
+            activated => { root.toggle(); }
+        }
+    }
+}

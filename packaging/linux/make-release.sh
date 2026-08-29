@@ -54,7 +54,7 @@ for source in \
     "$SCRIPT_DIR/$APP_ID.desktop.in" \
     "$ROOT_DIR/assets/$APP_ID.svg" \
     "$ROOT_DIR/LICENSE" \
-    "$ROOT_DIR/docs/LINUX-DISTRIBUTION.md"
+    "$ROOT_DIR/docs/operations/LINUX-DISTRIBUTION.md"
 do
     [ -f "$source" ] || { printf 'Required release file not found: %s\n' "$source" >&2; exit 1; }
 done
@@ -87,7 +87,7 @@ cp -- "$SCRIPT_DIR/install.sh" "$SCRIPT_DIR/uninstall.sh" "$STAGING/"
 cp -- "$SCRIPT_DIR/$APP_ID.desktop.in" "$STAGING/share/applications/"
 cp -- "$ROOT_DIR/assets/$APP_ID.svg" "$STAGING/share/icons/hicolor/scalable/apps/"
 cp -- "$ROOT_DIR/LICENSE" "$STAGING/"
-cp -- "$ROOT_DIR/docs/LINUX-DISTRIBUTION.md" "$STAGING/docs/"
+cp -- "$ROOT_DIR/docs/operations/LINUX-DISTRIBUTION.md" "$STAGING/docs/LINUX-DISTRIBUTION.md"
 find "$STAGING" -type d -exec chmod 755 {} +
 find "$STAGING" -type f -exec chmod 644 {} +
 chmod 755 "$STAGING/install.sh" "$STAGING/uninstall.sh" "$STAGING/bin/$PACKAGE"

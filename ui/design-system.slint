@@ -1,108 +1,60 @@
-// Product visual language: compact desktop radio instrumentation.
-import { HorizontalBox, VerticalBox } from "std-widgets.slint";
+import { HorizontalBox, LineEdit, Palette, StyleMetrics, VerticalBox } from "std-widgets.slint";
 
-export global Theme {
-    // Three deliberate depth levels
-    out property <color> background: #171c24;
-    out property <color> surface: #202731;
-    out property <color> surface-raised: #28323e;
-    out property <color> surface-hover: #303c49;
-    out property <color> surface-selected: #263e4c;
+// Minimal application primitives. Visual appearance comes from the selected Slint style.
+// These components add semantics and layout only; they do not define a parallel theme.
 
-    // Structure
-    out property <color> border: #34414f;
-    out property <color> border-subtle: #293541;
-    out property <color> divider: #2d3945;
-    out property <color> focus: #7bc4d4;
-
-    // Type
-    out property <color> text-primary: #e6edf3;
-    out property <color> text-secondary: #b7c2cc;
-    out property <color> text-muted: #84919e;
-    out property <color> text-disabled: #606d79;
-
-    // Product accent
-    out property <color> accent: #72b8c8;
-    out property <color> accent-strong: #8bcbd8;
-    out property <color> accent-secondary: #789fbd;
-    out property <color> primary: #356b82;
-    out property <color> primary-hover: #417c94;
-
-    // Operational states
-    out property <color> danger: #d4777f;
-    out property <color> danger-surface: #3b272e;
-    out property <color> warning: #d5b36a;
-    out property <color> warning-surface: #3a3324;
-    out property <color> success: #86b884;
-    out property <color> success-surface: #26372c;
-    out property <color> info-surface: #223540;
-    out property <color> special: #a995bd;
-
-    // Compact desktop spacing
-    out property <length> space-2xs: 2px;
-    out property <length> space-xs: 4px;
-    out property <length> space-sm: 7px;
-    out property <length> space-md: 11px;
-    out property <length> space-lg: 15px;
-    out property <length> space-xl: 20px;
-
-    // Technical geometry: restrained rounding
-    out property <length> radius-xs: 2px;
-    out property <length> radius-sm: 3px;
-    out property <length> radius-md: 5px;
-
-    // Type scale
-    out property <length> text-xs: 11px;
-    out property <length> text-sm: 12px;
-    out property <length> text-md: 14px;
-    out property <length> text-lg: 17px;
-    out property <length> text-xl: 21px;
-    out property <length> callsign-size: 15px;
-    out property <length> technical-size: 13px;
-}
-
-export component KeyboardAction inherits Rectangle {
+export component FormField inherits VerticalBox {
     in property <string> label;
-    in property <string> description;
-    in property <bool> active: false;
-    in property <bool> link: false;
-    in property <bool> enabled: true;
-    in property <bool> primary: false;
-    in property <bool> danger: false;
-    in property <bool> compact: false;
-    callback activated();
+    in-out property <string> text;
+    in property <string> placeholder-text;
+    in property <string> input-accessible-label;
+    in property <bool> field-enabled: true;
+    callback accepted();
+    callback edited();
 
-    accessible-role: button;
-    accessible-label: root.label;
-    accessible-description: root.description;
-    accessible-enabled: root.enabled;
-    accessible-action-default => { if root.enabled { root.activated(); } }
-    border-width: action-focus.has-focus ? 2px : root.link ? 0px : 1px;
-    border-color: action-focus.has-focus ? Theme.focus : root.active ? Theme.accent : root.danger ? Theme.danger : Theme.border;
-    min-height: root.link ? 20px : root.compact ? 27px : 33px;
-    max-height: root.link ? 20px : root.compact ? 27px : 33px;
-    border-radius: Theme.radius-sm;
-    background: !root.enabled ? Theme.surface
-        : root.link ? transparent
-        : root.danger ? pointer.has-hover ? Theme.danger : Theme.danger-surface
-        : root.primary ? pointer.has-hover ? Theme.primary-hover : Theme.primary
-        : root.active ? Theme.surface-selected
-        : pointer.has-hover ? Theme.surface-hover : Theme.surface;
+    padding: 0px;
+    spacing: StyleMetrics.layout-spacing / 2;
 
     Text {
         text: root.label;
-        color: !root.enabled ? Theme.text-disabled
-            : root.link ? pointer.has-hover || action-focus.has-focus ? Theme.text-primary : Theme.accent
-            : root.danger && pointer.has-hover ? Theme.background
-            : Theme.text-primary;
-        font-size: root.compact ? Theme.text-xs : Theme.text-sm;
-        font-weight: root.active || root.primary || root.link ? 700 : 500;
-        horizontal-alignment: root.link ? left : center;
+    }
+
+    input := LineEdit {
+        text <=> root.text;
+        placeholder-text: root.placeholder-text;
+        accessible-label: root.input-accessible-label == "" ? root.label : root.input-accessible-label;
+        enabled: root.field-enabled;
+        accepted => { root.accepted(); }
+        edited => { root.edited(); }
+    }
+
+    public function focus-editor() {
+        input.focus();
+    }
+}
+
+export component TextAction inherits Rectangle {
+    in property <string> text;
+    in property <string> description;
+    callback activated();
+
+    accessible-role: button;
+    accessible-label: root.text;
+    accessible-description: root.description;
+    accessible-action-default => { root.activated(); }
+
+    min-width: label.preferred-width;
+    min-height: label.preferred-height + 6px;
+    background: pointer.has-hover ? Palette.background.darker(0.08) : transparent;
+
+    label := Text {
+        text: root.text;
+        font-weight: 600;
         vertical-alignment: center;
         overflow: elide;
     }
-    action-focus := FocusScope {
-        enabled: root.enabled;
+
+    focus := FocusScope {
         focus-on-click: false;
         key-pressed(event) => {
             if event.text == Key.Return || event.text == Key.Space {
@@ -112,190 +64,12 @@ export component KeyboardAction inherits Rectangle {
             return reject;
         }
     }
+
     pointer := TouchArea {
-        enabled: root.enabled;
-        clicked => { action-focus.focus(); root.activated(); }
-    }
-}
-
-export component SearchField inherits Rectangle {
-    in-out property <string> text;
-    in property <string> placeholder-text;
-    callback accepted();
-    callback edited();
-
-    accessible-role: search;
-    accessible-label: "Search logbook";
-    height: 35px;
-    min-width: 240px;
-    clip: true;
-    background: Theme.background;
-    border-width: search-input.has-focus ? 2px : 1px;
-    border-color: search-input.has-focus ? Theme.focus : Theme.border;
-    border-radius: Theme.radius-sm;
-
-    Text {
-        x: Theme.space-md;
-        width: parent.width - Theme.space-xl;
-        text: root.text == "" ? root.placeholder-text : "";
-        color: Theme.text-muted;
-        font-size: Theme.text-sm;
-        vertical-alignment: center;
-        overflow: elide;
-    }
-    search-input := TextInput {
-        x: Theme.space-md;
-        width: parent.width - Theme.space-xl;
-        text <=> root.text;
-        color: Theme.text-primary;
-        selection-foreground-color: Theme.background;
-        selection-background-color: Theme.accent;
-        font-size: Theme.text-sm;
-        vertical-alignment: center;
-        single-line: true;
-        accessible-label: "Search by callsign or mode";
-        accepted => { root.accepted(); }
-        edited => { root.edited(); }
-    }
-}
-
-export component Panel inherits Rectangle {
-    in property <bool> raised: false;
-    background: raised ? Theme.surface-raised : Theme.surface;
-    border-width: 1px;
-    border-color: Theme.border-subtle;
-    border-radius: Theme.radius-md;
-}
-
-export component Divider inherits Rectangle {
-    height: 1px;
-    background: Theme.divider;
-}
-
-export component Tag inherits Rectangle {
-    in property <string> text;
-    in property <bool> accent: false;
-    min-width: 48px;
-    background: accent ? Theme.surface-selected : Theme.surface-raised;
-    border-radius: Theme.radius-xs;
-    Text {
-        text: root.text;
-        color: accent ? Theme.accent-strong : Theme.text-secondary;
-        font-size: Theme.text-xs;
-        font-weight: 700;
-        horizontal-alignment: center;
-        vertical-alignment: center;
-        overflow: elide;
-    }
-}
-
-export component FilterChip inherits Rectangle {
-    in property <string> text;
-    in property <bool> selected: false;
-    background: selected ? Theme.surface-selected : Theme.surface;
-    border-width: 1px;
-    border-color: selected ? Theme.accent : Theme.border;
-    border-radius: Theme.radius-sm;
-    HorizontalBox {
-        padding-left: Theme.space-sm;
-        padding-right: Theme.space-sm;
-        padding-top: Theme.space-xs;
-        padding-bottom: Theme.space-xs;
-        Text {
-            text: root.text;
-            color: selected ? Theme.accent-strong : Theme.text-secondary;
-            font-size: Theme.text-xs;
-            font-weight: 700;
-            vertical-alignment: center;
+        clicked => {
+            focus.focus();
+            root.activated();
         }
-    }
-}
-
-export component DataLabel inherits Text {
-    color: Theme.text-muted;
-    font-size: Theme.text-xs;
-    font-weight: 600;
-    vertical-alignment: center;
-}
-
-export component TechnicalValue inherits Text {
-    color: Theme.text-primary;
-    font-size: Theme.technical-size;
-    font-weight: 600;
-    vertical-alignment: center;
-    overflow: elide;
-}
-
-export component SectionTitle inherits Text {
-    color: Theme.accent;
-    font-size: Theme.text-md;
-    font-weight: 700;
-    vertical-alignment: center;
-}
-
-export component PageTitle inherits Text {
-    color: Theme.text-primary;
-    font-size: Theme.text-xl;
-    font-weight: 700;
-    vertical-alignment: center;
-}
-
-export component StationBadge inherits Rectangle {
-    in property <string> callsign;
-
-    background: Theme.surface;
-    border-width: 1px;
-    border-color: callsign == "" ? Theme.warning : Theme.border;
-    border-radius: Theme.radius-sm;
-
-    HorizontalBox {
-        padding-left: Theme.space-md;
-        padding-right: Theme.space-md;
-        padding-top: Theme.space-xs;
-        padding-bottom: Theme.space-xs;
-        spacing: Theme.space-sm;
-
-        Rectangle {
-            width: 5px;
-            height: 5px;
-            border-radius: 3px;
-            background: callsign == "" ? Theme.warning : Theme.success;
-        }
-        Text {
-            text: callsign == "" ? "STATION NOT SET" : callsign;
-            color: callsign == "" ? Theme.warning : Theme.text-primary;
-            font-size: Theme.text-sm;
-            font-weight: 700;
-            vertical-alignment: center;
-        }
-        Text {
-            text: "LOCAL";
-            color: Theme.text-muted;
-            font-size: Theme.text-xs;
-            font-weight: 700;
-            vertical-alignment: center;
-        }
-    }
-}
-
-export component ModeBadge inherits Rectangle {
-    in property <string> mode;
-
-    min-width: 54px;
-    max-width: 54px;
-    background: mode == "DMR" ? Theme.surface-selected : mode == "FT8" ? Theme.success-surface : Theme.surface-raised;
-    border-width: 1px;
-    border-color: mode == "DMR" ? Theme.accent-secondary : mode == "FT8" ? Theme.success : Theme.border;
-    border-radius: Theme.radius-xs;
-
-    Text {
-        text: mode;
-        color: mode == "DMR" ? Theme.accent-strong : mode == "FT8" ? Theme.success : Theme.text-secondary;
-        font-size: Theme.text-xs;
-        font-weight: 700;
-        horizontal-alignment: center;
-        vertical-alignment: center;
-        overflow: elide;
     }
 }
 
@@ -304,27 +78,19 @@ export component EmptyState inherits VerticalBox {
     in property <string> detail;
 
     alignment: center;
-    spacing: Theme.space-sm;
+    spacing: StyleMetrics.layout-spacing;
 
     Text {
-        text: "NO SIGNAL";
-        color: Theme.accent;
-        font-size: Theme.text-xs;
-        font-weight: 700;
+        text: root.title;
+        font-size: 18px;
+        font-weight: 600;
         horizontal-alignment: center;
     }
+
     Text {
-        text: title;
-        color: Theme.text-primary;
-        font-size: Theme.text-lg;
-        font-weight: 700;
+        text: root.detail;
         horizontal-alignment: center;
-    }
-    Text {
-        text: detail;
-        color: Theme.text-muted;
-        font-size: Theme.text-sm;
-        horizontal-alignment: center;
+        wrap: word-wrap;
     }
 }
 
@@ -333,34 +99,30 @@ export component StatusBar inherits Rectangle {
     in property <int> kind; // 0 info, 1 success, 2 warning, 3 error
 
     accessible-role: content-info;
-    accessible-label: message;
+    accessible-label: root.message;
     accessible-live-region: polite;
-    height: 32px;
-    background: Theme.surface;
-    border-width: 1px;
-    border-color: Theme.border-subtle;
 
-    HorizontalBox {
-        padding-left: Theme.space-md;
-        padding-right: Theme.space-md;
-        spacing: Theme.space-sm;
+    height: content.preferred-height;
+    vertical-stretch: 0;
+    background: Palette.background.darker(0.05);
 
-        Rectangle {
-            width: 3px;
-            background: kind == 3 ? Theme.danger : kind == 2 ? Theme.warning : kind == 1 ? Theme.success : Theme.accent;
-        }
+    content := HorizontalBox {
+        padding-left: StyleMetrics.layout-padding;
+        padding-right: StyleMetrics.layout-padding;
+        padding-top: StyleMetrics.layout-spacing / 2;
+        padding-bottom: StyleMetrics.layout-spacing / 2;
+
         Text {
-            text: kind == 3 ? "ERROR" : kind == 2 ? "NOTICE" : kind == 1 ? "DONE" : "STATUS";
-            color: kind == 3 ? Theme.danger : kind == 2 ? Theme.warning : kind == 1 ? Theme.success : Theme.accent;
-            font-size: Theme.text-xs;
-            font-weight: 700;
-            vertical-alignment: center;
+            text: root.kind == 3 ? "Error"
+                : root.kind == 2 ? "Notice"
+                : root.kind == 1 ? "Done"
+                : "Status";
+            font-weight: 600;
         }
+
         Text {
-            text: message;
-            color: Theme.text-secondary;
-            font-size: Theme.text-sm;
-            vertical-alignment: center;
+            text: root.message;
+            horizontal-stretch: 1;
             overflow: elide;
         }
     }

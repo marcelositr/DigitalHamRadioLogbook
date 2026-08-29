@@ -1,0 +1,14 @@
+import { Palette } from "std-widgets.slint";
+
+export global Appearance {
+    in-out property <int> color-scheme-index: 0;
+    callback color-scheme-selected(int);
+
+    changed color-scheme-index => {
+        Palette.color-scheme = root.color-scheme-index == 1
+            ? ColorScheme.light
+            : root.color-scheme-index == 2
+                ? ColorScheme.dark
+                : ColorScheme.unknown;
+    }
+}

@@ -1,3 +1,7 @@
 fn main() {
-    slint_build::compile("ui/main.slint").expect("failed to compile Slint UI");
+    slint_build::compile_with_config(
+        "ui/app.slint",
+        slint_build::CompilerConfiguration::new().with_style("fluent".to_owned()),
+    )
+    .expect("failed to compile Slint UI");
 }
