@@ -4,6 +4,8 @@ Status: **pendente de aprovação manual da reconstrução Slint-native**.
 
 A UI v0.11 foi reconstruída a partir dos contratos funcionais, sem reutilizar a implementação visual anterior como referência. A janela de referência continua `1050×680`.
 
+O style oficial do produto é **Fluent**. O QA deve validar os três esquemas disponíveis em Settings: **System**, **Light** e **Dark**.
+
 ## Regra de reprovação imediata
 
 Qualquer ocorrência abaixo reprova a tela até correção:
@@ -15,31 +17,27 @@ Qualquer ocorrência abaixo reprova a tela até correção:
 - [ ] controles sobrepostos;
 - [ ] conteúdo necessário inacessível por falta de scroll;
 - [ ] foco invisível ou navegação por teclado bloqueada;
-- [ ] mudança de style tornando uma função essencial inutilizável.
+- [ ] Light ou Dark tornando uma função essencial ilegível.
 
-## Comparação dos styles
+## Appearance
 
-Executar o mesmo build nos quatro styles antes de escolher o padrão final:
+Executar o build normal:
 
 ```bash
-SLINT_STYLE=fluent-dark cargo run --locked
-SLINT_STYLE=material-dark cargo run --locked
-SLINT_STYLE=cupertino-dark cargo run --locked
-SLINT_STYLE=cosmic-dark cargo run --locked
+cargo run --locked
 ```
 
-Para cada style, observar:
+Em **Settings → Appearance**, validar:
 
-- [ ] legibilidade geral;
-- [ ] densidade em desktop;
-- [ ] tamanho natural de botões e inputs;
-- [ ] contraste de `GroupBox`;
-- [ ] menu superior;
-- [ ] seleção/foco da sidebar;
-- [ ] tabela/lista do Logbook;
-- [ ] formulários longos;
-- [ ] warnings e confirmações;
-- [ ] barra de status.
+- [ ] `System` é o valor default para configuração nova ou configuração antiga sem a seção `appearance`;
+- [ ] `System` acompanha a preferência claro/escuro reportada pelo desktop;
+- [ ] `Light` muda a interface imediatamente para claro;
+- [ ] `Dark` muda a interface imediatamente para escuro;
+- [ ] a troca não exige reiniciar a aplicação;
+- [ ] a escolha permanece após fechar e abrir novamente;
+- [ ] a seleção persiste no `config.toml` sem alterar banco ou QSOs;
+- [ ] falha ao salvar a configuração restaura visualmente a preferência persistida anterior;
+- [ ] widgets, menus, sidebar, formulários e status permanecem legíveis nos três estados.
 
 ## Shell
 
@@ -111,7 +109,9 @@ Para cada style, observar:
 
 ## Settings
 
-- [ ] Local station é a primeira configuração.
+- [ ] Appearance é exibido antes das configurações de estação.
+- [ ] ComboBox de aparência mostra exatamente System, Light e Dark.
+- [ ] Local station permanece claramente identificável.
 - [ ] Callsign vazio, normal e longo não quebram o layout.
 - [ ] External lookup links permanece secundário.
 - [ ] Templates longos de callsign/grid permanecem editáveis.
@@ -122,7 +122,7 @@ Para cada style, observar:
 
 - [ ] Exit with pending work permanece completamente visível.
 - [ ] Erro ao salvar preferências mantém retry e saída explícita.
-- [ ] Status normal, success, warning e error são distinguíveis.
+- [ ] Status normal, success, warning e error são distinguíveis em Light e Dark.
 - [ ] Estação não configurada não bloqueia operação.
 
 ## Resultado
@@ -132,8 +132,8 @@ Registrar somente depois do teste real:
 - data;
 - ambiente/desktop;
 - resolução da janela;
-- style usado;
-- style escolhido para o produto;
+- esquema usado: System, Light e Dark;
+- comportamento do modo System no desktop testado;
 - observações por tela;
 - falhas encontradas e commits de correção;
 - decisão final de aprovação/reprovação.
