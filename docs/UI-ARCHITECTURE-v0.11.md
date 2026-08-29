@@ -28,6 +28,7 @@ Isso significa:
 
 ```text
 ui/
+├── app.slint
 ├── appearance.slint
 ├── design-system.slint
 ├── main.slint
@@ -42,7 +43,7 @@ ui/
     └── settings-page.slint
 ```
 
-`main.slint` continua sendo o contrato compilado por `build.rs`. Properties e callbacks usados pelos handlers Rust devem permanecer estáveis.
+`ui/app.slint` é o entrypoint compilado por `build.rs`. Ele não contém layout: apenas reexporta `MainWindow` e o global `Appearance` para a API Rust gerada. `main.slint` continua concentrando o contrato da janela, e suas properties/callbacks consumidas pelos handlers Rust permanecem estáveis.
 
 ## Fundação visual
 
