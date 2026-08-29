@@ -6,7 +6,7 @@ Aplicativo desktop para registro e organização de contatos de radioamador, des
 
 ![Digital Ham Radio Logbook](docs/assets/logbook-v0.11.png)
 
-*Interface v0.11 em desenvolvimento. A captura usa QSOs sintéticos de demonstração.*
+*Interface v0.11 em Dark mode. A captura usa QSOs sintéticos de demonstração.*
 
 ## Principais recursos
 
