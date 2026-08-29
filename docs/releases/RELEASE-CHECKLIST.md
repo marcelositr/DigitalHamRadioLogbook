@@ -14,7 +14,7 @@ This checklist is executable release discipline, not a declaration that a versio
 - [ ] Set the intended RC/final version in `Cargo.toml`.
 - [ ] Synchronize `Cargo.lock` and `fuzz/Cargo.lock` without unrelated dependency updates.
 - [ ] Update `CHANGELOG.md` with only factual changes.
-- [ ] Update release notes, `PROGRESS.md`, readiness and regression documents.
+- [ ] Update release notes, `../project/PROGRESS.md`, readiness and regression documents.
 - [ ] Confirm README, recovery, ADIF, support matrix and limitations match behavior.
 - [ ] Confirm `PROGRAMVERSION` will be derived from the intended compiled version.
 
@@ -127,7 +127,7 @@ After this step, do not rebuild and publish a different binary.
 
 ## 11. Manual regression
 
-- [ ] Validate `1050×680` using `docs/VISUAL-QA.md`.
+- [ ] Validate `1050×680` using `../quality/VISUAL-QA.md`.
 - [ ] Exercise Generic, DMR, FT8, D-STAR and YSF/C4FM.
 - [ ] Exercise Save, Save & New, duplicate Review/Save anyway and mode transitions.
 - [ ] Exercise edit, delete, search, filters and pagination.
