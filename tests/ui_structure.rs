@@ -79,7 +79,10 @@ fn editor_uses_native_groupboxes_for_all_mode_workspaces() {
         "YSF / C4FM",
         "Notes",
     ] {
-        assert!(EDITOR.contains(section), "missing editor section: {section}");
+        assert!(
+            EDITOR.contains(section),
+            "missing editor section: {section}"
+        );
     }
 
     for action in ["Save & New", "Cancel", "Save QSO", "Save changes"] {
@@ -105,9 +108,7 @@ fn tools_remains_split_by_interoperability_health_and_backup() {
 fn settings_keeps_local_identity_primary_and_external_links_explicit() {
     assert!(SETTINGS.contains("Local station"));
     assert!(SETTINGS.contains("External lookup links"));
-    assert!(SETTINGS.contains(
-        "External websites open only after an explicit lookup action"
-    ));
+    assert!(SETTINGS.contains("External websites open only after an explicit lookup action"));
     assert!(SETTINGS.contains("GroupBox"));
     assert!(!SETTINGS.contains("Panel"));
 }
