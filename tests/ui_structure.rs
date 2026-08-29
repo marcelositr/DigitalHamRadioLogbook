@@ -31,14 +31,25 @@ fn rust_facing_qso_shortcuts_remain_in_main_contract() {
         "event.modifiers.control && event.text == Key.Return",
         "event.modifiers.control && event.text == \"f\"",
     ] {
-        assert!(MAIN.contains(shortcut), "missing shortcut contract: {shortcut}");
+        assert!(
+            MAIN.contains(shortcut),
+            "missing shortcut contract: {shortcut}"
+        );
     }
 }
 
 #[test]
 fn editor_retains_mode_specific_workspaces_and_fixed_actions() {
-    for section in ["DMR DETAILS", "FT8 DETAILS", "D-STAR DETAILS", "YSF / C4FM DETAILS"] {
-        assert!(EDITOR.contains(section), "missing editor section: {section}");
+    for section in [
+        "DMR DETAILS",
+        "FT8 DETAILS",
+        "D-STAR DETAILS",
+        "YSF / C4FM DETAILS",
+    ] {
+        assert!(
+            EDITOR.contains(section),
+            "missing editor section: {section}"
+        );
     }
     for action in ["Save & New", "Cancel", "Save QSO", "Save changes"] {
         assert!(EDITOR.contains(action), "missing editor action: {action}");
