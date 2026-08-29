@@ -6,17 +6,18 @@ Este projeto segue [Semantic Versioning](https://semver.org/). As release notes 
 
 ### Changed
 
-- iniciada a refatoração gráfica v0.11 mantendo Slint e preservando a identidade técnica de instrumentação de rádio do produto;
-- substituído o cabeçalho de navegação único por um shell desktop persistente com menu superior, sidebar recolhível, barra contextual, workspace central e status global;
-- editor de QSO, Tools e Settings foram integrados à nova hierarquia visual sem alterar seus callbacks públicos, regras de domínio ou fluxos de persistência;
-- adicionados `docs/UI-ARCHITECTURE-v0.11.md` e `docs/VISUAL-QA-v0.11.md` para documentar a arquitetura da interface e o novo gate de regressão manual;
-- adicionados testes estruturais para proteger shell, atalhos, workspaces por modo e responsabilidades de Tools/Settings.
+- reconstruída a camada gráfica v0.11 a partir dos contratos funcionais, sem reutilizar a interface anterior como referência visual;
+- adotada uma arquitetura Slint-native inspirada na Widgets Gallery, com `MenuBar`, `GroupBox`, widgets padrão, `Palette`, `StyleMetrics` e dimensionamento natural pelo conteúdo;
+- substituídos menu superior simulado, barra contextual e tema proprietário por menu nativo, sidebar simples, workspace central e status global;
+- Logbook reconstruído como workspace de dados; editor de QSO, Tools e Settings foram reescritos com layouts e widgets nativos sem alterar callbacks públicos, regras de domínio ou persistência;
+- adicionados `docs/UI-ARCHITECTURE-v0.11.md` e `docs/VISUAL-QA-v0.11.md` para documentar a arquitetura, comparação de styles e novo gate de regressão manual;
+- testes estruturais passaram a proteger a arquitetura Slint-native e impedir a reintrodução dos antigos painéis/tema customizados.
 
 ### Compatibility
 
 - Slint permanece como toolkit gráfico; nenhuma migração para Tauri, Electron, Qt ou GTK foi realizada;
 - schema SQLite, migrations, ADIF, repository e dependências de runtime permanecem inalterados;
-- a homologação visual das versões anteriores não é herdada automaticamente pelo shell v0.11; nova aprovação manual em `1050×680` permanece necessária antes de concluir o ciclo.
+- a homologação visual das versões anteriores não é herdada pela reconstrução v0.11; nova aprovação manual em `1050×680` e comparação dos styles candidatos permanecem necessárias antes de concluir o ciclo.
 
 ## [0.10.0-rc.1] - 2026-08-28
 
