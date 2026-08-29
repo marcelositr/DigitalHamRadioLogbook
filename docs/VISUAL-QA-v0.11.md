@@ -1,101 +1,139 @@
 # Visual QA v0.11
 
-Status: **pendente de aprovação manual após o enterprise polish**.
+Status: **pendente de aprovação manual da reconstrução Slint-native**.
 
-A refatoração v0.11 altera shell, superfícies, hierarquia tipográfica e estados visuais. A homologação das versões anteriores não é herdada automaticamente. A janela de referência permanece `1050×680`.
+A UI v0.11 foi reconstruída a partir dos contratos funcionais, sem reutilizar a implementação visual anterior como referência. A janela de referência continua `1050×680`.
 
-## Direção visual
+## Regra de reprovação imediata
 
-- [ ] A interface parece software desktop operacional, não dashboard, HUD ou aplicativo mobile ampliado.
-- [ ] Accent aparece principalmente em ação, foco e seleção, sem decoração gratuita.
-- [ ] Superfícies são diferenciadas prioritariamente por tonalidade e espaçamento, não por bordas fortes.
-- [ ] Não há excesso de cards ou containers aninhados.
-- [ ] Títulos usam sentence/title case; caixa alta fica restrita a siglas e dados técnicos quando útil.
-- [ ] Pesos tipográficos mantêm hierarquia sem excesso de bold.
-- [ ] Radius e spacing permanecem consistentes entre páginas.
-- [ ] Hover, focus, active e disabled são distinguíveis sem glow ou animação chamativa.
+Qualquer ocorrência abaixo reprova a tela até correção:
+
+- [ ] texto cortado sem intenção;
+- [ ] label ou texto sobreposto;
+- [ ] separador/borda atravessando `LineEdit` ou outro controle;
+- [ ] botão com texto truncado;
+- [ ] controles sobrepostos;
+- [ ] conteúdo necessário inacessível por falta de scroll;
+- [ ] foco invisível ou navegação por teclado bloqueada;
+- [ ] mudança de style tornando uma função essencial inutilizável.
+
+## Comparação dos styles
+
+Executar o mesmo build nos quatro styles antes de escolher o padrão final:
+
+```bash
+SLINT_STYLE=fluent-dark cargo run --locked
+SLINT_STYLE=material-dark cargo run --locked
+SLINT_STYLE=cupertino-dark cargo run --locked
+SLINT_STYLE=cosmic-dark cargo run --locked
+```
+
+Para cada style, observar:
+
+- [ ] legibilidade geral;
+- [ ] densidade em desktop;
+- [ ] tamanho natural de botões e inputs;
+- [ ] contraste de `GroupBox`;
+- [ ] menu superior;
+- [ ] seleção/foco da sidebar;
+- [ ] tabela/lista do Logbook;
+- [ ] formulários longos;
+- [ ] warnings e confirmações;
+- [ ] barra de status.
 
 ## Shell
 
-- [ ] Top app bar permanece totalmente visível em `1050×680`.
-- [ ] Indicador `Local database · Offline` é legível e secundário.
-- [ ] Sidebar expandida não comprime o workspace a ponto de cortar controles.
-- [ ] Sidebar recolhida mantém Logbook, New QSO, Tools e Settings identificáveis e acionáveis.
-- [ ] Item ativo da sidebar é claro sem dominar visualmente a navegação.
-- [ ] Trocar de página pela sidebar mantém o mesmo comportamento de dirty-state existente.
-- [ ] Barra contextual apresenta seção, página e estação local sem clipping.
-- [ ] Status global permanece visível e silencioso em estado normal.
-- [ ] Nenhuma página exige fullscreen.
+- [ ] `MenuBar` nativo abre e fecha corretamente.
+- [ ] File, QSO, View e Tools permanecem acessíveis.
+- [ ] Sidebar expandida não comprime o workspace de forma destrutiva.
+- [ ] Sidebar recolhida mantém os quatro destinos identificáveis.
+- [ ] Logbook, New QSO, Tools e Settings navegam corretamente.
+- [ ] Estação local aparece sem clipping na sidebar.
+- [ ] Callsign longo não invade a navegação.
+- [ ] Status global permanece visível.
+- [ ] `1050×680` não exige fullscreen.
 
 ## Navegação e teclado
 
-- [ ] `Tab` segue ordem visual coerente no shell e workspace.
-- [ ] `Enter` e `Space` acionam comandos customizados focados.
+- [ ] `Tab` percorre controles em ordem compreensível.
+- [ ] Enter/Space acionam ações textuais customizadas quando focadas.
 - [ ] `Ctrl+N` abre New QSO e posiciona foco em callsign.
 - [ ] `Ctrl+S` salva somente no editor.
-- [ ] `Ctrl+Enter` executa Save & New somente durante criação.
-- [ ] `Ctrl+F` posiciona foco na pesquisa do Logbook.
-- [ ] `Escape` continua reservado a cancelar/fechar o fluxo atual.
+- [ ] `Ctrl+Enter` executa Save & New apenas durante criação.
+- [ ] `Ctrl+F` posiciona foco na busca do Logbook.
+- [ ] `Escape` cancela/fecha somente o fluxo atual.
 - [ ] Clipboard não é alterado pelos atalhos.
 
 ## Logbook
 
-- [ ] `+ New QSO` é percebido como ação primária da página sem competir com a pesquisa.
-- [ ] Busca, Clear e Filters permanecem alinhados e utilizáveis.
+- [ ] Título, contagem, busca e New QSO formam uma hierarquia simples.
+- [ ] New QSO é a ação principal sem dominar a página.
+- [ ] Busca não corta placeholder ou texto digitado.
 - [ ] Filtros DMR, FT8, D-STAR e YSF/C4FM abrem sem sobreposição.
-- [ ] Indicador de filtro aplicado continua visível sem dominar a tela.
-- [ ] Lista de QSO permanece elemento visual dominante.
-- [ ] Linhas parecem uma lista de dados, não uma sequência de cards independentes.
-- [ ] Callsign, UTC, modo, frequência e banda são escaneáveis rapidamente.
-- [ ] Route/grid/actions permanecem no nível visual secundário.
-- [ ] Conteúdo longo elide sem deslocar ações.
-- [ ] Banco vazio e busca sem resultados exibem empty state sóbrio.
+- [ ] Campos dos filtros permanecem inteiros em `1050×680`.
+- [ ] Lista parece um workspace de dados, não uma sequência de cards.
+- [ ] UTC, callsign, mode, frequency, band, route, grid e actions permanecem alinhados.
+- [ ] Rotas longas usam elide sem empurrar Edit/Delete para fora da tela.
+- [ ] Callsign/grid lookup permanece explícito.
+- [ ] Banco vazio e busca vazia exibem estado simples e centralizado.
 - [ ] Paginação funciona em página vazia, parcial, intermediária e final.
-- [ ] Lookup de callsign/grid continua exigindo ação explícita.
-- [ ] Confirmação de exclusão continua acessível por mouse e teclado.
+- [ ] Confirmação de exclusão não cobre controles essenciais.
 
 ## New/Edit QSO
 
-- [ ] Novo e edição continuam distinguíveis pelo contexto da janela.
-- [ ] Campos comuns permanecem acessíveis em `1050×680`.
-- [ ] Contact é o primeiro agrupamento visual e não há excesso de caixas.
-- [ ] Painel DMR mostra todos os campos específicos.
-- [ ] Painel FT8 mostra todos os campos específicos.
-- [ ] Painel D-STAR mostra todos os campos específicos.
-- [ ] Painel YSF/C4FM mostra todos os campos específicos.
-- [ ] Modo genérico não deixa espaço reservado para painel específico.
-- [ ] Rolagem alcança Notes e todos os campos condicionais.
-- [ ] Footer fixo mantém Save & New, Cancel e Save visíveis.
-- [ ] Warning de duplicidade preserva Review e Save anyway.
-- [ ] Confirmação de descarte preserva o formulário quando cancelada.
+- [ ] New QSO e Edit QSO são distinguíveis.
+- [ ] `Contact` aparece primeiro e sem decoração redundante.
+- [ ] Callsign, UTC, mode, frequency, band e grid não sofrem clipping.
+- [ ] `Station and report` mantém RST, Name e QTH acessíveis.
+- [ ] DMR exibe todos os campos e permite rolagem até Notes.
+- [ ] FT8 exibe todos os campos e permite rolagem até Notes.
+- [ ] D-STAR exibe todos os campos e permite rolagem até Notes.
+- [ ] YSF/C4FM exibe todos os campos e permite rolagem até Notes.
+- [ ] Modo genérico não reserva espaço vazio para metadata específica.
+- [ ] Nenhuma borda de `GroupBox` cruza um `LineEdit`.
+- [ ] Labels não entram dentro dos inputs.
+- [ ] Rodapé mantém Save & New, Cancel e Save disponíveis.
+- [ ] Possible duplicate preserva Review e Save anyway.
+- [ ] Discard unsaved changes preserva Continue editing e Discard changes.
 
 ## Tools
 
-- [ ] ADIF é percebido como fluxo primário sem transformar a página em dashboard.
-- [ ] Área ADIF comporta caminhos longos sem retirar ações da tela.
-- [ ] Preview mostra total, novos, duplicados, inválidos, modos, bandas e UTC range.
-- [ ] Métricas do preview usam superfícies tonais discretas e não parecem cards promocionais.
-- [ ] Cancel e Import permanecem utilizáveis na parte inferior do preview.
-- [ ] Data health permanece read-only e relatório fica contido.
-- [ ] Backup destination, Verify backup e Create backup permanecem acessíveis.
+- [ ] ADIF file path aceita caminho longo sem expulsar ações da tela.
+- [ ] Select import/export continuam acessíveis.
+- [ ] Preview import mostra total, new, duplicates e invalid sem cards artificiais.
+- [ ] Modes, Bands e UTC range quebram linha quando necessário.
+- [ ] Detalhes de registros inválidos permanecem legíveis.
+- [ ] Cancel e Import permanecem acessíveis no preview.
+- [ ] Data health é claramente read-only.
+- [ ] Relatório longo permanece contido/rolável pela página.
+- [ ] Backup destination aceita caminho longo.
+- [ ] Select destination, Create backup e Verify existing backup permanecem acessíveis.
 
 ## Settings
 
-- [ ] Identidade da estação continua sendo a configuração principal.
-- [ ] Callsign vazio, normal e longo ficam contidos.
-- [ ] External lookup links é claramente secundário em relação à estação local.
-- [ ] Templates de callsign/grid suportam valores longos sem clipping destrutivo.
-- [ ] Restore defaults e Save links permanecem acessíveis.
-- [ ] Aviso de privacidade continua secundário e legível.
+- [ ] Local station é a primeira configuração.
+- [ ] Callsign vazio, normal e longo não quebram o layout.
+- [ ] External lookup links permanece secundário.
+- [ ] Templates longos de callsign/grid permanecem editáveis.
+- [ ] Restore defaults e Save links ficam visíveis.
+- [ ] Informação sobre envio para serviços externos é legível sem dominar a tela.
 
 ## Estados globais
 
-- [ ] Exit confirmation permanece totalmente visível.
-- [ ] Falha ao salvar preferências mantém retry e saída explícita sem salvar.
-- [ ] Status normal, success, warning e error possuem contraste adequado.
-- [ ] Estação não configurada mantém warning perceptível sem bloquear operação.
-- [ ] Nenhum warning/error usa cor sem texto ou contexto suficiente.
+- [ ] Exit with pending work permanece completamente visível.
+- [ ] Erro ao salvar preferências mantém retry e saída explícita.
+- [ ] Status normal, success, warning e error são distinguíveis.
+- [ ] Estação não configurada não bloqueia operação.
 
 ## Resultado
 
-Registrar aqui data, ambiente, tamanho da janela e observações somente depois da validação manual real desta versão visual.
+Registrar somente depois do teste real:
+
+- data;
+- ambiente/desktop;
+- resolução da janela;
+- style usado;
+- style escolhido para o produto;
+- observações por tela;
+- falhas encontradas e commits de correção;
+- decisão final de aprovação/reprovação.
