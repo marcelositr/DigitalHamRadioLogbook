@@ -76,6 +76,7 @@ A v0.11 preserva Slint e o contrato público consumido pelo Rust, mas reconstró
 
 ```text
 ui/
+├── app.slint
 ├── appearance.slint
 ├── design-system.slint
 ├── main.slint
@@ -89,7 +90,7 @@ ui/
     └── settings-page.slint
 ```
 
-`ui/main.slint` continua sendo o contrato público compilado por `build.rs`. Ele mantém os callbacks e properties usados por `src/app/*`; a mudança de interface permanece separada do domínio e do SQLite.
+`ui/app.slint` é o entrypoint compilado por `build.rs` e apenas reexporta `MainWindow` e o global `Appearance` para a API Rust gerada. `ui/main.slint` mantém o contrato funcional da janela e os callbacks/properties usados por `src/app/*`; a mudança de interface permanece separada do domínio e do SQLite.
 
 O shell é composto por:
 
