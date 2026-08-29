@@ -2,9 +2,11 @@
 
 Este projeto segue [Semantic Versioning](https://semver.org/). As release notes de cada versão permanecem em [`notes/`](notes/).
 
-## [Unreleased]
+## [0.11.0-rc.1] - 2026-08-29
 
-Release notes detalhadas da linha v0.11: [`notes/RELEASE-NOTES-v0.11.0.md`](notes/RELEASE-NOTES-v0.11.0.md).
+**Pre-release:** candidato público para avaliação; não representa release estável nem declaração de prontidão.
+
+Release notes: [`notes/RELEASE-NOTES-v0.11.0-RC1.md`](notes/RELEASE-NOTES-v0.11.0-RC1.md).
 
 ### Changed
 

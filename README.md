@@ -37,7 +37,7 @@ Consulte também o [changelog](docs/releases/CHANGELOG.md) e a [matriz de suport
 
 ## Status do projeto
 
-O projeto permanece em desenvolvimento pré-1.0. O checkpoint empacotado de referência é `0.10.0-rc.1`, enquanto a reconstrução da interface v0.11 segue em desenvolvimento e revisão.
+O projeto permanece em desenvolvimento pré-1.0. A linha v0.11 está em **release candidate** (`0.11.0-rc.1`) e continua em avaliação; este candidato não representa uma release estável ou uma declaração de prontidão final.
 
 ## Licença
 
