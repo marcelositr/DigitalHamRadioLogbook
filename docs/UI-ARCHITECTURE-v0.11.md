@@ -2,26 +2,27 @@
 
 ## Objetivo
 
-A linha v0.11 refatora exclusivamente a camada gráfica do Digital Ham Radio Logbook. A implementação continua em Slint e preserva os contratos Rust existentes, SQLite, migrations, ADIF, configuração, backup, filtros e regras de domínio.
+A linha v0.11 reconstrói exclusivamente a camada gráfica do Digital Ham Radio Logbook. O backend Rust, domínio, SQLite, migrations, ADIF, configuração, backup, filtros, atalhos e contratos públicos do `MainWindow` permanecem preservados.
 
-A interface adota uma arquitetura desktop persistente e uma linguagem visual inspirada nos princípios do Material 3, reinterpretada para software desktop operacional. Material é usado como sistema de disciplina para superfícies, hierarquia, estados, espaçamento e semântica de cor; o DHRL não tenta reproduzir a aparência de um aplicativo Android.
+A referência de engenharia visual passa a ser a **Slint Widgets Gallery**: layouts naturais, widgets de `std-widgets.slint`, dimensionamento pelo conteúdo e adaptação ao style selecionado. A UI anterior não é referência visual para esta reconstrução.
 
-A direção é deliberadamente sóbria: superfícies escuras neutras, baixa cromaticidade, poucos níveis de elevação, typography compacta e cor de destaque reservada a ação, seleção e foco. A identidade radioamadora permanece no conteúdo e nos dados do produto, não em ornamentação futurista.
+## Princípio central
 
-## Princípios
+A interface deve trabalhar com o toolkit, não contra ele.
 
-1. **Desktop first.** A janela de referência continua `1050×680`, inclusive em gerenciadores tiled.
-2. **Slint permanece a tecnologia gráfica.** Não introduzir Tauri, Electron, Qt, GTK ou camada web.
-3. **O shell é persistente.** A navegação e o contexto não são reconstruídos por página.
-4. **O workspace muda; a moldura não.** Logbook, editor, Tools e Settings ocupam a mesma área central.
-5. **Material como sistema, não como skin mobile.** Usar roles de superfície, state layers, hierarquia e spacing sem inflar controles para densidade de touchscreen.
-6. **Cor tem função.** Accent identifica ação, foco ou seleção; success, warning e danger ficam restritos a estados semânticos.
-7. **Menos caixas, mais hierarquia.** Espaço, tipografia e alinhamento devem separar conteúdo antes de bordas e containers.
-8. **Alta densidade sem poluição.** Callsign, UTC, modo, frequência e rota continuam prioritários.
-9. **Uma ação primária por contexto.** Ações secundárias permanecem visíveis, mas visualmente silenciosas.
-10. **Teclado é contrato de produto.** `Ctrl+N`, `Ctrl+S`, `Ctrl+Enter`, `Ctrl+F`, `Enter`, `Space` e `Escape` não podem regredir.
-11. **Acessibilidade faz parte da arquitetura.** Regiões, botões customizados, foco e status devem manter semântica explícita.
-12. **Nenhuma refatoração visual altera persistência ou domínio.** Mudanças de schema, migrations ou formato ADIF são fora de escopo.
+Isso significa:
+
+1. usar widgets nativos antes de criar componentes customizados;
+2. preferir `HorizontalBox`, `VerticalBox`, `HorizontalLayout`, `VerticalLayout`, `GroupBox`, `Button`, `LineEdit`, `ListView`, `ScrollView` e `MenuBar`;
+3. preferir `preferred-*`, `min-*`, stretch e métricas do style antes de tamanhos absolutos;
+4. considerar clipping, sobreposição, borda atravessando input ou botão truncado como bug;
+5. usar `Palette` e `StyleMetrics` para qualquer extensão necessária;
+6. não manter um tema paralelo que redesenhe os widgets padrão;
+7. preservar densidade de desktop, sem transformar o produto em uma interface mobile ampliada.
+
+## Versão do Slint
+
+`Cargo.toml` usa a faixa `1.9`, e o `Cargo.lock` atual resolve Slint/Slint Build 1.17.1. A reconstrução usa recursos disponíveis nessa geração, incluindo `MenuBar`, `Palette` e `StyleMetrics`, sem alterar dependências ou lockfile.
 
 ## Estrutura
 
@@ -40,121 +41,140 @@ ui/
     └── settings-page.slint
 ```
 
-`main.slint` continua sendo o contrato público compilado por `build.rs`. Os callbacks e properties consumidos pelos handlers Rust devem permanecer estáveis durante a refatoração.
+`main.slint` continua sendo o contrato compilado por `build.rs`. Properties e callbacks usados pelos handlers Rust devem permanecer estáveis.
 
-## Shell global
+## Fundação visual
 
-### Top app bar
+`ui/design-system.slint` deixa de ser um tema proprietário. Ele contém somente pequenos componentes de semântica/layout que não existem diretamente em `std-widgets.slint`, como:
 
-A faixa superior identifica o produto e comunica discretamente o caráter local/offline. Ela não simula menus que não existem e não duplica a navegação principal.
+- `FormField`: label + `LineEdit` com foco e acessibilidade;
+- `TextAction`: ação textual acessível para callsign/grid;
+- `EmptyState`: estado vazio simples;
+- `StatusBar`: faixa de status global.
+
+Esses componentes usam `Palette` e `StyleMetrics`. Não definem paleta própria, raios próprios, níveis de superfície ou uma coleção paralela de botões/cards.
+
+## Shell
+
+### MenuBar
+
+O aplicativo usa `MenuBar`, `Menu`, `MenuItem` e `MenuSeparator` reais do Slint. Não existe mais uma barra customizada simulando menus.
+
+Os menus oferecem acesso secundário a Logbook, New QSO, ações do editor, Tools, Settings e sidebar.
 
 ### Sidebar
 
-A sidebar agrupa a aplicação pelo modelo mental do operador:
+A sidebar segue o padrão estrutural da Gallery:
 
-- **Operation**: Logbook e New QSO;
-- **Data**: Tools;
-- **System**: Settings.
+- Logbook;
+- New QSO;
+- Tools;
+- Settings.
 
-O item ativo usa uma superfície tonal e um indicador estreito. Itens inativos permanecem neutros. A sidebar pode ser recolhida sem alterar a página ativa.
-
-### Barra contextual
-
-A barra contextual informa área, página, metadados curtos e estação local. Os rótulos de seção são secundários; o título da página é o elemento tipográfico dominante.
-
-Metadados de filtro, modo atual ou natureza local dos dados podem aparecer à direita, mas não competem com a ação principal do workspace.
+Não há categorias visuais `Operation`, `Data` ou `System`. O item ativo é indicado pelo próprio estado da navegação, e a sidebar pode ser recolhida.
 
 ### Workspace
 
-É a única região principal mutável. As páginas existentes continuam componentes independentes e recebem os mesmos bindings do `MainWindow`.
+Somente o conteúdo principal muda. A sidebar e a barra de status permanecem estáveis.
 
-### Barra de status
+### Status
 
-Permanece global, fora do conteúdo rolável. O estado normal é visualmente silencioso; success, warning e error ganham cor somente quando necessário.
-
-## Design system
-
-`ui/design-system.slint` é a fonte central de tokens e componentes básicos.
-
-A direção v0.11 usa:
-
-- superfícies neutras de baixo contraste;
-- elevação principalmente tonal;
-- outline discreto;
-- accent azul/ciano dessaturado somente para foco, seleção e ações;
-- estados semanticamente distintos para success, warning e danger;
-- grade de espaçamento baseada em 4 px;
-- raios moderados de `4/6/8 px`;
-- tipografia compacta de desktop;
-- pesos médios/semibold no lugar de excesso de bold;
-- componentes customizados com hover, focus, active e disabled previsíveis.
-
-`Panel` sem elevação é deliberadamente transparente e sem borda. Isso evita a aparência de "card dentro de card". `raised: true` deve ser reservado a superfícies que realmente precisam de separação.
+A barra inferior permanece global e pequena. Cor ou tratamento semântico deve ser usado somente quando necessário; o estado normal deve permanecer discreto.
 
 ## Páginas
 
 ### Logbook
 
-O Logbook é o principal workspace do produto. A lista assume comportamento visual de data workspace: linhas discretas, pouca ornamentação, busca/filtros previsíveis e `+ New QSO` como ação primária da página.
+O Logbook é um workspace de dados, não uma pilha de cards.
 
-Callsign, UTC, modo, frequência e banda permanecem no primeiro nível de leitura. Rota, grid e ações ficam secundários. Linhas não usam cards individuais.
+A estrutura é:
+
+- título e contagem;
+- ação primária `New QSO`;
+- busca;
+- filtros avançados opcionais em `GroupBox`;
+- cabeçalho de colunas;
+- `ListView` com linhas separadas discretamente;
+- paginação;
+- confirmação de exclusão.
+
+Larguras fixas são permitidas apenas onde são úteis para alinhamento tabular previsível, como UTC, callsign, modo, frequência e grid. A coluna de rota permanece elástica.
 
 ### New/Edit QSO
 
-O editor usa título de seção em sentence/title case e labels mais silenciosos. Contact é a superfície principal; Report/Station e Notes podem permanecer visualmente planos. O bloco específico do modo recebe separação suficiente para leitura sem aparência de painel de instrumentação.
+O editor é um formulário rolável composto por `GroupBox` nativos:
 
-Ações de salvar/cancelar continuam fixas e o formulário permanece rolável.
+- Contact;
+- Station and report;
+- DMR, FT8, D-STAR ou YSF/C4FM quando aplicável;
+- Notes.
+
+Campos usam `FormField` e deixam o `LineEdit` nativo definir sua geometria. Não existem linhas decorativas atravessando campos nem containers desenhados manualmente em torno dos inputs.
+
+Save & New, Cancel e Save permanecem disponíveis no rodapé do editor.
 
 ### Tools
 
-Tools é a central administrativa local, organizada em três responsabilidades:
+Tools é dividido em três `GroupBox` naturais:
 
-1. interoperabilidade ADIF;
-2. diagnóstico read-only;
-3. backup SQLite.
+1. ADIF import and export;
+2. Data health;
+3. Database backup.
 
-ADIF é o fluxo primário e pode usar superfície elevada. Data health e backup permanecem mais planos. Métricas de preview usam superfícies tonais sem bordas desnecessárias.
+O preview ADIF usa texto e layouts simples, sem cards de métricas promocionais.
 
 ### Settings
 
-Settings mantém identidade da estação como configuração primária. Serviços externos são secundários e explícitos. Avisos de privacidade e saída para websites devem ser legíveis, mas não dominar a página.
+Settings usa dois grupos principais:
 
-## Compatibilidade
+1. Local station;
+2. External lookup links.
 
-A refatoração v0.11 deve preservar:
+A identidade local permanece prioritária. Serviços externos continuam opcionais e explícitos.
 
-- todos os callbacks públicos do `MainWindow`;
-- properties ligadas pelos módulos Rust;
-- estado dirty do editor;
+## Styles
+
+A mesma UI deve poder ser avaliada sem reescrita nos quatro styles principais do Slint:
+
+```bash
+SLINT_STYLE=fluent-dark cargo run --locked
+SLINT_STYLE=material-dark cargo run --locked
+SLINT_STYLE=cupertino-dark cargo run --locked
+SLINT_STYLE=cosmic-dark cargo run --locked
+```
+
+O style final não deve ser escolhido por preferência teórica. A decisão deve ocorrer após executar o mesmo build e comparar legibilidade, densidade, foco, menus, forms e lista em `1050×680`.
+
+## Compatibilidade obrigatória
+
+A reconstrução preserva:
+
+- callbacks e properties do `MainWindow` consumidos pelo Rust;
+- dirty state do editor;
 - confirmação de descarte;
 - warning de duplicidade;
 - preview ADIF;
 - confirmação de saída;
 - paginação e filtros;
 - lookup externo somente após ação explícita;
-- foco inicial de callsign e pesquisa;
-- comportamento do clipboard;
-- operação offline e local-first.
+- foco inicial de callsign e busca;
+- `Ctrl+N`, `Ctrl+S`, `Ctrl+Enter`, `Ctrl+F` e `Escape`;
+- operação offline/local-first;
+- schema, migrations e formatos persistidos.
 
-## Gate visual v0.11
+## Gate de aceitação
 
-A aprovação visual antiga não é automaticamente herdada pelo novo shell. Antes de concluir a refatoração, executar novamente em `1050×680`:
+O gate técnico continua sendo CI completa. Depois dele é obrigatória uma nova inspeção manual em `1050×680`.
 
-- shell expandido e recolhido;
-- todas as quatro páginas;
-- contraste e hierarquia das superfícies Material-inspired;
-- hover/focus/selected/disabled nos principais controles;
-- QSO genérico, DMR, FT8, D-STAR e YSF/C4FM;
-- conteúdo longo;
-- banco vazio e resultados vazios;
-- filtros abertos e aplicados;
-- paginação;
-- confirmações e warnings;
-- ADIF preview;
-- data health e backup;
-- tab order;
-- Enter/Space/Escape;
-- `Ctrl+N`, `Ctrl+S`, `Ctrl+Enter`, `Ctrl+F`;
-- encerramento com trabalho pendente.
+Falha visual imediata:
 
-A aprovação manual deve ser registrada em `docs/VISUAL-QA-v0.11.md` somente depois da inspeção real do build desta branch.
+- texto cortado sem intenção;
+- label sobreposta;
+- borda ou separador atravessando input;
+- botão truncado;
+- controles sobrepostos;
+- conteúdo inacessível por falta de scroll;
+- mudança de página quebrando estado existente;
+- style alternativo tornando uma tela inutilizável.
+
+A aprovação visual deve ser registrada em `docs/VISUAL-QA-v0.11.md` somente após executar o build real desta reconstrução.
