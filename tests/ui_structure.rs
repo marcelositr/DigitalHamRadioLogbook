@@ -58,10 +58,10 @@ fn rust_facing_qso_shortcuts_remain_in_main_contract() {
 #[test]
 fn editor_retains_mode_specific_workspaces_and_fixed_actions() {
     for section in [
-        "DMR DETAILS",
-        "FT8 DETAILS",
-        "D-STAR DETAILS",
-        "YSF / C4FM DETAILS",
+        "DMR details",
+        "FT8 details",
+        "D-STAR details",
+        "YSF / C4FM details",
     ] {
         assert!(
             EDITOR.contains(section),
