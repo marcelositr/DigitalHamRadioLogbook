@@ -1,4 +1,5 @@
 const MAIN: &str = include_str!("../ui/main.slint");
+const DESIGN: &str = include_str!("../ui/design-system.slint");
 const SHELL: &str = include_str!("../ui/components/app-shell.slint");
 const EDITOR: &str = include_str!("../ui/pages/qso-editor-page.slint");
 const TOOLS: &str = include_str!("../ui/pages/tools-page.slint");
@@ -14,11 +15,27 @@ fn main_window_uses_persistent_desktop_shell() {
 }
 
 #[test]
+fn material_desktop_design_system_keeps_restrained_roles() {
+    for token in [
+        "surface-selected",
+        "border-subtle",
+        "text-secondary",
+        "primary-hover",
+        "warning-surface",
+        "success-surface",
+    ] {
+        assert!(DESIGN.contains(token), "missing design token: {token}");
+    }
+    assert!(DESIGN.contains("4 px desktop spacing grid"));
+    assert!(DESIGN.contains("Used for actions, focus and selection, never decoration"));
+}
+
+#[test]
 fn shell_preserves_four_product_workspaces() {
     for label in ["Logbook", "New QSO", "Tools", "Settings"] {
         assert!(SHELL.contains(label), "missing shell destination: {label}");
     }
-    for group in ["OPERATION", "DATA", "SYSTEM"] {
+    for group in ["Operation", "Data", "System"] {
         assert!(SHELL.contains(group), "missing shell group: {group}");
     }
 }
@@ -58,17 +75,17 @@ fn editor_retains_mode_specific_workspaces_and_fixed_actions() {
 
 #[test]
 fn tools_remains_split_by_interoperability_health_and_backup() {
-    assert!(TOOLS.contains("ADIF IMPORT / EXPORT"));
-    assert!(TOOLS.contains("DATA HEALTH"));
-    assert!(TOOLS.contains("DATABASE BACKUP"));
+    assert!(TOOLS.contains("ADIF import and export"));
+    assert!(TOOLS.contains("Data health"));
+    assert!(TOOLS.contains("Database backup"));
     assert!(TOOLS.contains("Export current results"));
     assert!(TOOLS.contains("Check data health"));
 }
 
 #[test]
 fn settings_keeps_local_identity_primary_and_external_links_explicit() {
-    assert!(SETTINGS.contains("LOCAL STATION"));
-    assert!(SETTINGS.contains("PRIMARY OPERATING IDENTITY"));
-    assert!(SETTINGS.contains("EXTERNAL LOOKUP LINKS"));
+    assert!(SETTINGS.contains("Local station"));
+    assert!(SETTINGS.contains("Primary operating identity"));
+    assert!(SETTINGS.contains("External lookup links"));
     assert!(SETTINGS.contains("External websites open only after an explicit click"));
 }
