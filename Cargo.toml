@@ -14,7 +14,7 @@ rfd = "0.15"
 rusqlite = { version = "0.32", features = ["bundled"] }
 serde = { version = "1", features = ["derive"] }
 slint = "1.9"
-toml = "0.8"
+toml = "1.1"
 urlencoding = "2.1"
 webbrowser = "1.0"
 
