@@ -14,6 +14,7 @@ A documentação do Digital Ham Radio Logbook é organizada por responsabilidade
 | Fazer backup, diagnóstico ou recuperação | [`data/DATA-RECOVERY.md`](data/DATA-RECOVERY.md) |
 | Instalar, empacotar ou distribuir no Linux | [`operations/LINUX-DISTRIBUTION.md`](operations/LINUX-DISTRIBUTION.md) |
 | Entender CI, segurança e release automation | [`operations/CI-CD.md`](operations/CI-CD.md) |
+| Reportar uma vulnerabilidade com segurança | [`.github/SECURITY.md`](../.github/SECURITY.md) |
 | Ver ambientes testados e limites de suporte | [`operations/SUPPORT-MATRIX.md`](operations/SUPPORT-MATRIX.md) |
 | Executar o QA visual atual da v0.11 | [`quality/VISUAL-QA-v0.11.md`](quality/VISUAL-QA-v0.11.md) |
 | Consultar performance e stress | [`quality/PERFORMANCE-v0.3.0.md`](quality/PERFORMANCE-v0.3.0.md) |
@@ -49,6 +50,8 @@ Documentação para executar, distribuir e automatizar o ciclo de engenharia do 
 - `LINUX-DISTRIBUTION.md`: distribuição GNU/Linux;
 - `SUPPORT-MATRIX.md`: ambientes testados e limites de suporte;
 - `CI-CD.md`: arquitetura de CI, migrations, documentação, segurança, Dependabot e release candidate.
+
+A política pública de reporte de vulnerabilidades fica em [`.github/SECURITY.md`](../.github/SECURITY.md), onde o GitHub também pode descobri-la como política de segurança do repositório.
 
 ### `quality/`
 
