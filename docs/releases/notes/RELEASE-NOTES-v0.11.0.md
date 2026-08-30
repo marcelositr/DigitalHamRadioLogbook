@@ -1,6 +1,6 @@
 # Digital Ham Radio Logbook v0.11.0
 
-> **Status:** draft / unreleased. This document describes the current v0.11 product-refactor line. It does not declare a published release, tag, merge to `main`, or final visual approval.
+> **Status:** draft / unreleased stable version. The v0.11 line is integrated into `main`, and `v0.11.0-RC1` is published separately as a GitHub **Pre-release** for evaluation. This document does not declare a final `v0.11.0` release or final visual approval.
 
 ## Slint-native desktop UI release
 
@@ -159,7 +159,7 @@ The only new persisted product preference in this cycle is the appearance color 
 
 ## Validation performed during the development cycle
 
-The v0.11 branch has repeatedly passed the repository CI while the UI and documentation were being rebuilt. The gate includes:
+The v0.11 line has repeatedly passed the repository CI while the UI and documentation were being rebuilt. The gate includes:
 
 - `cargo fmt --check`;
 - Clippy with warnings denied;
@@ -174,7 +174,7 @@ The documentation-path migration also passed the Linux packaging smoke test afte
 
 Technical CI does not replace visual acceptance.
 
-Before v0.11.0 can be considered approved for release, the real application must complete the current manual visual gate at the reference window size `1050×680` using Fluent in:
+Before v0.11.0 can be considered approved for stable release, the real application must complete the current manual visual gate at the reference window size `1050×680` using Fluent in:
 
 - System;
 - Light;
@@ -208,6 +208,6 @@ This cycle deliberately does **not**:
 
 ## Release status
 
-At the time this draft was written, the v0.11 work remains under review on the product-refactor branch and is not a final published release.
+`v0.11.0-RC1` is the current public candidate and is intentionally marked as a GitHub **Pre-release**. It may contain regressions, may be replaced by a later release candidate, and does not represent stable or production-ready status.
 
-A final v0.11.0 release requires the normal project release discipline: successful technical gates, completed manual visual QA, exact-artifact validation, maintainer approval, integration into the intended release branch, tag creation, and explicit publication. None of those final publication actions are implied by this document.
+The final `v0.11.0` release has **not** been published. Final publication still requires the normal project release discipline: successful technical gates, completed manual visual QA, exact-artifact validation, maintainer approval, creation of a new immutable final tag, and explicit stable GitHub Release publication. None of those final publication actions are implied by this draft.
