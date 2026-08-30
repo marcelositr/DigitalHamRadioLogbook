@@ -1,8 +1,17 @@
 # Progresso de implementação
 
-Última atualização: 2026-08-28
+Última atualização: 2026-08-29
 
 Este arquivo é o checkpoint persistente do projeto. Ao retomar o trabalho, ler `SPEC.md` e este arquivo antes de modificar código.
+
+## Checkpoint v0.11.0-RC2
+
+- Baseline pós-RC1 aprovado: `main` em `c3ffd3dd49d2dc18ef3b7cf227e77217b47cc7c4`.
+- Correção do Logbook em `1050×680` testada localmente e aprovada pelo mantenedor em 2026-08-29.
+- Preparação da RC2 ocorre em `release/v0.11.0-rc2` via PR #13, sem feature nova, migration, alteração de schema, contrato ADIF ou dependência de runtime.
+- Versão preparada: `0.11.0-rc.2`; lockfiles sincronizados sem atualização de dependências.
+- RC1 permanece publicada e imutável; RC2 ainda depende do gate técnico final, geração do artefato exato e validação dos pacotes antes de tag/publicação.
+
 
 ## Estado dos marcos
 
