@@ -1,10 +1,16 @@
 # Visual QA v0.11
 
-Status: **pendente de aprovação manual da reconstrução Slint-native**.
+Status: **correção pós-RC1 aprovada para promoção a RC2; matriz visual formal da release estável permanece registrada abaixo**.
 
 A UI v0.11 foi reconstruída a partir dos contratos funcionais, sem reutilizar a implementação visual anterior como referência. A janela de referência continua `1050×680`.
 
-O style oficial do produto é **Fluent**. O QA deve validar os três esquemas disponíveis em Settings: **System**, **Light** e **Dark**.
+O style oficial do produto é **Fluent**. O QA estável deve validar os três esquemas disponíveis em Settings: **System**, **Light** e **Dark**.
+
+## Evidência pós-RC1
+
+Em 2026-08-29, após o commit `c3ffd3dd49d2dc18ef3b7cf227e77217b47cc7c4` corrigir clipping e o layout dos filtros avançados do Logbook em `1050×680`, o mantenedor executou novamente a aplicação real localmente e informou o teste como aprovado.
+
+Essa aprovação autoriza a promoção do estado corrigido para `v0.11.0-RC2`. Ela não transforma automaticamente todas as caixas abaixo em evidência histórica individual nem substitui a validação do artefato empacotado da RC2.
 
 ## Regra de reprovação imediata
 
@@ -125,9 +131,9 @@ Em **Settings → Appearance**, validar:
 - [ ] Status normal, success, warning e error são distinguíveis em Light e Dark.
 - [ ] Estação não configurada não bloqueia operação.
 
-## Resultado
+## Resultado formal para release estável
 
-Registrar somente depois do teste real:
+Registrar somente depois do teste real correspondente:
 
 - data;
 - ambiente/desktop;
