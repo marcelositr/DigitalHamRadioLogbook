@@ -4,6 +4,28 @@ Este projeto segue [Semantic Versioning](https://semver.org/). As release notes 
 
 > **Nota histórica:** entradas anteriores a `0.11.0-rc.1` registram checkpoints de desenvolvimento e a evolução técnica do projeto. Tags e GitHub Releases antigas usadas durante o desenvolvimento foram removidas na limpeza de governança de 2026-08-29. A primeira publicação preservada como distribuição pública corrente é `v0.11.0-RC1`, marcada como **Pre-release**.
 
+## [0.11.0-rc.2] - 2026-08-29
+
+**Pre-release:** segundo candidato público da linha v0.11, promovendo somente correções e hardening posteriores à RC1.
+
+Release notes: [`notes/RELEASE-NOTES-v0.11.0-RC2.md`](notes/RELEASE-NOTES-v0.11.0-RC2.md).
+
+### Fixed
+
+- corrigidos clipping e compressão do workspace Logbook na janela de referência `1050×680`;
+- reorganizado o painel de filtros avançados para respeitar as métricas naturais dos widgets e preservar a área útil da tabela.
+
+### Changed
+
+- consolidado o fluxo de desenvolvimento em `main` como única branch permanente, com branches curtas por PR;
+- reforçada a governança de release e segurança do repositório sem alterar comportamento de domínio;
+- registrada a aprovação manual da aplicação real após a correção visual pós-RC1.
+
+### Compatibility
+
+- nenhuma feature nova, migration, alteração de schema, mudança ADIF ou dependência de runtime foi introduzida nesta promoção;
+- schema SQLite permanece na versão 7 e os contratos existentes de backup, configuração e interoperabilidade permanecem inalterados.
+
 ## [0.11.0-rc.1] - 2026-08-29
 
 **Pre-release:** candidato público para avaliação; não representa release estável nem declaração de prontidão.
