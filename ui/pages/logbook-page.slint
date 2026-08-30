@@ -105,8 +105,16 @@ export component LogbookPage inherits VerticalBox {
     in property <bool> search-focus-request;
     changed search-focus-request => { search-input.focus(); }
 
+    property <length> table-padding: StyleMetrics.layout-padding / 2;
+    property <length> utc-column-width: 124px;
+    property <length> callsign-column-width: 96px;
+    property <length> mode-column-width: 60px;
+    property <length> frequency-column-width: 96px;
+    property <length> band-column-width: 48px;
+    property <length> grid-column-width: 64px;
+
     padding: StyleMetrics.layout-padding;
-    spacing: StyleMetrics.layout-spacing;
+    spacing: StyleMetrics.layout-spacing / 2;
 
     HorizontalBox {
         VerticalBox {
@@ -122,6 +130,7 @@ export component LogbookPage inherits VerticalBox {
     }
 
     HorizontalBox {
+        spacing: StyleMetrics.layout-spacing / 2;
         accessible-role: search;
         accessible-label: "Search logbook";
         search-input := LineEdit {
@@ -182,7 +191,7 @@ export component LogbookPage inherits VerticalBox {
         title: "Filters";
         vertical-stretch: 0;
         VerticalBox {
-            spacing: StyleMetrics.layout-spacing;
+            spacing: StyleMetrics.layout-spacing / 2;
             HorizontalBox {
                 Text { text: "Mode"; vertical-alignment: center; }
                 Button {
@@ -222,24 +231,22 @@ export component LogbookPage inherits VerticalBox {
             }
 
             if root.active-filter == 2 : VerticalBox {
+                spacing: StyleMetrics.layout-spacing / 2;
                 HorizontalBox {
-                    FormField { label: "Callsign"; text <=> root.ft8-filter-callsign-text; horizontal-stretch: 1; }
+                    FormField { label: "Callsign"; text <=> root.ft8-filter-callsign-text; horizontal-stretch: 2; }
                     FormField { label: "Grid"; text <=> root.ft8-filter-grid-text; horizontal-stretch: 1; }
                     FormField { label: "Band"; text <=> root.ft8-filter-band-text; horizontal-stretch: 1; }
-                    FormField { label: "Min SNR"; text <=> root.ft8-filter-min-snr-text; horizontal-stretch: 1; }
-                    FormField { label: "Max SNR"; text <=> root.ft8-filter-max-snr-text; horizontal-stretch: 1; }
                 }
                 HorizontalBox {
                     FormField { label: "Start UTC"; placeholder-text: "YYYY-MM-DD HH:MM:SS"; text <=> root.ft8-filter-start-text; horizontal-stretch: 1; }
                     FormField { label: "End UTC"; placeholder-text: "YYYY-MM-DD HH:MM:SS"; text <=> root.ft8-filter-end-text; horizontal-stretch: 1; }
-                    VerticalBox {
-                        vertical-stretch: 0;
-                        Text { text: "Actions"; opacity: 0.7; }
-                        HorizontalBox {
-                            Button { text: "Clear"; clicked => { root.clear-ft8-filter(); } }
-                            Button { text: "Apply filter"; primary: true; clicked => { root.filter-ft8(); } }
-                        }
-                    }
+                }
+                HorizontalBox {
+                    FormField { label: "Min SNR"; text <=> root.ft8-filter-min-snr-text; horizontal-stretch: 1; }
+                    FormField { label: "Max SNR"; text <=> root.ft8-filter-max-snr-text; horizontal-stretch: 1; }
+                    Rectangle { horizontal-stretch: 2; }
+                    Button { text: "Clear"; clicked => { root.clear-ft8-filter(); } }
+                    Button { text: "Apply filter"; primary: true; clicked => { root.filter-ft8(); } }
                 }
             }
 
@@ -274,15 +281,15 @@ export component LogbookPage inherits VerticalBox {
     }
 
     HorizontalBox {
-        padding-left: StyleMetrics.layout-padding;
-        padding-right: StyleMetrics.layout-padding;
-        Text { text: "UTC"; width: 140px; font-weight: 600; }
-        Text { text: "Callsign"; width: 110px; font-weight: 600; }
-        Text { text: "Mode"; width: 66px; font-weight: 600; }
-        Text { text: "Frequency"; width: 104px; font-weight: 600; }
-        Text { text: "Band"; width: 54px; font-weight: 600; }
+        padding-left: root.table-padding;
+        padding-right: root.table-padding;
+        Text { text: "UTC"; width: root.utc-column-width; font-weight: 600; }
+        Text { text: "Callsign"; width: root.callsign-column-width; font-weight: 600; }
+        Text { text: "Mode"; width: root.mode-column-width; font-weight: 600; }
+        Text { text: "Frequency"; width: root.frequency-column-width; font-weight: 600; }
+        Text { text: "Band"; width: root.band-column-width; font-weight: 600; }
         Text { text: "Route / signal"; horizontal-stretch: 1; font-weight: 600; }
-        Text { text: "Grid"; width: 80px; font-weight: 600; }
+        Text { text: "Grid"; width: root.grid-column-width; font-weight: 600; }
         Text { text: "Actions"; min-width: 120px; font-weight: 600; horizontal-alignment: right; }
     }
 
@@ -302,21 +309,21 @@ export component LogbookPage inherits VerticalBox {
             row := HorizontalBox {
                 y: 1px;
                 width: parent.width;
-                padding-left: StyleMetrics.layout-padding;
-                padding-right: StyleMetrics.layout-padding;
+                padding-left: root.table-padding;
+                padding-right: root.table-padding;
                 padding-top: StyleMetrics.layout-spacing / 2;
                 padding-bottom: StyleMetrics.layout-spacing / 2;
 
-                Text { text: qso.timestamp; width: 140px; vertical-alignment: center; overflow: elide; }
+                Text { text: qso.timestamp; width: root.utc-column-width; vertical-alignment: center; overflow: elide; }
                 TextAction {
-                    width: 110px;
+                    width: root.callsign-column-width;
                     text: qso.callsign;
                     description: "Open external callsign lookup for " + qso.callsign;
                     activated => { root.open-callsign-lookup(qso.callsign); }
                 }
-                Text { text: qso.mode; width: 66px; font-weight: 600; vertical-alignment: center; overflow: elide; }
-                Text { text: qso.frequency; width: 104px; vertical-alignment: center; overflow: elide; }
-                Text { text: qso.band == "" ? "—" : qso.band; width: 54px; vertical-alignment: center; overflow: elide; }
+                Text { text: qso.mode; width: root.mode-column-width; font-weight: 600; vertical-alignment: center; overflow: elide; }
+                Text { text: qso.frequency; width: root.frequency-column-width; vertical-alignment: center; overflow: elide; }
+                Text { text: qso.band == "" ? "—" : qso.band; width: root.band-column-width; vertical-alignment: center; overflow: elide; }
                 Text {
                     text: qso.route-summary == "" ? "Direct" : qso.route-summary;
                     horizontal-stretch: 1;
@@ -324,9 +331,9 @@ export component LogbookPage inherits VerticalBox {
                     overflow: elide;
                     opacity: 0.8;
                 }
-                if qso.grid == "" : Text { text: "—"; width: 80px; vertical-alignment: center; }
+                if qso.grid == "" : Text { text: "—"; width: root.grid-column-width; vertical-alignment: center; }
                 if qso.grid != "" : TextAction {
-                    width: 80px;
+                    width: root.grid-column-width;
                     text: qso.grid;
                     description: "Open external grid lookup for " + qso.grid;
                     activated => { root.open-grid-lookup(qso.grid); }
