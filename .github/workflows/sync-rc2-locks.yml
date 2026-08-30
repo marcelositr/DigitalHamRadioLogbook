@@ -1,0 +1,51 @@
+name: Sync RC2 lockfiles
+
+on:
+  push:
+    branches:
+      - release/v0.11.0-rc2
+
+permissions:
+  contents: write
+
+jobs:
+  sync-locks:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out release branch
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: release/v0.11.0-rc2
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Regenerate root lock metadata
+        run: cargo metadata --format-version 1 --no-deps >/dev/null
+
+      - name: Regenerate fuzz lock metadata
+        run: cargo metadata --manifest-path fuzz/Cargo.toml --format-version 1 --no-deps >/dev/null
+
+      - name: Verify lock changes are version-only
+        run: |
+          set -euo pipefail
+          git diff -- Cargo.lock fuzz/Cargo.lock
+          changed=$(git diff --numstat -- Cargo.lock fuzz/Cargo.lock | awk '{a+=$1; d+=$2} END {print (a+0) ":" (d+0)}')
+          test "$changed" = "2:2" || {
+            echo "Unexpected lockfile change count: $changed" >&2
+            exit 1
+          }
+          git diff -- Cargo.lock fuzz/Cargo.lock | grep -q -- '-version = "0.11.0-rc.1"'
+          git diff -- Cargo.lock fuzz/Cargo.lock | grep -q -- '+version = "0.11.0-rc.2"'
+          git diff -- Cargo.lock fuzz/Cargo.lock | grep -q -- '-version = "0.10.0-rc.1"'
+          test "$(git diff --name-only -- Cargo.lock fuzz/Cargo.lock | wc -l)" -eq 2
+
+      - name: Commit synchronized locks
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add Cargo.lock fuzz/Cargo.lock
+          git commit -m 'chore(release): synchronize RC2 lockfiles'
+          git push origin HEAD:release/v0.11.0-rc2
