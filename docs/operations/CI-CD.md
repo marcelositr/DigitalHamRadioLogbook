@@ -82,14 +82,16 @@ Historical release notes, old QA snapshots, `SPEC.md`, and `PROGRESS.md` are pre
 
 ### `security.yml` — dependency advisories
 
-Runs RustSec against `Cargo.lock`:
+Runs `cargo-audit` against `Cargo.lock`:
 
 - weekly;
 - manually;
 - on dependency-sensitive pushes to `main`;
 - on dependency-sensitive pull requests targeting `main`.
 
-The workflow uses a full-SHA-pinned RustSec action and read-only repository permissions.
+`cargo-audit` is installed at the pinned version `0.22.2`. The workflow parses its JSON report directly so the gate distinguishes vulnerabilities from informational advisories such as unmaintained transitive crates. Any reported vulnerability fails the job. Informational warnings are printed and tracked, but do not by themselves turn the security gate red.
+
+The workflow keeps repository permissions read-only and does not depend on creating GitHub Check Runs through an action-specific API token.
 
 ### `release.yml` — exact release-candidate artifacts
 
@@ -125,8 +127,11 @@ Current pins introduced with this architecture:
 - `actions/checkout` v5 commit `fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09`;
 - `dtolnay/rust-toolchain` stable action commit `4360b52568e2003a75bf9bc1d59f33a8e3fc893c`;
 - `Swatinem/rust-cache` v2.9.2 commit `6323deb102c322ba6fcbdcafc7e3dddab59af2b6`;
-- `rustsec/audit-check` v2.0.0 commit `69366f33c96575abad1ee0dba8212993eecbe998`;
 - `actions/upload-artifact` v7 commit `043fb46d1a93c77aae656e7c1c64a875d1fc6a0a`.
+
+Security additionally pins:
+
+- `cargo-audit` `0.22.2` installed with `--locked`.
 
 The release-candidate workflow also pins and hashes:
 
