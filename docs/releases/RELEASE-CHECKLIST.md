@@ -60,9 +60,9 @@ MIGRATION_SOURCE_VERSION=N cargo test --locked \
 
 ## 5. Real upgrade paths
 
-- [ ] Select representative published release artifacts, not only synthetic schema numbers.
-- [ ] Verify historical artifact checksums before use.
-- [ ] Test a direct old-release → current RC upgrade.
+- [ ] Use intentionally retained historical artifacts when available; do not recreate deleted development releases merely to satisfy this checklist.
+- [ ] Verify checksums for every historical artifact used.
+- [ ] Test a direct available-old-artifact → current RC upgrade when such an artifact exists.
 - [ ] Test the relevant sequential release chain when historical artifacts exist.
 - [ ] Run health check, backup/verify and restart after upgrade.
 - [ ] Compare semantic data and configuration.
@@ -156,7 +156,7 @@ After the exact candidate is generated, do not rebuild and publish a different b
 
 - [ ] Push the prepared commit to its short-lived branch and open a pull request to `main`.
 - [ ] Confirm `Quality`, `Tests and build`, `Linux packaging smoke`, `Historical schemas 0-7`, and `Documentation integrity` pass on the pull request.
-- [ ] Confirm the scheduled/dependency-sensitive RustSec audit has no unresolved applicable advisory.
+- [ ] Confirm the scheduled/dependency-sensitive RustSec audit reports no unresolved vulnerability; review informational advisories separately rather than misclassifying them as CVEs.
 - [ ] Confirm no Critical or High integrity blocker is known.
 - [ ] Obtain explicit maintainer authorization before merging, tagging or publishing a GitHub Release.
 - [ ] Merge the approved pull request into `main` using the repository policy.
@@ -164,6 +164,7 @@ After the exact candidate is generated, do not rebuild and publish a different b
 - [ ] Confirm required CI on the resulting `main` commit.
 - [ ] Generate and manually validate release-candidate artifacts from that exact approved commit.
 - [ ] Create the authorized annotated tag only after the candidate is approved.
+- [ ] When maintainer signing is configured, sign new release tags with the established GPG or SSH signing identity; never rewrite an existing unsigned tag solely to add a signature.
 - [ ] Publish the already validated artifact and checksum; do not rebuild.
 - [ ] For RCs, confirm the GitHub Release is explicitly marked **Pre-release**.
 - [ ] Download release assets and verify checksum and byte equality.

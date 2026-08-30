@@ -2,6 +2,8 @@
 
 Este projeto segue [Semantic Versioning](https://semver.org/). As release notes de cada versão permanecem em [`notes/`](notes/).
 
+> **Nota histórica:** entradas anteriores a `0.11.0-rc.1` registram checkpoints de desenvolvimento e a evolução técnica do projeto. Tags e GitHub Releases antigas usadas durante o desenvolvimento foram removidas na limpeza de governança de 2026-08-29. A primeira publicação preservada como distribuição pública corrente é `v0.11.0-RC1`, marcada como **Pre-release**.
+
 ## [0.11.0-rc.1] - 2026-08-29
 
 **Pre-release:** candidato público para avaliação; não representa release estável nem declaração de prontidão.
@@ -27,7 +29,7 @@ Release notes: [`notes/RELEASE-NOTES-v0.11.0-RC1.md`](notes/RELEASE-NOTES-v0.11.
 - configurações antigas sem a nova seção `appearance` continuam válidas e usam `system` por padrão;
 - a homologação visual das versões anteriores não é herdada pela reconstrução v0.11; nova aprovação manual em `1050×680`, cobrindo System, Light e Dark, permanece necessária antes de concluir o ciclo.
 
-## [0.10.0-rc.1] - 2026-08-28
+## [0.10.0-rc.1] - 2026-08-28 · checkpoint histórico
 
 ### Changed
 
@@ -41,14 +43,14 @@ Release notes: [`notes/RELEASE-NOTES-v0.11.0-RC1.md`](notes/RELEASE-NOTES-v0.11.
 
 - feature freeze permanece ativo: nenhuma funcionalidade, migration, índice ou dependência foi adicionada;
 - schema permanece na versão 7 e downgrade automático continua não suportado;
-- o checkpoint deriva de `0.9.0-rc.1` validado em `develop`; `v0.8.0` e `v0.9.0` não tiveram release pública.
+- o checkpoint deriva de `0.9.0-rc.1` validado no fluxo de desenvolvimento usado naquele ciclo; `v0.8.0` e `v0.9.0` não tiveram distribuição pública preservada.
 
 ### Maturity
 
 - não existe declaração de prontidão para `1.0.0`;
 - uso cotidiano prolongado, múltiplos ciclos estáveis e cobertura adicional de ambientes permanecem evidências ainda necessárias.
 
-## [0.9.0-rc.1] - 2026-08-28
+## [0.9.0-rc.1] - 2026-08-28 · checkpoint histórico
 
 ### Fixed
 
@@ -68,9 +70,9 @@ Release notes: [`notes/RELEASE-NOTES-v0.11.0-RC1.md`](notes/RELEASE-NOTES-v0.11.
 
 - feature freeze: nenhuma funcionalidade, migration, índice ou dependência de runtime foi adicionada;
 - schema permanece na versão 7;
-- o release candidate teve QA manual e artefato exato validados em `develop`, mas não foi integrado, tagueado ou publicado como release final.
+- o release candidate teve QA manual e artefato exato validados no fluxo de desenvolvimento daquele ciclo, sem permanecer como publicação pública corrente.
 
-## [0.8.0] - Não publicada
+## [0.8.0] - checkpoint histórico, não publicado
 
 ### Added
 
@@ -90,7 +92,7 @@ Release notes: [`notes/RELEASE-NOTES-v0.11.0-RC1.md`](notes/RELEASE-NOTES-v0.11.
 - SQLite backup continua sendo o backup nativo; ADIF permanece o formato de interoperabilidade;
 - nenhuma dependência de runtime foi adicionada.
 
-## [0.7.0] - Publicada
+## [0.7.0] - checkpoint histórico
 
 ### Added
 
@@ -111,9 +113,9 @@ Release notes: [`notes/RELEASE-NOTES-v0.11.0-RC1.md`](notes/RELEASE-NOTES-v0.11.
 - schema permanece na versão 7, sem migration ou índice novo;
 - medições release em 100 mil QSOs confirmaram o plano por `idx_qsos_datetime_start`; nenhum índice adicional foi adotado.
 
-A versão 0.7.0 foi publicada como tag/release; `main` e a tag estavam no commit `a56a7d9`.
+Este marco teve tag/release de desenvolvimento à época; essas referências públicas antigas foram removidas durante a limpeza de governança e o conteúdo permanece apenas como histórico técnico.
 
-## [0.6.0] - Publicada
+## [0.6.0] - checkpoint histórico
 
 ### Added
 
@@ -134,9 +136,9 @@ A versão 0.7.0 foi publicada como tag/release; `main` e a tag estavam no commit
 - schema 7 adiciona `ysf_metadata`; somente TX/RX DG-ID receberam índices após inspeção com `EXPLAIN QUERY PLAN`;
 - não foram introduzidos traits nem plugins de modo.
 
-A versão 0.6.0 foi publicada como tag/release; `main` e a tag estavam no commit `034996f`.
+Este marco teve tag/release de desenvolvimento à época; essas referências públicas antigas foram removidas durante a limpeza de governança e o conteúdo permanece apenas como histórico técnico.
 
-## [0.5.0] - Publicada
+## [0.5.0] - checkpoint histórico
 
 ### Added
 
@@ -155,9 +157,9 @@ A versão 0.6.0 foi publicada como tag/release; `main` e a tag estavam no commit
 - `digital_routes` permanece específico de DMR;
 - suporte D-STAR cobre somente o subconjunto documentado, sem promessa de interoperabilidade total.
 
-A versão 0.5.0 foi publicada como tag/release; `main` estava no commit `ef262bd`.
+Este marco teve tag/release de desenvolvimento à época; essas referências públicas antigas foram removidas durante a limpeza de governança e o conteúdo permanece apenas como histórico técnico.
 
-## [0.4.0] - 2026-08-15
+## [0.4.0] - 2026-08-15 · checkpoint histórico
 
 ### Added
 
@@ -176,9 +178,9 @@ A versão 0.5.0 foi publicada como tag/release; `main` estava no commit `ef262bd
 - conflitos entre aliases ADIF agora são recusados em vez de descartar um valor;
 - frequências RX/TX DMR passam a sobreviver round-trip ADIF.
 
-A versão 0.4.0 foi concluída e publicada como release final.
+Este marco teve tag/release de desenvolvimento à época; essas referências públicas antigas foram removidas durante a limpeza de governança e o conteúdo permanece apenas como histórico técnico.
 
-## [0.3.0] - 2026-08-15
+## [0.3.0] - 2026-08-15 · checkpoint histórico
 
 ### Added
 
@@ -202,22 +204,19 @@ A versão 0.4.0 foi concluída e publicada como release final.
 - nenhuma dependência de runtime adicionada;
 - pacote continua gerado com `Cargo.lock` e checksum SHA-256.
 
-## [0.2.2] - 2026-08-15
+## [0.2.2] - 2026-08-15 · checkpoint histórico
 
 - hardening de banco, migrations, backup, configuração, XDG, ADIF e transações;
 - detalhes completos em [`notes/RELEASE-NOTES-v0.2.2.md`](notes/RELEASE-NOTES-v0.2.2.md).
 
-## [0.2.1] - 2026-08-14
+## [0.2.1] - 2026-08-14 · checkpoint histórico
 
 - redesign visual completo e homologação em i3/`1050×680`;
 - detalhes completos em [`notes/RELEASE-NOTES-v0.2.1.md`](notes/RELEASE-NOTES-v0.2.1.md).
 
-## [0.2.0]
+## [0.2.0] - checkpoint histórico
 
 - links externos configuráveis, testes de escala, paginação e refinamentos de distribuição;
 - detalhes completos em [`notes/RELEASE-NOTES-v0.2.0.md`](notes/RELEASE-NOTES-v0.2.0.md).
 
-## [0.1.0]
-
-- primeira release funcional;
-- detalhes completos em [`notes/RELEASE-NOTES-v0.1.0.md`](notes/RELEASE-NOTES-v0.1.0.md).
+## [0.1.0] - checkpoint histórico

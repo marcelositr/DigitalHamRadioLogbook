@@ -37,7 +37,55 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Install pinned cargo-audit
+        run: cargo install cargo-audit --version 0.22.2 --locked
+
       - name: Audit Cargo.lock
-        uses: rustsec/audit-check@69366f33c96575abad1ee0dba8212993eecbe998 # v2.0.0
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # cargo-audit can report informational advisories (for example,
+          # unmaintained transitive crates) alongside actual vulnerabilities.
+          # Capture JSON so the gate can distinguish those cases explicitly.
+          cargo audit --json --file Cargo.lock > audit.json || true
+
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          report_path = Path("audit.json")
+          if not report_path.exists() or report_path.stat().st_size == 0:
+              raise SystemExit("cargo-audit did not produce a report")
+
+          report = json.loads(report_path.read_text(encoding="utf-8"))
+          vulnerabilities = report.get("vulnerabilities", {})
+          vulnerability_count = int(vulnerabilities.get("count", 0))
+          warnings = report.get("warnings", {}) or {}
+
+          warning_entries = []
+          for kind, entries in warnings.items():
+              for entry in entries or []:
+                  package = entry.get("package", {})
+                  advisory = entry.get("advisory", {})
+                  warning_entries.append(
+                      f"{kind}: {package.get('name', '?')} {package.get('version', '?')} "
+                      f"({advisory.get('id', 'unknown advisory')})"
+                  )
+
+          print(f"RustSec vulnerabilities: {vulnerability_count}")
+          print(f"RustSec informational warnings: {len(warning_entries)}")
+          for warning in warning_entries:
+              print(f"warning: {warning}")
+
+          if vulnerability_count:
+              for item in vulnerabilities.get("list", []) or []:
+                  advisory = item.get("advisory", {})
+                  package = item.get("package", {})
+                  print(
+                      "vulnerability: "
+                      f"{advisory.get('id', 'unknown')} "
+                      f"{package.get('name', '?')} {package.get('version', '?')}"
+                  )
+              raise SystemExit("RustSec found one or more vulnerabilities")
+          PY
