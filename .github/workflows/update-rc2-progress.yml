@@ -1,0 +1,44 @@
+name: Update RC2 progress record
+
+on:
+  push:
+    branches:
+      - release/v0.11.0-rc2
+
+permissions:
+  contents: write
+
+jobs:
+  update-progress:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: release/v0.11.0-rc2
+
+      - name: Update persistent progress checkpoint
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('docs/project/PROGRESS.md')
+          text = p.read_text()
+          text = text.replace('Última atualização: 2026-08-28', 'Última atualização: 2026-08-29', 1)
+          marker = 'Este arquivo é o checkpoint persistente do projeto. Ao retomar o trabalho, ler `SPEC.md` e este arquivo antes de modificar código.\n'
+          block = '''\n## Checkpoint v0.11.0-RC2\n\n- Baseline pós-RC1 aprovado: `main` em `c3ffd3dd49d2dc18ef3b7cf227e77217b47cc7c4`.\n- Correção do Logbook em `1050×680` testada localmente e aprovada pelo mantenedor em 2026-08-29.\n- Preparação da RC2 ocorre em `release/v0.11.0-rc2` via PR #13, sem feature nova, migration, alteração de schema, contrato ADIF ou dependência de runtime.\n- Versão preparada: `0.11.0-rc.2`; lockfiles sincronizados sem atualização de dependências.\n- RC1 permanece publicada e imutável; RC2 ainda depende do gate técnico final, geração do artefato exato e validação dos pacotes antes de tag/publicação.\n\n'''
+          if '## Checkpoint v0.11.0-RC2' not in text:
+              text = text.replace(marker, marker + block, 1)
+          p.write_text(text)
+          PY
+          git diff --check
+          git diff -- docs/project/PROGRESS.md
+
+      - name: Commit progress update
+        run: |
+          set -euo pipefail
+          git pull --ff-only origin release/v0.11.0-rc2
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/project/PROGRESS.md
+          git commit -m 'docs(project): record v0.11.0-RC2 checkpoint'
+          git push origin HEAD:release/v0.11.0-rc2
